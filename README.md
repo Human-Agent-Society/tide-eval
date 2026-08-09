@@ -4,57 +4,26 @@
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
 
-**The Gym for LLM continual learning** — environments where language-model
-systems are measured on how they *improve with experience*: open-ended tasks
-they can iterate on, streams that test what their memory retains, and metrics
-that separate learning from raw capability. Built on the
-[Harbor](https://github.com/laude-institute/harbor) task standard, so every
-environment is also a containerized benchmark for full agents.
+**Continual evaluation infrastructure on the [Harbor](https://github.com/laude-institute/harbor) task standard** —
+the home for benchmarks that measure how LLM systems *improve with
+experience*: open-ended tasks they iterate on (autoresearch), ordered streams
+that test what their memory retains (continual learning), and metrics that
+separate learning from raw capability.
 
-```python
-import tide
+Harbor answers "how do I score an agent on one task, once, trustworthily?"
+tide answers what comes after: agents that self-evaluate hundreds of times
+inside one budget, learners whose memory or weights evolve across a task
+sequence, and tasks that never finish. Every task here is a stock Harbor
+task; every score lands in one tagged, idempotent results store.
 
-env = tide.make("tide/HiddenRules-v0")  # a hidden rule, learnable across phases
-obs, info = env.reset()
-memory = []
-while True:
-    memory.append(obs["ingest"])  # your memory, your design
-    answers = my_system(obs["questions"], memory)  # your LLM system
-    obs, reward, terminated, truncated, info = env.step(answers)
-    if terminated:
-        break
-```
+## What's in the box
 
-Gym's contract, with continual-learning payloads: observations carry
-**material to learn from** and **questions to answer**; actions are your
-system's answers or solutions; rewards come from trusted graders. The env
-never manages your memory — carrying knowledge forward is your system's job,
-and exactly the thing being measured. Run the loop twice — memory kept
-(*stateful*) vs wiped every phase (*fresh*) — and `tide.metrics.gain` tells
-you how much of the score is *learning*.
-
-## Environments
-
-| Env id | What it measures |
+| | |
 |---|---|
-| `tide/OceanFacts-v0` | ingest-then-probe over 8 documents; cumulative re-probing measures forgetting |
-| `tide/HiddenRules-v0` | infer a latent rule across 6 phases; accumulated evidence should widen the gain |
-| `tide/CirclePacking-v0` | open-ended optimization: pack circles, maximize Σ radii (exact-arithmetic grading) |
-| `tide/FunctionMinimization-v0` | escape a deceptive landscape (Levi N.13) |
-| `tide/TspTour-v0` | shorten a 40-city tour; continuous improvement signal |
-| `tide/BinPacking-v0` | beat first-fit under exact constraint checking |
-| `tide/SymbolicRegression-v0` | recover a formula; steps score on train, `final()` on held-out — the anti-overfitting wall |
-| `tide/StringCompression-v0` | ship a decompressor; agent code graded in a sandbox |
-
-Full Gym-style doc pages: [docs/envs/](docs/envs/). Task envs score each
-`step` with the task's **real grader, locally** (milliseconds, no Docker);
-`env.final()` reports the trusted number. Register your own with
-`tide.register("you/YourBench-v0", ...)` — third-party packages auto-register
-via the `tide.envs` entry-point group, exactly like Gym.
-
-The same tasks also run as **containerized agent benchmarks** (a full agent
-with its own tooling, wall-clock budgets, anti-cheat isolation) — that's the
-CLI below. One catalog, one grading truth, two surfaces.
+| **A task catalog** ([`tasks/`](tasks/)) | first-party autoresearch tasks + stream benchmarks, oracle-verified in real containers by CI; external benchmarks (EdgeBench, FrontierCS, CL-bench) converted in-place |
+| **One-command evaluation** | `tide run <task \| folder \| registry-id> --agent <name>` — containerized, anti-cheat isolated, resumable |
+| **A measurement library** | `Lab` (episodes/probes → tagged store) + `metrics` (gain, forgetting, anytime, scaling — all queries) |
+| **Authoring & adaptation** | `tasks/_template/` (a task in five minutes) · `tide/converters/` + `tide/loaders.py` (published formats → tasks/probes) |
 
 ## Quick start
 

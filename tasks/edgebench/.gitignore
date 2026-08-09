@@ -1,6 +1,4 @@
-# Fetched task dirs and cached specs stay local by default; the vendored
-# CC-BY-4.0 samples below are committed with attribution (see README).
-*/
-!.gitignore
-!ann_vector_search_qps/
-!ad_placement_optimization/
+# All 51 converted task dirs are committed (specs are CC-BY-4.0,
+# (c) ByteDance-Seed, converted verbatim by tide.converters — see README).
+# Only the spec download cache stays local.
+.specs/

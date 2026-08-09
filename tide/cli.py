@@ -113,18 +113,12 @@ def _make_lab(args: argparse.Namespace):
 
 
 def cmd_list(args: argparse.Namespace) -> int:
-    from tide.envs import registry
-
-    print("environments (tide.make / gym-style):\n")
-    for env_id in registry.all_ids():
-        print(f"  {env_id:32} {registry.spec(env_id).description}")
-
     tasks_root = _find_tasks_root(args.tasks_dir)
     if tasks_root is None:
-        print("\nNo tasks/ directory found here. Run from a tide checkout, or pass")
+        print("No tasks/ directory found here. Run from a tide checkout, or pass")
         print("--tasks-dir. Harbor registry ids always work: tide run <id> ...")
         return 1
-    print(f"\ncontainer tasks under {tasks_root}:\n")
+    print(f"tasks under {tasks_root}:\n")
     for task in _tasks_under(tasks_root):
         rel = task.relative_to(tasks_root)
         print(f"  {rel}")
