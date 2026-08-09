@@ -57,6 +57,11 @@ def grade() -> dict:
 
 if __name__ == "__main__":
     result = grade()
+    # Harbor's reward contract is numbers-only (VerifierResult.rewards is
+    # dict[str, float | int]); the human-readable reason goes to the verifier
+    # log dir instead.
+    reason = result.pop("reason", "")
     REWARD_PATH.parent.mkdir(parents=True, exist_ok=True)
     REWARD_PATH.write_text(json.dumps(result))
-    print(json.dumps(result))
+    (REWARD_PATH.parent / "reason.txt").write_text(reason or "ok")
+    print(json.dumps(result), reason)
