@@ -1,0 +1,36 @@
+name: E2E
+
+# The real thing: build the exemplar task's containers, run the oracle agent
+# through Harbor, and require the separate verifier to score exactly 0.75.
+# Heavier than CI (installs Harbor, builds images), so it runs on main pushes
+# that touch the pipeline, and on demand.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "tide/**"
+      - "examples/tasks/**"
+      - "examples/run_circle_packing.py"
+      - ".github/workflows/e2e.yml"
+
+jobs:
+  oracle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - name: Install tide + harbor
+        run: |
+          uv venv --python 3.12
+          uv pip install -e . harbor==0.20.0
+      - name: Oracle end-to-end (Docker)
+        run: uv run python examples/run_circle_packing.py --check
+      - name: Show trial artifacts on failure
+        if: failure()
+        run: |
+          find runs -maxdepth 4 -type f -name "*.json" | head -20
+          cat runs/circle-packing/trials/*/results.json 2>/dev/null || true
+          cat runs/circle-packing/trials/*/trial.log 2>/dev/null | tail -50 || true

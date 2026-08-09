@@ -14,6 +14,7 @@ Two runs prove the pipeline:
 
 import argparse
 import asyncio
+import sys
 from pathlib import Path
 
 from tide import Lab
@@ -21,11 +22,18 @@ from tide import Lab
 TASK = str(Path(__file__).parent / "tasks" / "circle-packing-mini")
 
 
-async def main(agent: str, model: str | None):
+async def main(agent: str, model: str | None, check: bool = False):
     lab = Lab("runs/circle-packing")
 
     oracle = await lab.run(TASK, {"name": "oracle"}, tags={"arm": "oracle"})
     print("oracle:", oracle.rewards)  # expect {"reward": 0.75, ...}
+    if check:
+        # E2E gate: the oracle must score exactly its known value, proving env
+        # build, artifact flow, and the separate verifier end to end.
+        if oracle.rewards.get("reward") != 0.75:
+            print(f"E2E CHECK FAILED: expected reward 0.75, got {oracle.rewards}")
+            sys.exit(1)
+        print("E2E check passed: oracle scored 0.75 through the full pipeline")
 
     if agent != "oracle":
         agent_cfg = {"name": agent, **({"model_name": model} if model else {})}
@@ -44,5 +52,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--agent", default="oracle")
     parser.add_argument("--model", default=None)
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="exit non-zero unless the oracle scores exactly 0.75",
+    )
     args = parser.parse_args()
-    asyncio.run(main(args.agent, args.model))
+    asyncio.run(main(args.agent, args.model, args.check))

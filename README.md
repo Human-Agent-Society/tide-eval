@@ -37,7 +37,6 @@ and a concrete home in the codebase:
 | **metric** | a pure function `DataFrame → DataFrame` over the results store; each declares the tag columns it expects | implementations: [`tide/metrics.py`](tide/metrics.py) · catalog of all metrics: [metrics.md](docs/components/metrics.md) |
 
 ```mermaid
-%%{init: {"flowchart": {"curve": "basis"}}}%%
 flowchart LR
     subgraph conv[" benchmark converters "]
         direction TB
@@ -57,14 +56,6 @@ flowchart LR
     ST ==> M["metrics<br/><i>anytime · gain · forgetting</i>"]
     W["weight plane<br/><i>reef / vLLM / static</i>"] -.->|api_base| EX
 
-    classDef tasks fill:#0e7490,stroke:#155e75,color:#ffffff
-    classDef core fill:#1d4ed8,stroke:#1e40af,color:#ffffff
-    classDef data fill:#b45309,stroke:#92400e,color:#ffffff
-    classDef ext fill:#475569,stroke:#334155,color:#ffffff
-    class FC,EB,CLB,T tasks
-    class EX,PR,SS core
-    class ST,M data
-    class W ext
 ```
 
 ---
@@ -123,10 +114,6 @@ flowchart TD
     Q2 -->|no| I["<b>Independent episodes</b><br/>dimensions go in tags<br/><i>sweeps, budget scans: EdgeBench</i>"]
     Q2 -->|yes| S["<b>A stream</b><br/>StateDir + frozen probes<br/><i>CL-Bench, live trading windows</i>"]
 
-    classDef q fill:#1d4ed8,stroke:#1e40af,color:#ffffff
-    classDef a fill:#0e7490,stroke:#155e75,color:#ffffff
-    class Q1,Q2 q
-    class E,I,S a
 ```
 
 The test is always the same question: *where does the harness need a score it
@@ -180,7 +167,6 @@ the protocol — what to ingest, when to probe, what feedback the learner gets �
 stays in your script, where variation is cheap.
 
 ```mermaid
-%%{init: {"flowchart": {"curve": "basis"}}}%%
 flowchart LR
     subgraph P0[" phase 0 "]
         direction TB
@@ -195,14 +181,6 @@ flowchart LR
     S0 ==>|"state_dir<br/>(the only crossing)"| L1
     P1 -.-> more(["… phase N (streams may be infinite)"])
 
-    classDef learn fill:#1d4ed8,stroke:#1e40af,color:#ffffff
-    classDef snap fill:#b45309,stroke:#92400e,color:#ffffff
-    classDef probe fill:#0e7490,stroke:#155e75,color:#ffffff
-    classDef etc fill:#475569,stroke:#334155,color:#ffffff
-    class L0,L1 learn
-    class S0,S1 snap
-    class B0,B1 probe
-    class more etc
 ```
 
 ```python
@@ -374,12 +352,6 @@ flowchart LR
     A -->|"inference<br/>(api_base pins the version)"| R
     DB -->|"runner reads rewards<br/>POST /reef/report"| R
 
-    classDef ev fill:#1d4ed8,stroke:#1e40af,color:#ffffff
-    classDef sv fill:#0e7490,stroke:#155e75,color:#ffffff
-    classDef data fill:#b45309,stroke:#92400e,color:#ffffff
-    class L,A ev
-    class R sv
-    class DB data
 ```
 
 One lap of the loop
