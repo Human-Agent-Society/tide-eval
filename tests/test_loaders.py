@@ -112,3 +112,61 @@ def test_strip_context_keeps_system_and_question(corpus):
     assert stripped.messages[-1]["content"] == "How much does a flumb score?"
     assert "CONTEXT" not in json.dumps(stripped.messages)
     assert stripped.rubrics == probe.rubrics  # judging is unchanged
+
+
+def test_load_clbench_results(tmp_path):
+    import gzip
+
+    run_dir = tmp_path / "runs" / "my-system"
+    (run_dir / "tasks").mkdir(parents=True)
+    (run_dir / "manifest.json").write_text(
+        json.dumps(
+            {
+                "run_name": "my-system",
+                "system": "icl",
+                "system_args": ["--system.model", "test-model"],
+                "tasks": [{"task": "exploitable_poker", "schedule": "default"}],
+            }
+        )
+    )
+    payload = {
+        "run_traces": [
+            {
+                "run_index": 0,
+                "trace": {
+                    "instance_outcomes": [
+                        {
+                            "instance_index": 0,
+                            "instance_id": "poker:h1",
+                            "reward": -2.5,
+                            "success": False,
+                            "metadata": {"variant_id": "calling_station"},
+                        },
+                        {
+                            "instance_index": 1,
+                            "instance_id": "poker:h2",
+                            "reward": 4.0,
+                            "success": True,
+                            "metadata": {"variant_id": "calling_station"},
+                        },
+                    ]
+                },
+            },
+        ],
+    }
+    with gzip.open(run_dir / "tasks" / "exploitable_poker.json.gz", "wt") as f:
+        f.write(json.dumps(payload))
+
+    from tide.loaders import load_clbench_results
+
+    df = load_clbench_results(tmp_path / "runs")
+    assert len(df) == 2
+    assert df["model"].iloc[0] == "test-model"
+    assert df["reward"].tolist() == [-2.5, 4.0]
+
+    from tide import metrics
+
+    curve = metrics.anytime(
+        df, time="instance_index", score="reward", by=["system", "task"]
+    )
+    assert curve["best_so_far"].tolist() == [-2.5, 4.0]

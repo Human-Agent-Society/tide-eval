@@ -23,6 +23,11 @@ TASKS_ROOT = Path(__file__).parent.parent / "tasks"
 VECTOR_TASKS = sorted(
     p.parent.parent for p in TASKS_ROOT.glob("*/*/tests/vectors.json")
 )
+ALL_TASKS = sorted(
+    p.parent
+    for p in TASKS_ROOT.glob("*/*/task.toml")
+    if not any(part.startswith("_") for part in p.parts)
+)
 
 
 def _load_grader(task_dir: Path):
@@ -88,3 +93,18 @@ def test_task_is_stock_harbor(task_dir):
         "solution/solve.sh",
     ):
         assert (task_dir / required).exists(), f"{task_dir.name} missing {required}"
+
+
+@pytest.mark.parametrize(
+    "task_dir", ALL_TASKS, ids=lambda p: f"{p.parent.name}/{p.name}"
+)
+def test_every_committed_task_validates(task_dir):
+    """Every task in the catalog — first-party AND synced external — is a
+    valid stock Harbor task."""
+    pytest.importorskip("harbor")
+    import tomllib
+
+    from harbor.models.task.config import TaskConfig
+
+    TaskConfig.model_validate(tomllib.loads((task_dir / "task.toml").read_text()))
+    assert (task_dir / "instruction.md").exists()

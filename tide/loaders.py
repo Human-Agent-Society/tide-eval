@@ -165,3 +165,61 @@ def _rubric_text(rubric: str | dict) -> str:
     if isinstance(rubric, dict):
         return str(rubric.get("rubric_criteria", "")).strip()
     return str(rubric).strip()
+
+
+def load_clbench_results(runs_dir: Path | str) -> pd.DataFrame:  # noqa: F821
+    """Load Continual-Learning-Bench run results into a metrics-ready frame.
+
+    ``runs_dir`` is a CLB ``final_results/runs/`` directory (produced by
+    their harness, or downloaded from their repo). Returns one row per
+    instance outcome with columns: ``run · system · model · task ·
+    schedule · run_index · instance_index · instance_id · reward · success ·
+    variant`` — which feeds :mod:`tide.metrics` directly::
+
+        df = load_clbench_results("continual-learning-bench/final_results/runs")
+        curves = metrics.anytime(df, time="instance_index", score="reward",
+                                 by=["system", "task"])
+
+    tide never redistributes their data (note the benchmark's canary): this
+    loads results you generated or fetched locally.
+    """
+    import gzip
+
+    import pandas as pd
+
+    rows = []
+    for manifest_path in sorted(Path(runs_dir).glob("*/manifest.json")):
+        manifest = json.loads(manifest_path.read_text())
+        system = manifest.get("system", "")
+        args = manifest.get("system_args") or []
+        model = ""
+        for i, arg in enumerate(args):
+            if arg == "--system.model" and i + 1 < len(args):
+                model = args[i + 1]
+        for entry in manifest.get("tasks", []):
+            gz = manifest_path.parent / "tasks" / f"{entry['task']}.json.gz"
+            if not gz.exists():
+                continue
+            with gzip.open(gz, "rt") as f:
+                payload = json.loads(f.read())
+            for run in payload.get("run_traces", []):
+                trace = run.get("trace", {})
+                for outcome in trace.get("instance_outcomes", []):
+                    rows.append(
+                        {
+                            "run": manifest.get("run_name", manifest_path.parent.name),
+                            "system": system,
+                            "model": model,
+                            "task": entry["task"],
+                            "schedule": entry.get("schedule", ""),
+                            "run_index": run.get("run_index"),
+                            "instance_index": outcome.get("instance_index"),
+                            "instance_id": outcome.get("instance_id", ""),
+                            "reward": outcome.get("reward"),
+                            "success": outcome.get("success"),
+                            "variant": (outcome.get("metadata") or {}).get(
+                                "variant_id", ""
+                            ),
+                        }
+                    )
+    return pd.DataFrame(rows)

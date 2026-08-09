@@ -101,9 +101,7 @@ def _load_points(solution_path: str) -> Any:
     if points is not None:
         return points
 
-    raise RuntimeError(
-        "solution must define solve(n), generate_points(n), run(n), or POINTS"
-    )
+    raise RuntimeError("solution must define solve(n), generate_points(n), run(n), or POINTS")
 
 
 def _run_solution(solution_path: str) -> tuple[Any, str]:

@@ -4,31 +4,40 @@ The expert-built continual-learning benchmark from
 [pgasawa/continual-learning-bench](https://github.com/pgasawa/continual-learning-bench)
 (Apache-2.0): six task families — exploitable poker, sales prediction,
 codebase adaptation, database exploration, cohort studies, blind spectrum
-monitoring — where episodes share a **learnable latent structure** (opponent
-strategies, codebase layout, outbreak dynamics), and a **gain metric** that
-isolates learning from raw capability.
+monitoring — where episodes share a learnable latent structure and a gain
+metric isolates learning from capability.
 
-## Using it today
+Their tasks are **interactive Python simulations** (e.g. per-hand poker
+against opponent policies), run by their own harness — not convertible to
+static task dirs, and carrying a training-corpora canary, so nothing is
+vendored here. Two supported workflows:
 
-Their harness is self-contained (own CLI, own containers, own schedules) and
-runs directly:
+**1. Analyze their runs with tide** (works immediately — their repo ships
+the full leaderboard results):
 
 ```bash
-git clone https://github.com/pgasawa/continual-learning-bench && cd continual-learning-bench
+python tasks/continual-learning-bench/fetch.py     # clones their repo locally
+```
+```python
+from tide.loaders import load_clbench_results
+from tide import metrics
+
+df = load_clbench_results("tasks/continual-learning-bench/repo/final_results/runs")
+# 16,904 instance outcomes · 6 systems · 6 tasks, one row each
+df.groupby(["system", "task"])["reward"].mean()  # the leaderboard
+metrics.anytime(
+    df, time="instance_index", score="reward", by=["system", "task"]
+)  # learning curves
+```
+
+**2. Run their harness** to produce new results (Docker + model keys):
+
+```bash
+cd tasks/continual-learning-bench/repo
 uv sync --all-extras && clbench setup --all
 clbench run exploitable_poker --schedule quick_test --system icl
 ```
 
-## How it maps onto tide
-
-Their concepts land exactly on tide's primitives — each episode in a task
-sequence is a tide **episode**; a schedule is a **stream**; their gain metric
-is `metrics.gain` (stateful vs fresh arms); their improvement-over-episodes
-reward is `metrics.matrix` sliced by phase. What's not built yet is the
-converter (their tasks → Harbor task dirs + a stream manifest) — tracked on
-the [roadmap](../../README.md#roadmap). Until then:
-
-- run their harness as-is for their leaderboard numbers;
-- use [`tasks/streams/hidden-rules/`](../streams/hidden-rules) — an offline
-  first-party instance of the same protocol shape — to develop and test your
-  learner loop in tide before spending on the real thing.
+Their run outputs load with the same `load_clbench_results` call. For an
+offline, first-party instance of the same protocol shape, see
+[`tasks/streams/hidden-rules/`](../streams/hidden-rules).

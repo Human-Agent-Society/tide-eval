@@ -24,13 +24,15 @@ the coordinates before returning them.
 Submit a Python file defining one of the following:
 
 ```python
-def solve(n: int) -> list[tuple[float, float]]: ...
+def solve(n: int) -> list[tuple[float, float]]:
+    ...
 ```
 
 or:
 
 ```python
-def generate_points(n: int) -> list[tuple[float, float]]: ...
+def generate_points(n: int) -> list[tuple[float, float]]:
+    ...
 ```
 
 or:

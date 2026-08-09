@@ -31,7 +31,7 @@ BEST_JUDGE_PAYLOAD = Path("/logs/judge/best_submission_payload.json")
 BEST_JUDGE_META = Path("/logs/judge/best_submission_meta.json")
 JUDGE_URL = os.environ.get("JUDGE_URL", "http://judge:8082").rstrip("/")
 JUDGE_TIMEOUT_SECONDS = int(os.environ.get("JUDGE_TIMEOUT_SECONDS", "10800"))
-FINAL_ROLE_TOKEN = "hElZC8RPD6OWfCmVElUn08bnZMTx-oipbq9RBmZ5tmI"
+FINAL_ROLE_TOKEN = "Ypz5lxGp2OUWcVFR7WxxBjvtDDja0M5X8w0G9UdtMMk"
 
 
 def result_score_key(record: dict) -> tuple[float, float]:
@@ -61,9 +61,7 @@ def copy_judge_artifacts() -> None:
             payload = json.loads(response.read().decode("utf-8"))
         http_records = payload.get("submissions", [])
         if isinstance(http_records, list):
-            records.extend(
-                record for record in http_records if isinstance(record, dict)
-            )
+            records.extend(record for record in http_records if isinstance(record, dict))
     except Exception as exc:
         print(f"WARN: failed to fetch judge submissions: {exc}")
 
@@ -88,9 +86,7 @@ def copy_judge_artifacts() -> None:
             continue
         key = str(record.get("submission_uuid") or json.dumps(record, sort_keys=True))
         previous = by_uuid.get(key)
-        if previous is None or status_rank.get(
-            str(record.get("status")), -1
-        ) >= status_rank.get(str(previous.get("status")), -1):
+        if previous is None or status_rank.get(str(record.get("status")), -1) >= status_rank.get(str(previous.get("status")), -1):
             by_uuid[key] = record
     with VERIFIER_SUBMISSIONS_LOG.open("w", encoding="utf-8") as dst:
         for record in by_uuid.values():
@@ -143,9 +139,7 @@ def wait_for_judge() -> None:
             with request.urlopen(f"{JUDGE_URL}/health", timeout=5) as response:
                 payload = json.loads(response.read().decode("utf-8"))
             if payload.get("status") == "error":
-                raise RuntimeError(
-                    f"judge setup failed: {payload.get('error') or payload}"
-                )
+                raise RuntimeError(f"judge setup failed: {payload.get('error') or payload}")
             return
         except error.HTTPError as exc:
             try:
@@ -153,9 +147,7 @@ def wait_for_judge() -> None:
             except Exception:
                 payload = {}
             if payload.get("status") == "error":
-                raise RuntimeError(
-                    f"judge setup failed: {payload.get('error') or payload}"
-                )
+                raise RuntimeError(f"judge setup failed: {payload.get('error') or payload}")
             last_error = exc
             time.sleep(1)
         except RuntimeError:
@@ -243,9 +235,7 @@ def build_judge_payload(solution_path: Path, config: dict) -> dict:
 
 
 def load_best_agent_payload() -> dict | None:
-    payload_path = (
-        BEST_JUDGE_PAYLOAD if BEST_JUDGE_PAYLOAD.exists() else BEST_AGENT_PAYLOAD
-    )
+    payload_path = BEST_JUDGE_PAYLOAD if BEST_JUDGE_PAYLOAD.exists() else BEST_AGENT_PAYLOAD
     if not payload_path.exists():
         return None
     try:
@@ -336,9 +326,7 @@ def main() -> None:
         )
         write_result(best_result)
 
-    def try_write_best_final_result(
-        reason: str, final_key: tuple[float, float] | None = None
-    ) -> bool:
+    def try_write_best_final_result(reason: str, final_key: tuple[float, float] | None = None) -> bool:
         try:
             best_result = evaluate_best_with_judge()
             copy_judge_artifacts()
@@ -365,11 +353,7 @@ def main() -> None:
             write_reward(0.0, f"{solution_path} not found")
             return
         allow_empty = bool(config.get("allow_empty", False))
-        if (
-            solution_path.is_file()
-            and not allow_empty
-            and not solution_path.read_text(encoding="utf-8").strip()
-        ):
+        if solution_path.is_file() and not allow_empty and not solution_path.read_text(encoding="utf-8").strip():
             print(f"ERROR: {solution_path} is empty")
             if try_write_best_final_result(f"{solution_path} is empty"):
                 return
