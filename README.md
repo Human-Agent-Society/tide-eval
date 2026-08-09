@@ -279,14 +279,14 @@ in tide yet** (tracked in the [roadmap](#roadmap)).
 |---|---|---|---|
 | `circle-packing-mini` (in-repo exemplar) | dual scorer, anti-hack wall, budget semantics, score trajectory — the reference for the whole category | 🔧 | `python examples/run_circle_packing.py` (Docker) |
 | [AlgoTune](https://github.com/oripress/AlgoTune) · 154 tasks | speed up code vs a reference | ✅ | `lab.run("algotune/<task>", agent)` via its [Harbor adapter](https://github.com/laude-institute/harbor/tree/main/adapters/algotune) |
-| [FrontierCS](https://github.com/FrontierCS/Frontier-CS) · 240 open problems (Erdős constructions, BBOPlace) | open-ended CS with expert evaluators | ✅ | generate with their official adapter, then `lab.run(<dir>, agent)`. A generated erdos task is pinned in `tests/fixtures/frontiercs/` and validated as stock Harbor |
-| [EdgeBench](https://github.com/ByteDance-Seed/EdgeBench) · 51 tasks, 2–12 h budgets | capability vs interaction time | 🔧 | `converters.convert_edgebench_task(spec.json, BENCHMARK.yaml, out)` → a Harbor task dir (tested against unmodified published specs); running it additionally needs their prebuilt work/judge images |
+| [FrontierCS](https://github.com/FrontierCS/Frontier-CS) · 240 open problems (Erdős constructions, BBOPlace) | open-ended CS with expert evaluators | ✅ | `python examples/run_frontiercs.py` (pinned erdos export, any agent); generate more with their official adapter, then `lab.run(<dir>, agent)` |
+| [EdgeBench](https://github.com/ByteDance-Seed/EdgeBench) · 51 tasks, 2–12 h budgets | capability vs interaction time | 🔧 | `python examples/convert_edgebench.py <task_id>` fetches the spec from HF and emits a Harbor task dir (tested against unmodified published specs); running it additionally needs their prebuilt work/judge images |
 
 **Continual learning / streams**:
 
 | Benchmark | What it tests | Status | Run it in tide with |
 |---|---|---|---|
-| [CL-bench / CL-bench Life (Tencent)](https://github.com/Tencent-Hunyuan/CL-bench) · 1,899 + 405 rubric-judged tasks | ingest-then-probe conversion: context moves into learner state, probes run without it | ✅ | `loaders.load_rubric_probes("CL-bench.jsonl")` → probes; `loaders.strip_context(p)` makes the from-state arm; judge with `openai_rubric_judge`. Data from [HuggingFace](https://huggingface.co/datasets/tencent/CL-bench) |
+| [CL-bench / CL-bench Life (Tencent)](https://github.com/Tencent-Hunyuan/CL-bench) · 1,899 + 405 rubric-judged tasks | ingest-then-probe conversion: context moves into learner state, probes run without it | ✅ | `python examples/clbench_probes.py CL-bench.jsonl` (data from [HuggingFace](https://huggingface.co/datasets/tencent/CL-bench)); arms via `loaders.load_rubric_probes` / `strip_context`, judged by `openai_rubric_judge` |
 | [CL-Bench (Anthropic)](https://arxiv.org/abs/2606.05661) · 6 domains with shared latent structure | does experience improve performance? | 🔧 | the protocol shape is [examples/stream_cl.py](examples/stream_cl.py) and the gain metric is `metrics.gain`; their tasks themselves are not yet packaged as Harbor dirs |
 | [AgentStream](https://arxiv.org/abs/2608.00155) | any static benchmark, streamed by progressive reveal | ✅ | `loaders.reveal_phases(probe, n)` turns any rubric probe into an n-phase reveal stream; probe every phase for the checkpoint curve |
 | [SkillLearnBench](https://github.com/cxcscmu/SkillLearnBench) | continual skill generation | 🗺️ | nothing yet — maps onto the skills-channel `StateDir` |
