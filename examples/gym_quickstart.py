@@ -55,7 +55,9 @@ def rule_learner(observations: list[tuple[list[int], str]], queries) -> str:
 
     def predict(weights, threshold, feats):
         return (
-            "WIN" if sum(w * f for w, f in zip(weights, feats, strict=True)) > threshold else "LOSS"
+            "WIN"
+            if sum(w * f for w, f in zip(weights, feats, strict=True)) > threshold
+            else "LOSS"
         )
 
     best, best_acc = ([1, 1, 1, 1], 10), -1.0
