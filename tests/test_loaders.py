@@ -48,6 +48,63 @@ def test_corrupt_line_is_loud(tmp_path):
         load_rubric_probes(path)
 
 
+def test_reveal_phases_by_message():
+    from tide.probe import Probe
+
+    probe = Probe(
+        id="q",
+        messages=[
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "fact A"},
+            {"role": "user", "content": "fact B"},
+            {"role": "user", "content": "fact C"},
+            {"role": "user", "content": "question?"},
+        ],
+        rubrics=("r1",),
+    )
+    from tide.loaders import reveal_phases
+
+    phases = reveal_phases(probe, 3)
+    assert [p.id for p in phases] == ["q@r0", "q@r1", "q@r2"]
+    # phase 0 reveals only the first chunk; the question is always last
+    assert [m["content"] for m in phases[0].messages] == ["sys", "fact A", "question?"]
+    # the final phase equals the full original probe
+    assert phases[-1].messages == probe.messages
+    assert all(p.rubrics == ("r1",) for p in phases)
+
+
+def test_reveal_phases_by_paragraph_for_single_context_message():
+    from tide.loaders import reveal_phases
+    from tide.probe import Probe
+
+    context = "para one\n\npara two\n\npara three\n\npara four"
+    probe = Probe(
+        id="q",
+        messages=[
+            {"role": "user", "content": context},
+            {"role": "user", "content": "question?"},
+        ],
+    )
+    phases = reveal_phases(probe, 2)
+    assert len(phases) == 2
+    assert "para one" in phases[0].messages[0]["content"]
+    assert "para three" not in phases[0].messages[0]["content"]
+    joined = " ".join(m["content"] for m in phases[-1].messages)
+    assert all(p in joined for p in ["para one", "para two", "para three", "para four"])
+
+
+def test_reveal_phases_edge_cases():
+    from tide.loaders import reveal_phases
+    from tide.probe import Probe
+
+    probe = Probe(id="q", messages=[{"role": "user", "content": "just a question"}])
+    assert len(reveal_phases(probe, 5)) == 1  # nothing to reveal → one phase
+    import pytest as _pytest
+
+    with _pytest.raises(ValueError):
+        reveal_phases(probe, 0)
+
+
 def test_strip_context_keeps_system_and_question(corpus):
     probe = load_rubric_probes(corpus)[0]
     stripped = strip_context(probe)

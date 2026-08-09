@@ -47,6 +47,8 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 88
 target-version = "py312"
+# Fixtures include third-party generated task code (FrontierCS export).
+extend-exclude = ["tests/fixtures"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]

@@ -75,6 +75,80 @@ def strip_context(probe: Probe, *, keep_roles: tuple[str, ...] = ("system",)) ->
     return Probe(id=probe.id, messages=kept, rubrics=probe.rubrics, data=probe.data)
 
 
+def reveal_phases(
+    probe: Probe,
+    n: int,
+    *,
+    keep_roles: tuple[str, ...] = ("system",),
+) -> list[Probe]:
+    """AgentStream-style progressive reveal: turn one probe into a stream.
+
+    The probe's context (everything except kept roles and the final question)
+    is split into *n* contiguous chunks; phase ``i`` reveals chunks ``0..i``,
+    so the last phase equals the original probe. Probing the same question at
+    every phase yields the checkpoint curve AgentStream measures — how
+    performance improves as information arrives.
+
+    Chunking: when the context spans at least *n* messages, split by message;
+    a single long context message is split by paragraphs instead (CL-bench
+    instances typically carry one big context block).
+
+    Returned probes are ids ``<id>@r0 .. <id>@r{n-1}`` with rubrics and data
+    unchanged. Pair with ``strip_context`` + a learner ingesting each newly
+    revealed chunk for the stateful arm.
+    """
+    if n < 1:
+        raise ValueError("reveal_phases needs n >= 1")
+    if not probe.messages:
+        return [probe]
+
+    kept = [m for m in probe.messages[:-1] if m.get("role") in keep_roles]
+    context = [m for m in probe.messages[:-1] if m.get("role") not in keep_roles]
+    question = probe.messages[-1]
+    if not context:
+        return [probe]  # nothing to reveal progressively
+
+    if len(context) >= n:
+        chunks = _split_even(context, n)
+    else:
+        text = "\n\n".join(m.get("content", "") for m in context)
+        paragraphs = [p for p in text.split("\n\n") if p.strip()]
+        chunks = [
+            [
+                {
+                    "role": "user",
+                    "content": f"[context part {i + 1}/{n}]\n" + "\n\n".join(group),
+                }
+            ]
+            for i, group in enumerate(_split_even(paragraphs, n))
+        ]
+
+    phases = []
+    for i in range(len(chunks)):
+        revealed = [m for chunk in chunks[: i + 1] for m in chunk]
+        phases.append(
+            Probe(
+                id=f"{probe.id}@r{i}",
+                messages=[*kept, *revealed, question],
+                rubrics=probe.rubrics,
+                data=probe.data,
+            )
+        )
+    return phases
+
+
+def _split_even(items: list, n: int) -> list[list]:
+    """Split *items* into at most *n* contiguous, non-empty, near-equal groups."""
+    n = min(n, len(items))
+    base, extra = divmod(len(items), n)
+    groups, start = [], 0
+    for i in range(n):
+        size = base + (1 if i < extra else 0)
+        groups.append(items[start : start + size])
+        start += size
+    return groups
+
+
 def _iter_jsonl(path: Path) -> Iterator[dict]:
     with path.open() as f:
         for line_no, line in enumerate(f, start=1):
