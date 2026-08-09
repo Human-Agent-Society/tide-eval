@@ -49,13 +49,17 @@ the exemplar's grader test does exactly this).
 
 ## A benchmark converter
 
-A converter is a script: external format in → a folder of task dirs out
-(plus an ordered manifest for streams). Converters depend **only on the task
-format** — never import tide — so they can't break anything. Follow Harbor's
-`adapters/` layout for familiarity. EdgeBench sketch: each JSON spec's `work`
-section → `instruction.md` + `environment/`; its `judge` section →
-`tests/`; its budgets → run tide with `tags={"budget": h}` and read
-`metrics.scaling`.
+A converter turns a published external format into a folder of task dirs
+(plus an ordered manifest for streams). Converters depend **only on the
+published format and tide's public types** — so they can't break anything.
+The reference implementation is `tide/converters/edgebench.py`: the spec's
+`work` half becomes `instruction.md` + `environment/`, its `judge` half
+becomes `tests/` (their two-container judging maps onto the separate
+verifier), `submit_paths` become declared artifacts, and budgets are run
+parameters (`tags={"budget": h}` + `metrics.scaling`). Its tests pin the
+converter to unmodified published spec files — do the same for any new
+converter: check one real spec into `tests/fixtures/` and validate the
+emitted task under Harbor's `TaskConfig`.
 
 ## A stream benchmark
 
