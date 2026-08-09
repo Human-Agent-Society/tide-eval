@@ -35,6 +35,7 @@ async def main(agent: str, model: str | None):
         trace = lab.df("trace")
         if not trace.empty:
             from tide import metrics
+
             print("\nanytime curve (untrusted, from the agent's score log):")
             print(metrics.anytime(trace)[["t", "score", "best_so_far"]])
 

@@ -13,8 +13,9 @@ OpenAI-compatible pair is provided via :func:`openai_infer` /
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable
+from typing import Any
 
 from tide.types import Rewards
 
@@ -73,9 +74,7 @@ def openai_infer(client: Any) -> InferFn:
     """
 
     async def infer(messages: Messages, model: dict[str, Any]) -> str:
-        response = await client.chat.completions.create(
-            messages=messages, **model
-        )
+        response = await client.chat.completions.create(messages=messages, **model)
         return response.choices[0].message.content or ""
 
     return infer
@@ -96,9 +95,7 @@ def openai_rubric_judge(client: Any, judge_model: str) -> JudgeFn:
             messages=[
                 {
                     "role": "user",
-                    "content": _JUDGE_PROMPT.format(
-                        answer=output, rubrics=rubric_text
-                    ),
+                    "content": _JUDGE_PROMPT.format(answer=output, rubrics=rubric_text),
                 }
             ],
         )

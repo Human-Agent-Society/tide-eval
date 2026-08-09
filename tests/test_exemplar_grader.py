@@ -13,7 +13,11 @@ import pytest
 
 GRADE_PY = (
     Path(__file__).parent.parent
-    / "examples" / "tasks" / "circle-packing-mini" / "tests" / "grade.py"
+    / "examples"
+    / "tasks"
+    / "circle-packing-mini"
+    / "tests"
+    / "grade.py"
 )
 
 
@@ -28,7 +32,8 @@ def grade(tmp_path, monkeypatch):
             artifact = tmp_path / "solution.json"
             artifact.write_text(json.dumps({"circles": circles}))
         monkeypatch.setattr(
-            module, "find_artifact",
+            module,
+            "find_artifact",
             lambda name, _a=artifact: _a if name == "solution.json" else None,
         )
         return module.grade()
@@ -75,8 +80,12 @@ def test_forged_claims_are_ignored(grade, tmp_path):
     # The grader's only input is the solution artifact: a forged score log or
     # an inflated claimed score simply has no channel into the result.
     artifact = tmp_path / "solution.json"
-    artifact.write_text(json.dumps({
-        "circles": [[0.25, 0.25, 0.25], [0.75, 0.25, 0.25], [0.25, 0.75, 0.25]],
-        "claimed_score": 999.0,
-    }))
+    artifact.write_text(
+        json.dumps(
+            {
+                "circles": [[0.25, 0.25, 0.25], [0.75, 0.25, 0.25], [0.25, 0.75, 0.25]],
+                "claimed_score": 999.0,
+            }
+        )
+    )
     assert grade(artifact=artifact)["reward"] == pytest.approx(0.75)

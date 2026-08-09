@@ -23,12 +23,24 @@ from tide import FakeExecutor, Lab, Probe, ProbeExecutor, StateDir, metrics
 
 # The stream: each phase teaches one fact; its probe asks for it back.
 STREAM = [
-    ("tides",   "Spring tides occur when the sun and moon align.",
-                "What causes spring tides?",            "mentions sun and moon aligning"),
-    ("reefs",   "Coral bleaching is driven by heat stress.",
-                "What drives coral bleaching?",         "mentions heat stress"),
-    ("currents", "The gulf stream moves warm water north.",
-                "What does the gulf stream transport?", "mentions warm water"),
+    (
+        "tides",
+        "Spring tides occur when the sun and moon align.",
+        "What causes spring tides?",
+        "mentions sun and moon aligning",
+    ),
+    (
+        "reefs",
+        "Coral bleaching is driven by heat stress.",
+        "What drives coral bleaching?",
+        "mentions heat stress",
+    ),
+    (
+        "currents",
+        "The gulf stream moves warm water north.",
+        "What does the gulf stream transport?",
+        "mentions warm water",
+    ),
 ]
 
 
@@ -40,9 +52,7 @@ def fake_model(state_dir: Path | None):
         question = messages[-1]["content"]
         knowledge = ""
         if state_dir and state_dir.exists():
-            knowledge = " ".join(
-                p.read_text() for p in sorted(state_dir.glob("*.txt"))
-            )
+            knowledge = " ".join(p.read_text() for p in sorted(state_dir.glob("*.txt")))
         for _, fact, q, _ in STREAM:
             if q == question and fact in knowledge:
                 return fact  # it "remembers"
@@ -70,10 +80,12 @@ async def main():
         for j in range(upto + 1):
             name, fact, question, rubric = STREAM[j]
             await lab.probe(
-                Probe(id=f"probe/{name}",
-                      messages=[{"role": "user", "content": question}],
-                      rubrics=(rubric,),
-                      data={"keyword": fact}),
+                Probe(
+                    id=f"probe/{name}",
+                    messages=[{"role": "user", "content": question}],
+                    rubrics=(rubric,),
+                    data={"keyword": fact},
+                ),
                 tags={"phase": phase, "arm": lab_arm},
             )
 
@@ -86,7 +98,7 @@ async def main():
         # PROBE (frozen): materialized copy, so probing can't mutate state.
         frozen = state.materialize(ref)
         await probe_arm("stateful", frozen, i, upto=i)
-        await probe_arm("fresh", None, i, upto=i)      # control arm
+        await probe_arm("fresh", None, i, upto=i)  # control arm
 
     lab = Lab("runs/stream-cl", executor=FakeExecutor())
     probes = lab.df("probe")

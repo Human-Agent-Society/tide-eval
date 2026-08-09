@@ -32,8 +32,8 @@ affordable: an API call instead of a container build.
   own `judge` — it's one async function; don't extend the default.
 - **Different judge model/provider**: construct `openai_rubric_judge` with
   any OpenAI-compatible client, or replace it entirely.
-- **Ingest a rubric corpus** (e.g. Tencent CL-bench JSONL): each record maps
-  to `Probe(id=idx, messages=record["messages"], rubrics=tuple(criteria))` —
-  a ten-line loop, see the catalog entry in the README.
+- **Ingest a rubric corpus** (e.g. Tencent CL-bench JSONL): use
+  `tide.loaders.load_rubric_probes(path)` — and `loaders.strip_context(p)`
+  to build the from-state arm of an ingest-then-probe stream.
 - **Caching / batching**: wrap `infer` — the executor doesn't care what's
   behind the callable.

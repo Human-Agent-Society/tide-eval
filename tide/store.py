@@ -119,14 +119,10 @@ class Store:
 
         base = raw.drop(columns=["tags", "rewards"]).reset_index(drop=True)
         tags = pd.json_normalize(raw["tags"].map(json.loads))
-        tags.columns = [
-            f"tag_{c}" if c in base.columns else c for c in tags.columns
-        ]
+        tags.columns = [f"tag_{c}" if c in base.columns else c for c in tags.columns]
         rewards = pd.json_normalize(raw["rewards"].map(json.loads))
         taken = set(base.columns) | set(tags.columns)
-        rewards.columns = [
-            f"reward_{c}" if c in taken else c for c in rewards.columns
-        ]
+        rewards.columns = [f"reward_{c}" if c in taken else c for c in rewards.columns]
         return pd.concat([base, tags, rewards], axis=1)
 
     def close(self) -> None:

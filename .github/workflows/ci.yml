@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: uv pip install -e . pytest pytest-asyncio ruff --system
+      - name: Lint
+        run: |
+          ruff check .
+          ruff format --check .
+      - name: Test (core — harbor-dependent tests skip)
+        run: pytest tests/ -q
+      - name: Examples run offline
+        run: |
+          python examples/quickstart.py
+          python examples/stream_cl.py

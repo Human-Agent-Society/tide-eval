@@ -9,14 +9,16 @@ def test_parse_valid_and_sorted():
 
 
 def test_parse_skips_malformed_lines():
-    text = "\n".join([
-        '{"t": 1, "score": 0.1}',
-        "not json",
-        '{"t": 2}',                       # missing score
-        '{"score": 3}',                   # missing t
-        '{"t": "abc", "score": 1}',       # bad t
-        '{"t": 4, "score": 0.4}',
-    ])
+    text = "\n".join(
+        [
+            '{"t": 1, "score": 0.1}',
+            "not json",
+            '{"t": 2}',  # missing score
+            '{"score": 3}',  # missing t
+            '{"t": "abc", "score": 1}',  # bad t
+            '{"t": 4, "score": 0.4}',
+        ]
+    )
     points = parse_score_log(text)
     assert [p.score for p in points] == [0.1, 0.4]
 

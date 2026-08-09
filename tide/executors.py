@@ -14,8 +14,9 @@ anything else later.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Protocol
+from typing import Any, Protocol
 
 from tide.trajectory import load_trace
 from tide.types import EpisodeResult, EpisodeSpec

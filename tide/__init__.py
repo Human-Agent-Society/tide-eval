@@ -12,12 +12,14 @@ into curves and matrices; :mod:`tide.stream` provides the state machinery
 stream scripts need. See the README for the full tour.
 """
 
-from tide import metrics
+from tide import loaders, metrics
 from tide.executors import FakeExecutor, HarborExecutor
 from tide.lab import Lab
 from tide.probe import Probe, ProbeExecutor
 from tide.stream import StateDir, StaticWeightPlane, WeightPlane
 from tide.types import EpisodeResult, EpisodeSpec, Row, TracePoint
+
+__version__ = "0.1.0"
 
 __all__ = [
     "Lab",
@@ -32,5 +34,6 @@ __all__ = [
     "EpisodeResult",
     "TracePoint",
     "Row",
+    "loaders",
     "metrics",
 ]

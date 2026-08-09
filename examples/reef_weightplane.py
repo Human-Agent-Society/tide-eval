@@ -32,8 +32,9 @@ class ReefWeightPlane:
         self.scenario = scenario
 
     def snapshot(self) -> str:
-        r = httpx.get(f"{self.reef_url}/reef/versions/current",
-                      params={"scenario": self.scenario})
+        r = httpx.get(
+            f"{self.reef_url}/reef/versions/current", params={"scenario": self.scenario}
+        )
         r.raise_for_status()
         return r.json()["version_id"]
 
@@ -52,17 +53,23 @@ async def main():
     row = await lab.run(
         "terminal-bench/hello-world",
         # Any Harbor agent; its inference goes through reef, version-pinned.
-        {"name": "terminus-2", "model_name": f"openai/{ref}",
-         "kwargs": {"api_base": plane.serve(ref)}},
+        {
+            "name": "terminus-2",
+            "model_name": f"openai/{ref}",
+            "kwargs": {"api_base": plane.serve(ref)},
+        },
         tags={"version": ref, "arm": "stateful"},
     )
 
     # The report runner (reef-side code) closes the loop:
-    httpx.post("http://localhost:8000/reef/report", json={
-        "score": row.rewards.get("reward", 0.0),
-        "references": [ref],
-        "metadata": {"tide_key": row.key, "trial_uri": row.uri},
-    })
+    httpx.post(
+        "http://localhost:8000/reef/report",
+        json={
+            "score": row.rewards.get("reward", 0.0),
+            "references": [ref],
+            "metadata": {"tide_key": row.key, "trial_uri": row.uri},
+        },
+    )
 
     # Training happens inside reef; next lap snapshots the new version and
     # the results store accumulates (version, task, reward) — gain, learning

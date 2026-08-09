@@ -14,10 +14,10 @@ episode boundaries.**
 
 ```python
 state = StateDir("runs/exp/state")
-ref = state.snapshot("phase 3")        # commit → ref (idempotent if unchanged)
-old = state.materialize(ref)           # historical version in a FRESH dir
-state.refs()                           # all snapshots, oldest first
-state.diff(ref_a, ref_b)               # the audit trail: what did it learn?
+ref = state.snapshot("phase 3")  # commit → ref (idempotent if unchanged)
+old = state.materialize(ref)  # historical version in a FRESH dir
+state.refs()  # all snapshots, oldest first
+state.diff(ref_a, ref_b)  # the audit trail: what did it learn?
 ```
 
 Rules:
@@ -35,8 +35,8 @@ Rules:
 
 ```python
 class WeightPlane(Protocol):
-    def snapshot(self) -> str: ...        # freeze → durable version ref
-    def serve(self, ref: str) -> str: ... # ref → OpenAI-compatible base URL
+    def snapshot(self) -> str: ...  # freeze → durable version ref
+    def serve(self, ref: str) -> str: ...  # ref → OpenAI-compatible base URL
 ```
 
 Two methods are the *entire* contract with any serving/training stack.

@@ -20,7 +20,10 @@ import pandas as pd
 
 
 def anytime(
-    df: pd.DataFrame, *, time: str = "t", score: str = "score",
+    df: pd.DataFrame,
+    *,
+    time: str = "t",
+    score: str = "score",
     by: list[str] | None = None,
 ) -> pd.DataFrame:
     """Best-so-far curve over time — the autoresearch progress curve.
@@ -48,7 +51,10 @@ def auc(curve: pd.DataFrame, *, time: str = "t", value: str = "best_so_far") -> 
 
 
 def scaling(
-    df: pd.DataFrame, *, budget: str = "budget", score: str = "reward",
+    df: pd.DataFrame,
+    *,
+    budget: str = "budget",
+    score: str = "reward",
     by: list[str] | None = None,
 ) -> pd.DataFrame:
     """Score as a function of budget (EdgeBench's 2–12h curves).
@@ -58,7 +64,9 @@ def scaling(
     """
     keys = (by or []) + [budget]
     return (
-        df.groupby(keys)[score].agg(["mean", "count"]).reset_index()
+        df.groupby(keys)[score]
+        .agg(["mean", "count"])
+        .reset_index()
         .rename(columns={"mean": score})
     )
 
@@ -67,12 +75,17 @@ def scaling(
 
 
 def matrix(
-    df: pd.DataFrame, *, row: str = "phase", col: str = "task",
+    df: pd.DataFrame,
+    *,
+    row: str = "phase",
+    col: str = "task",
     score: str = "reward",
 ) -> pd.DataFrame:
     """The version × task accuracy matrix. Expects columns *row*, *col*,
     *score*. Cell = mean over repeats. Rows/cols sorted."""
-    return df.pivot_table(index=row, columns=col, values=score, aggfunc="mean").sort_index()
+    return df.pivot_table(
+        index=row, columns=col, values=score, aggfunc="mean"
+    ).sort_index()
 
 
 def forgetting(m: pd.DataFrame) -> pd.Series:
@@ -88,9 +101,13 @@ def backward_transfer(m: pd.DataFrame) -> float:
 
 
 def gain(
-    df: pd.DataFrame, *, arm: str = "arm", score: str = "reward",
+    df: pd.DataFrame,
+    *,
+    arm: str = "arm",
+    score: str = "reward",
     by: list[str] | None = None,
-    treatment: str = "stateful", control: str = "fresh",
+    treatment: str = "stateful",
+    control: str = "fresh",
 ) -> pd.DataFrame:
     """CL-Bench-style gain: how much of the score is *learning* rather than
     raw capability.
@@ -112,7 +129,10 @@ def gain(
 
 
 def internalization(
-    df: pd.DataFrame, *, arm: str = "arm", score: str = "reward",
+    df: pd.DataFrame,
+    *,
+    arm: str = "arm",
+    score: str = "reward",
     by: list[str] | None = None,
 ) -> pd.DataFrame:
     """From-state score as a fraction of in-context score: how much survived
@@ -121,8 +141,12 @@ def internalization(
     Expects an *arm* column with values ``in_context`` and ``from_state``.
     """
     out = gain(
-        df, arm=arm, score=score, by=by,
-        treatment="from_state", control="in_context",
+        df,
+        arm=arm,
+        score=score,
+        by=by,
+        treatment="from_state",
+        control="in_context",
     ).drop(columns=["gain"])
     out["internalization"] = out["from_state"] / out["in_context"]
     return out
@@ -139,7 +163,11 @@ def rescale_linear(s: pd.Series, *, lo: float, hi: float) -> pd.Series:
 
 
 def rescale_anchored(
-    s: pd.Series, *, baseline: float, top: float, super_anchor: float | None = None,
+    s: pd.Series,
+    *,
+    baseline: float,
+    top: float,
+    super_anchor: float | None = None,
 ) -> pd.Series:
     """EdgeBench-style piecewise rescale: baseline → 0, top → 100, and scores
     beyond ``super_anchor`` (if given) stretch linearly above 100 — so beating

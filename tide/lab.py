@@ -172,8 +172,12 @@ class Lab:
     @classmethod
     def _default_key(cls, spec: EpisodeSpec, tags: Tags) -> str:
         digest = cls._digest(
-            {"task": spec.task, "agent": spec.agent, "tags": tags,
-             "overrides": spec.overrides}
+            {
+                "task": spec.task,
+                "agent": spec.agent,
+                "tags": tags,
+                "overrides": spec.overrides,
+            }
         )
         short_task = spec.task.rstrip("/").split("/")[-1]
         return f"{short_task}:{digest}"

@@ -16,8 +16,13 @@ async def main():
     lab = Lab(
         "runs/quickstart",
         executor=FakeExecutor(  # swap for the default HarborExecutor in real runs
-            score=lambda spec: {"reward": 0.6 if spec.agent["name"] == "smart" else 0.3},
-            trace=lambda spec: [TracePoint(t=10, score=0.2), TracePoint(t=50, score=0.55)],
+            score=lambda spec: {
+                "reward": 0.6 if spec.agent["name"] == "smart" else 0.3
+            },
+            trace=lambda spec: [
+                TracePoint(t=10, score=0.2),
+                TracePoint(t=50, score=0.55),
+            ],
         ),
     )
 
@@ -31,8 +36,9 @@ async def main():
             )
 
     # Idempotency: this exact call already ran, so nothing executes.
-    await lab.run("demo/circle-packing", {"name": "smart"},
-                  tags={"agent": "smart", "attempt": 0})
+    await lab.run(
+        "demo/circle-packing", {"name": "smart"}, tags={"agent": "smart", "attempt": 0}
+    )
 
     episodes = lab.df("episode")
     print(episodes[["task", "agent", "attempt", "reward"]])
@@ -41,10 +47,10 @@ async def main():
 
     # Every episode also carried an (untrusted) score trajectory:
     from tide import metrics
+
     trace = lab.df("trace")
     curve = metrics.anytime(trace, by=["agent"])
-    print("\nanytime AUC (agent=smart):",
-          metrics.auc(curve[curve.agent == "smart"]))
+    print("\nanytime AUC (agent=smart):", metrics.auc(curve[curve.agent == "smart"]))
 
 
 if __name__ == "__main__":

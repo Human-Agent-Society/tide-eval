@@ -55,7 +55,9 @@ class StaticWeightPlane:
 
     def serve(self, ref: str) -> str:
         if ref != self._ref:
-            raise KeyError(f"unknown ref {ref!r}; static plane only serves {self._ref!r}")
+            raise KeyError(
+                f"unknown ref {ref!r}; static plane only serves {self._ref!r}"
+            )
         return self._base_url
 
 
@@ -87,9 +89,7 @@ class StateDir:
         dest = Path(dest) if dest else Path(tempfile.mkdtemp(prefix="tide-state-"))
         dest.mkdir(parents=True, exist_ok=True)
         archive = self._git("archive", "--format=tar", ref, capture_bytes=True)
-        subprocess.run(
-            ["tar", "-x", "-C", str(dest)], input=archive, check=True
-        )
+        subprocess.run(["tar", "-x", "-C", str(dest)], input=archive, check=True)
         return dest
 
     def refs(self) -> list[str]:

@@ -43,8 +43,10 @@ async def test_default_key_is_stable_and_tag_sensitive(lab, fake):
 async def test_trace_rows_recorded(tmp_path):
     fake = FakeExecutor(
         score=lambda s: {"reward": 0.8},
-        trace=lambda s: [TracePoint(t=1.0, score=0.2),
-                         TracePoint(t=5.0, score=0.6, data={"snapshot": "a.json"})],
+        trace=lambda s: [
+            TracePoint(t=1.0, score=0.2),
+            TracePoint(t=5.0, score=0.6, data={"snapshot": "a.json"}),
+        ],
     )
     lab = Lab(tmp_path / "lab", executor=fake)
     await lab.run("tasks/ar", {"name": "x"}, key="ep")
@@ -66,6 +68,7 @@ async def test_run_many_bounded_concurrency(tmp_path):
             await asyncio.sleep(0.01)
             running -= 1
             from tide.types import EpisodeResult
+
             return EpisodeResult(rewards={"reward": 1.0})
 
     lab = Lab(tmp_path / "lab", executor=SlowExec(), concurrency=2)
@@ -95,10 +98,14 @@ async def test_probe_requires_prober_and_records(tmp_path):
     async def judge(output, probe):
         return {"reward": 1.0 if "42" in output else 0.0}
 
-    lab = Lab(tmp_path / "lab", executor=FakeExecutor(),
-              prober=ProbeExecutor(infer, judge))
-    probe = Probe(id="q1", messages=[{"role": "user", "content": "6*7?"}],
-                  rubrics=("mentions 42",))
+    lab = Lab(
+        tmp_path / "lab", executor=FakeExecutor(), prober=ProbeExecutor(infer, judge)
+    )
+    probe = Probe(
+        id="q1",
+        messages=[{"role": "user", "content": "6*7?"}],
+        rubrics=("mentions 42",),
+    )
     row = await lab.probe(probe, {"model": "m"}, tags={"phase": 3})
     assert row.kind == "probe"
     assert row.rewards["reward"] == 1.0
@@ -119,8 +126,9 @@ async def test_probe_idempotent(tmp_path):
     async def judge(output, probe):
         return {"reward": 0.0}
 
-    lab = Lab(tmp_path / "lab", executor=FakeExecutor(),
-              prober=ProbeExecutor(infer, judge))
+    lab = Lab(
+        tmp_path / "lab", executor=FakeExecutor(), prober=ProbeExecutor(infer, judge)
+    )
     probe = Probe(id="q", messages=[])
     await lab.probe(probe, {"model": "m"}, tags={"v": 1})
     await lab.probe(probe, {"model": "m"}, tags={"v": 1})

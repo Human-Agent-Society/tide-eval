@@ -37,13 +37,14 @@ def test_trial_config_assembly_matches_executor():
 def test_exemplar_task_is_valid_stock_harbor(request):
     """The shipped autoresearch exemplar must parse under Harbor's TaskConfig
     schema — the 'tasks stay 100% stock harbor' promise, enforced."""
-    from pathlib import Path
-
     import tomllib
+    from pathlib import Path
 
     from harbor.models.task.config import TaskConfig
 
-    task_dir = Path(request.config.rootpath) / "examples" / "tasks" / "circle-packing-mini"
+    task_dir = (
+        Path(request.config.rootpath) / "examples" / "tasks" / "circle-packing-mini"
+    )
     raw = tomllib.loads((task_dir / "task.toml").read_text())
     cfg = TaskConfig.model_validate(raw)
     assert cfg.verifier is not None

@@ -5,9 +5,21 @@ description = "Continual evaluation infrastructure on the Harbor task standard: 
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "Apache-2.0" }
+keywords = ["evaluation", "benchmarks", "agents", "continual-learning", "autoresearch", "harbor"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
     "pandas>=2.0",
 ]
+
+[project.urls]
+Repository = "https://github.com/Human-Agent-Society/tide-eval"
+Issues = "https://github.com/Human-Agent-Society/tide-eval/issues"
 
 [project.optional-dependencies]
 # The Harbor executor. Kept optional so the core (store, metrics, fakes,
@@ -29,3 +41,11 @@ packages = ["tide"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]

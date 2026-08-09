@@ -11,8 +11,12 @@ def store(tmp_path):
 
 def row(key="k1", **kw):
     defaults = dict(
-        key=key, kind="episode", task="t/x", tags={"phase": 1},
-        rewards={"reward": 0.5}, uri="fake://x",
+        key=key,
+        kind="episode",
+        task="t/x",
+        tags={"phase": 1},
+        rewards={"reward": 0.5},
+        uri="fake://x",
     )
     defaults.update(kw)
     return Row(**defaults)
@@ -27,17 +31,24 @@ def test_put_get_roundtrip(store):
 
 
 def test_has_and_duplicate_key_is_loud(store):
+    import sqlite3
+
     store.put(row())
     assert store.has("k1")
     assert not store.has("k2")
-    with pytest.raises(Exception):
+    with pytest.raises(sqlite3.IntegrityError):
         store.put(row())
 
 
 def test_df_expands_tags_and_rewards(store):
     store.put(row(key="a", tags={"phase": 1, "arm": "fresh"}))
-    store.put(row(key="b", tags={"phase": 2, "arm": "stateful"},
-                  rewards={"reward": 0.9, "steps": 12}))
+    store.put(
+        row(
+            key="b",
+            tags={"phase": 2, "arm": "stateful"},
+            rewards={"reward": 0.9, "steps": 12},
+        )
+    )
     df = store.df()
     assert set(df.columns) >= {"key", "kind", "task", "phase", "arm", "reward", "steps"}
     assert df.loc[df.key == "b", "steps"].iloc[0] == 12
@@ -60,7 +71,7 @@ def test_reward_column_collision_prefixed(store):
 def test_tag_colliding_with_base_column_is_prefixed(store):
     store.put(row(key="x", tags={"task": "short-name", "phase": 1}))
     df = store.df()
-    assert df["task"].iloc[0] == "t/x"          # base column wins
+    assert df["task"].iloc[0] == "t/x"  # base column wins
     assert df["tag_task"].iloc[0] == "short-name"
     assert df["phase"].iloc[0] == 1
 
