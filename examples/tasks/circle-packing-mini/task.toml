@@ -1,0 +1,33 @@
+schema_version = "1.4"
+
+# Declared artifacts are the ONLY files that cross into the verifier
+# container. The agent's best-so-far solution and its (untrusted) score log.
+artifacts = ["/app/best/solution.json", "/app/best/score_log.jsonl"]
+
+[task]
+name = "tide/circle-packing-mini"
+description = "Pack 3 circles into the unit square maximizing the sum of radii. Continuous score, budget semantics, dual-scorer autoresearch exemplar."
+
+[metadata]
+difficulty = "easy"
+category = "autoresearch-exemplar"
+
+[agent]
+# The timeout IS the budget: a timeout is a normal ending, and the verifier
+# still runs, grading the best-so-far snapshot.
+timeout_sec = 600.0
+
+[verifier]
+timeout_sec = 120.0
+# The anti-hack wall: verification runs in a fresh container that receives
+# only the declared artifacts, and recomputes the score from scratch.
+environment_mode = "separate"
+
+[environment]
+build_timeout_sec = 600.0
+cpus = 1
+memory_mb = 1024
+# Known optima for circle packing are googleable; keep the task offline.
+# (Container-brain agents that need API egress can widen this per-run with
+# an allowlist; see the README's isolation section.)
+network_mode = "no-network"
