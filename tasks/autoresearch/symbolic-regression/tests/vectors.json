@@ -1,0 +1,41 @@
+{
+  "oracle": {
+    "artifact": {
+      "expr": "0.5 * x**2"
+    },
+    "reward": 0.604169977748831,
+    "tolerance": 1e-09
+  },
+  "cheats": [
+    {
+      "name": "code_injection",
+      "artifact": {
+        "expr": "__import__('os').system('id')"
+      }
+    },
+    {
+      "name": "attribute_escape",
+      "artifact": {
+        "expr": "().__class__"
+      }
+    },
+    {
+      "name": "non_finite",
+      "artifact": {
+        "expr": "exp(exp(exp(x + 100)))"
+      }
+    },
+    {
+      "name": "not_a_string",
+      "artifact": {
+        "expr": 42
+      }
+    },
+    {
+      "name": "malformed",
+      "artifact": {
+        "formula": "x"
+      }
+    }
+  ]
+}

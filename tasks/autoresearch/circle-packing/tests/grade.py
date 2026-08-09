@@ -7,6 +7,11 @@ environment (including tampering with the public scorer) can reach this code.
 
 Conservative by construction: exact Fraction comparisons with the documented
 1e-9 tolerance, so buying radius with float-epsilon overlaps scores zero.
+
+Protocol (uniform across tide's first-party tasks): ``grade(path)`` is pure
+and takes the artifact path explicitly; ``find_artifact()`` resolves the
+canonical location; ``__main__`` writes a numbers-only ``reward.json`` plus a
+human ``reason.txt``.
 """
 
 import json
@@ -18,24 +23,21 @@ TOL = Fraction(1, 10**9)
 REWARD_PATH = Path("/logs/verifier/reward.json")
 
 
-def find_artifact(name: str) -> Path | None:
+def find_artifact() -> Path | None:
     # Harbor re-materializes declared artifacts at their ORIGINAL container
-    # paths inside the separate verifier env (only the convention publish dir
-    # lands under /logs/artifacts). Check the canonical path first; fall back
-    # to searching the artifacts dir for regrade-style layouts.
-    canonical = Path("/app/best") / name
+    # paths inside the separate verifier env; check the canonical path first.
+    canonical = Path("/app/best/solution.json")
     if canonical.exists():
         return canonical
-    hits = sorted(Path("/logs/artifacts").rglob(name))
+    hits = sorted(Path("/logs/artifacts").rglob("solution.json"))
     return hits[0] if hits else None
 
 
-def grade() -> dict:
-    solution = find_artifact("solution.json")
-    if solution is None:
+def grade(artifact: Path | None) -> dict:
+    if artifact is None or not Path(artifact).exists():
         return {"reward": 0.0, "reason": "no solution.json artifact"}
     try:
-        circles = json.loads(solution.read_text())["circles"]
+        circles = json.loads(Path(artifact).read_text())["circles"]
         parsed = [(Fraction(x), Fraction(y), Fraction(r)) for x, y, r in circles]
     except (KeyError, ValueError, TypeError) as e:
         return {"reward": 0.0, "reason": f"malformed solution: {e}"}
@@ -63,10 +65,7 @@ def grade() -> dict:
 
 
 if __name__ == "__main__":
-    result = grade()
-    # Harbor's reward contract is numbers-only (VerifierResult.rewards is
-    # dict[str, float | int]); the human-readable reason goes to the verifier
-    # log dir instead.
+    result = grade(find_artifact())
     reason = result.pop("reason", "")
     REWARD_PATH.parent.mkdir(parents=True, exist_ok=True)
     REWARD_PATH.write_text(json.dumps(result))

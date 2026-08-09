@@ -5,7 +5,7 @@ schema_version = "1.4"
 artifacts = ["/app/best/solution.json", "/app/best/score_log.jsonl"]
 
 [task]
-name = "tide/circle-packing-mini"
+name = "tide/circle-packing"
 description = "Pack 3 circles into the unit square maximizing the sum of radii. Continuous score, budget semantics, dual-scorer autoresearch exemplar."
 
 [metadata]

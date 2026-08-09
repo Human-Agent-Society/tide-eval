@@ -261,7 +261,13 @@ all normalization happens at query time.
 
 ## Supported benchmarks
 
-Every row says exactly what exists *in tide* to run it. The statuses are
+**The browsable catalog is [`tasks/`](tasks/)** — one folder per benchmark:
+six first-party autoresearch tasks and two stream benchmarks ship in-repo
+(oracle-verified in real containers by CI), external benchmarks come with
+vendored samples plus a `fetch.py`, and [`tasks/_template/`](tasks/_template)
+turns making your own into a five-minute copy-paste.
+
+Every row below says exactly what exists *in tide* to run it. The statuses are
 honest: ✅ one call runs it today · 🔧 the pattern is implemented in-repo,
 light assembly required · 🗺️ the mapping is documented but **no code exists
 in tide yet** (tracked in the [roadmap](#roadmap)).
@@ -277,17 +283,17 @@ in tide yet** (tracked in the [roadmap](#roadmap)).
 
 | Benchmark | What it tests | Status | Run it in tide with |
 |---|---|---|---|
-| [`tasks/circle-packing-mini`](tasks/circle-packing-mini) (in-repo exemplar) | dual scorer, anti-hack wall, budget semantics, score trajectory — the reference for the whole category | ✅ | `python examples/run_circle_packing.py` (Docker; also the E2E gate) |
+| [`tasks/autoresearch/circle-packing`](tasks/autoresearch/circle-packing) (in-repo exemplar) | dual scorer, anti-hack wall, budget semantics, score trajectory — the reference for the whole category | ✅ | `python examples/run_circle_packing.py` (Docker; also the E2E gate) |
 | [AlgoTune](https://github.com/oripress/AlgoTune) · 154 tasks | speed up code vs a reference | ✅ | `lab.run("algotune/<task>", agent)` via its [Harbor adapter](https://github.com/laude-institute/harbor/tree/main/adapters/algotune) |
 | [FrontierCS](https://github.com/FrontierCS/Frontier-CS) · 240 open problems (Erdős constructions, BBOPlace) | open-ended CS with expert evaluators | ✅ | `python examples/run_frontiercs.py` (pinned erdos export, any agent); generate more with their official adapter, then `lab.run(<dir>, agent)` |
-| [EdgeBench](https://github.com/ByteDance-Seed/EdgeBench) · 51 tasks, 2–12 h budgets | capability vs interaction time | 🔧 | `python tasks/edgebench/fetch.py <task_id>` fetches the spec from HF and emits a Harbor task dir (tested against unmodified published specs); running it additionally needs their prebuilt work/judge images |
+| [EdgeBench](https://github.com/ByteDance-Seed/EdgeBench) · 51 tasks, 2–12 h budgets | capability vs interaction time | 🔧 | two converted samples vendored in [tasks/edgebench/](tasks/edgebench) (specs are CC-BY-4.0); `python tasks/edgebench/fetch.py --all` converts the rest; running additionally needs their prebuilt images |
 
 **Continual learning / streams**:
 
 | Benchmark | What it tests | Status | Run it in tide with |
 |---|---|---|---|
-| [CL-bench / CL-bench Life (Tencent)](https://github.com/Tencent-Hunyuan/CL-bench) · 1,899 + 405 rubric-judged tasks | ingest-then-probe conversion: context moves into learner state, probes run without it | ✅ | `python tasks/clbench/fetch.py`, then `python examples/clbench_probes.py tasks/clbench/CL-bench.jsonl`; arms via `loaders.load_rubric_probes` / `strip_context`, judged by `openai_rubric_judge` |
-| [CL-Bench (Anthropic)](https://arxiv.org/abs/2606.05661) · 6 domains with shared latent structure | does experience improve performance? | 🔧 | the protocol shape is [examples/stream_cl.py](examples/stream_cl.py) and the gain metric is `metrics.gain`; their tasks themselves are not yet packaged as Harbor dirs |
+| [CL-bench / CL-bench Life (Tencent)](https://github.com/Tencent-Hunyuan/CL-bench) · 1,899 + 405 rubric-judged tasks | ingest-then-probe conversion: context moves into learner state, probes run without it | ✅ | `python tasks/clbench-tencent/fetch.py`, then `python examples/clbench_probes.py tasks/clbench-tencent/CL-bench.jsonl`; arms via `loaders.load_rubric_probes` / `strip_context`, judged by `openai_rubric_judge` |
+| [Continual Learning Bench](https://github.com/pgasawa/continual-learning-bench) ([arXiv 2606.05661](https://arxiv.org/abs/2606.05661)) · 6 stateful task families | does experience improve performance? | 🔧 | their Apache-2.0 harness runs directly (see [tasks/continual-learning-bench/](tasks/continual-learning-bench)); tide-side converter is roadmap. The in-repo protocol instance is [tasks/streams/hidden-rules](tasks/streams/hidden-rules) + `metrics.gain` |
 | [AgentStream](https://arxiv.org/abs/2608.00155) | any static benchmark, streamed by progressive reveal | ✅ | `loaders.reveal_phases(probe, n)` turns any rubric probe into an n-phase reveal stream; probe every phase for the checkpoint curve |
 | [SkillLearnBench](https://github.com/cxcscmu/SkillLearnBench) | continual skill generation | 🗺️ | nothing yet — maps onto the skills-channel `StateDir` |
 
@@ -309,7 +315,7 @@ The five-minute version — the full guide is
   Verify it standalone with `harbor trial start -p <dir>`; then it's an
   episode.
 - **An autoresearch task** adds four conventions, all visible in
-  [circle-packing-mini](tasks/circle-packing-mini): a public scorer
+  [circle-packing](tasks/autoresearch/circle-packing): a public scorer
   baked into the image; `environment_mode = "separate"` plus declared
   artifacts (the wall); atomic best-so-far writes so timeout = budget; and a
   `score_log.jsonl` the agent appends to.
@@ -412,8 +418,9 @@ mostly breadth, and it's tracked here:
   `strip_context`; format verified against the real HF data
 - [x] **FrontierCS verified** — an erdos task generated by their official
   adapter is vendored in tasks/frontier-cs/ and validated as stock Harbor
-- [ ] **SkillLearnBench + Anthropic CL-Bench task packaging** — their tasks
-  as Harbor dirs plus stream manifests
+- [ ] **Continual-Learning-Bench converter** — their harness is public
+  (Apache-2.0); convert its task families into Harbor dirs + stream manifests
+- [ ] **SkillLearnBench packaging** — maps onto the skills-channel `StateDir`
 - [ ] **Harbor pin upgrades** — golden-file workflow for bumping the pinned
   version safely
 - [ ] **PyPI release** — publish `tide-eval` (the name is reserved in

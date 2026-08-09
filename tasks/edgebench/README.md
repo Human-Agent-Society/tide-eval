@@ -27,6 +27,11 @@ await lab.run("tasks/edgebench/ann_vector_search_qps",
 # rescale params ride in each task.toml's [metadata].
 ```
 
+Two converted samples (`ann_vector_search_qps/`, `ad_placement_optimization/`)
+are vendored so the folder is browsable — the underlying specs are
+[CC-BY-4.0](https://huggingface.co/datasets/ByteDance-Seed/EdgeBench),
+© ByteDance-Seed, converted verbatim by `tide.converters`. Other fetched
+task dirs stay local (gitignored).
+
 Note: tasks reference EdgeBench's prebuilt work/judge images; pull access
-follows their docs (`sforge pull`). Generated task dirs are gitignored here
-(fetch them; don't commit them).
+follows their docs (`sforge pull`).

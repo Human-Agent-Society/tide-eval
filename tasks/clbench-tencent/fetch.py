@@ -3,13 +3,13 @@
 The data is licensed by Tencent (see their HuggingFace page) and is not
 redistributed in this repo — this script fetches it for local use.
 
-    python tasks/clbench/fetch.py            # CL-bench (1,899 records, ~90 MB)
-    python tasks/clbench/fetch.py life       # CL-bench Life (405 records)
+    python tasks/clbench-tencent/fetch.py            # CL-bench (1,899 records, ~90 MB)
+    python tasks/clbench-tencent/fetch.py life       # CL-bench Life (405 records)
 
 Then load probes and build the arms:
 
     from tide.loaders import load_rubric_probes, strip_context, reveal_phases
-    probes = load_rubric_probes("tasks/clbench/CL-bench.jsonl", limit=50)
+    probes = load_rubric_probes("tasks/clbench-tencent/CL-bench.jsonl", limit=50)
 """
 
 import sys

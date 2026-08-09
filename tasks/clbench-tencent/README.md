@@ -7,8 +7,8 @@ Rubric-judged context-learning corpora from
 Tencent — fetched locally, never redistributed here.
 
 ```bash
-python tasks/clbench/fetch.py          # CL-bench.jsonl (~90 MB)
-python tasks/clbench/fetch.py life     # CL-bench-Life.jsonl
+python tasks/clbench-tencent/fetch.py          # CL-bench.jsonl (~90 MB)
+python tasks/clbench-tencent/fetch.py life     # CL-bench-Life.jsonl
 ```
 
 These are probes, not container tasks. Three arms per record:
@@ -16,7 +16,7 @@ These are probes, not container tasks. Three arms per record:
 ```python
 from tide.loaders import load_rubric_probes, strip_context, reveal_phases
 
-probes = load_rubric_probes("tasks/clbench/CL-bench.jsonl", limit=50)
+probes = load_rubric_probes("tasks/clbench-tencent/CL-bench.jsonl", limit=50)
 p = probes[0]
 in_context = p  # original: context in the prompt (upper bound)
 from_state = strip_context(p)  # question only — knowledge must come from learner state

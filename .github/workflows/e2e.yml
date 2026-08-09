@@ -1,9 +1,9 @@
 name: E2E
 
-# The real thing: build the exemplar task's containers, run the oracle agent
-# through Harbor, and require the separate verifier to score exactly 0.75.
-# Heavier than CI (installs Harbor, builds images), so it runs on main pushes
-# that touch the pipeline, and on demand.
+# The real thing: build every first-party task's containers, run the oracle
+# agent through Harbor, and require each score to match its vectors.json
+# expectation. Heavier than CI (installs Harbor, builds images), so it runs
+# on main pushes that touch the pipeline, and on demand.
 
 on:
   workflow_dispatch:
@@ -12,13 +12,13 @@ on:
     paths:
       - "tide/**"
       - "tasks/**"
-      - "examples/run_circle_packing.py"
+      - "scripts/e2e_oracle.py"
       - ".github/workflows/e2e.yml"
 
 jobs:
   oracle:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v4
@@ -26,14 +26,12 @@ jobs:
         run: |
           uv venv --python 3.12
           uv pip install -e . harbor==0.20.0
-      - name: Oracle end-to-end (Docker)
-        run: uv run python examples/run_circle_packing.py --check
+      - name: Oracle gate — every first-party task, real containers
+        run: uv run python scripts/e2e_oracle.py
       - name: Show trial artifacts on failure
         if: failure()
         run: |
-          echo "=== files ==="; find runs -type f | head -60
-          echo "=== result.json ==="; cat runs/circle-packing/trials/*/result.json 2>/dev/null || true
-          echo "=== trial.log ==="; cat runs/circle-packing/trials/*/trial.log 2>/dev/null || true
-          echo "=== agent logs ==="; find runs/circle-packing/trials/*/agent -type f -exec sh -c 'echo "--- $1"; cat "$1"' _ {} \; 2>/dev/null | head -100 || true
-          echo "=== verifier dir ==="; find runs/circle-packing/trials/*/verifier -type f -exec sh -c 'echo "--- $1"; cat "$1"' _ {} \; 2>/dev/null | head -60 || true
-          echo "=== artifacts tree ==="; find runs/circle-packing/trials/*/artifacts -type f 2>/dev/null | head -30 || true
+          echo "=== files ==="; find runs -type f | head -80
+          echo "=== result.json ==="; cat runs/e2e-oracle/trials/*/result.json 2>/dev/null || true
+          echo "=== trial logs ==="; cat runs/e2e-oracle/trials/*/trial.log 2>/dev/null | tail -200 || true
+          echo "=== verifier dirs ==="; find runs/e2e-oracle/trials/*/verifier -type f -exec sh -c 'echo "--- $1"; cat "$1"' _ {} \; 2>/dev/null | head -80 || true

@@ -1,0 +1,6 @@
+{
+  "oracle": {"artifact": {"TODO": "the oracle's solution"}, "reward": 1.0, "tolerance": 1e-9},
+  "cheats": [
+    {"name": "TODO_every_cheat_you_can_think_of", "artifact": {"TODO": "..."}}
+  ]
+}

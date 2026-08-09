@@ -1,27 +1,64 @@
 # tasks/ — the benchmark catalog
 
-One folder per benchmark. A folder contains either ready-to-run Harbor task
-directories (vendored when the license allows), or a `fetch.py` that
-materializes them in place from the upstream source. Either way, every task
-that ends up here is a stock Harbor task: run it with
-`lab.run("tasks/<benchmark>/<task>", agent)` or standalone with
-`harbor trial start -p <dir>`.
+Every folder here is either a runnable Harbor task, a stream benchmark, or an
+external benchmark's home (vendored samples + a `fetch.py` for the rest).
+Anything that is a task runs two ways, always:
 
-| Folder | What's inside | How to get the tasks |
+```python
+await lab.run("tasks/autoresearch/tsp-tour", {"name": "oracle"})  # through tide
+```
+```bash
+harbor trial start -p tasks/autoresearch/tsp-tour                  # stock Harbor, standalone
+```
+
+## Make your own in five minutes
+
+```bash
+cp -r tasks/_template tasks/autoresearch/my-task
+```
+
+Work through the `TODO(task)` markers (six files), then run
+`pytest tests/test_task_suite.py` — your task is picked up automatically:
+oracle score, cheat suite, stock-Harbor validation, zero test code to write.
+[`_template/README.md`](_template/README.md) walks every step.
+
+## Autoresearch — open-ended optimization, continuous scores, budget semantics
+
+First-party, offline, oracle-verified in CI (real containers). Each README
+states the oracle baseline and what the task teaches.
+
+| Task | One line | Oracle → optimum | Teaches |
+|---|---|---|---|
+| [`circle-packing`](autoresearch/circle-packing) | pack 3 circles, maximize Σ radii | 0.75 → 1.0076 | the full protocol, exact-arithmetic grading |
+| [`function-minimization`](autoresearch/function-minimization) | minimize deceptive Levi N.13 | 0.333 → 1.0 | exploration vs local search |
+| [`tsp-tour`](autoresearch/tsp-tour) | shorten a 40-city tour | 1.0 → ~2.0 | combinatorial search, continuous signal |
+| [`bin-packing`](autoresearch/bin-packing) | beat first-fit on 60 items | 1.0 → >1.0 | exact constraint checking |
+| [`symbolic-regression`](autoresearch/symbolic-regression) | recover a hidden formula | 0.604 → 1.0 | **the anti-overfitting wall**: graded on held-out points |
+| [`string-compression`](autoresearch/string-compression) | ship decompressor + payload | 3.47 → higher | **grading agent-shipped code safely** (sandboxed subprocess, reference deleted first) |
+
+## Streams — ordered episodes, carried state, gain & forgetting
+
+| Stream | One line | Teaches |
 |---|---|---|
-| [`circle-packing-mini/`](circle-packing-mini) | tide's reference autoresearch task (dual scorer, separate verifier, budget semantics) | vendored — ready to run |
-| [`frontier-cs/`](frontier-cs) | FrontierCS 2.0 (240 open CS problems; MIT). One task vendored as a working sample | `python tasks/frontier-cs/fetch.py` generates more via their official adapter |
-| [`edgebench/`](edgebench) | EdgeBench (51 tasks, 2–12 h budgets, ByteDance-Seed) | `python tasks/edgebench/fetch.py <task_id>` converts specs from HuggingFace |
-| [`clbench/`](clbench) | Tencent CL-bench / CL-bench Life (2,300+ rubric-judged probes; their license — not redistributed) | `python tasks/clbench/fetch.py` downloads the JSONL; load with `tide.loaders` |
+| [`streams/ocean-facts`](streams/ocean-facts) | 8 documents, ingest-then-probe | the minimal CL protocol; runs offline via `examples/stream_cl.py` |
+| [`streams/hidden-rules`](streams/hidden-rules) | infer a hidden rule across 6 phases | latent structure worth accumulating: gain should widen phase by phase |
 
-**Defining a new task**: copy the layout of `circle-packing-mini/`
-(`task.toml · instruction.md · environment/ · tests/ · solution/`), then read
-[docs/components/tasks.md](../docs/components/tasks.md) for the autoresearch
-conventions (anti-hack wall, budget semantics, score logs) and the
-oracle/nop/cheater checklist. Verify with `harbor trial start -p <dir>` —
-tasks here must always remain valid stock Harbor tasks.
+## External benchmarks
 
-**Adding a new benchmark**: add a folder with a README (what/license/count)
-plus either vendored task dirs or a `fetch.py`. Converters that parse a
-published spec format belong in `tide/converters/` with fixture tests;
-the folder's `fetch.py` is just the user-facing entry that calls them.
+| Folder | What | Get the tasks |
+|---|---|---|
+| [`frontier-cs/`](frontier-cs) | FrontierCS 2.0 · 240 open CS problems (MIT) | one erdos task vendored; `python tasks/frontier-cs/fetch.py` for the rest |
+| [`edgebench/`](edgebench) | EdgeBench · 51 real-world tasks, 2–12 h budgets (CC-BY-4.0) | two samples vendored; `python tasks/edgebench/fetch.py --all` |
+| [`clbench-tencent/`](clbench-tencent) | Tencent CL-bench · 2,300+ rubric probes (their license) | `python tasks/clbench-tencent/fetch.py` downloads the JSONL |
+| [`continual-learning-bench/`](continual-learning-bench) | Continual Learning Bench (arXiv 2606.05661, Apache-2.0) · 6 stateful task families | run their harness directly; converter on the roadmap — `streams/hidden-rules` is the in-repo protocol equivalent |
+
+Plus the whole Harbor registry by id, no folder needed:
+`lab.run("terminal-bench/hello-world", ...)` — ~80 datasets
+(SWE-bench family, AlgoTune, terminal-bench, ...).
+
+## Adding a new benchmark
+
+Add a folder with a README (what / license / count) and either vendored task
+dirs or a `fetch.py`. If it needs format conversion, the converter goes in
+`tide/converters/` with fixture tests pinned to unmodified published specs
+(see `edgebench.py`); the folder's `fetch.py` is just the user-facing entry.

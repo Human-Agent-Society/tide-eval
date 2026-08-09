@@ -1,4 +1,6 @@
-# Fetched task dirs and cached specs stay local; only the entry point and
-# docs are committed.
+# Fetched task dirs and cached specs stay local by default; the vendored
+# CC-BY-4.0 samples below are committed with attribution (see README).
 */
 !.gitignore
+!ann_vector_search_qps/
+!ad_placement_optimization/

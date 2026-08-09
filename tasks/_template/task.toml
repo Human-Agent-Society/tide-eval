@@ -1,0 +1,24 @@
+schema_version = "1.4"
+
+# Only declared artifacts cross into the verifier container.
+artifacts = ["/app/best/solution.json", "/app/best/score_log.jsonl"]
+
+[task]
+name = "tide/my-task"                        # TODO(task): name it
+description = "TODO(task): one line — what is optimized, what is the reward"
+
+[metadata]
+category = "autoresearch"
+
+[agent]
+timeout_sec = 600.0                          # TODO(task): the budget
+
+[verifier]
+timeout_sec = 60.0
+environment_mode = "separate"                # the anti-hack wall — keep it
+
+[environment]
+build_timeout_sec = 600.0
+cpus = 1
+memory_mb = 1024
+network_mode = "no-network"                  # TODO(task): open only if the task needs it

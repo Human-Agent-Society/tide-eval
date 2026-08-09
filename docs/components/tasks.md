@@ -18,7 +18,7 @@ my-task/
 
 ## An autoresearch task (the four conventions)
 
-Reference implementation: [`tasks/circle-packing-mini`](../../tasks/circle-packing-mini).
+Reference implementation: [`tasks/autoresearch/circle-packing`](../../tasks/autoresearch/circle-packing).
 
 1. **Public scorer in the image** (`environment/scorer.py`). The agent
    self-evaluates freely. Deliberately unisolated: *things you don't trust
