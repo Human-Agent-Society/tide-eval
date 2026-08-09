@@ -1,16 +1,11 @@
 """Fetch EdgeBench specs from HuggingFace and convert them to Harbor tasks.
 
-    python examples/convert_edgebench.py                          # list the 51 tasks
-    python examples/convert_edgebench.py ann_vector_search_qps    # convert one
-    python examples/convert_edgebench.py --all                    # convert all
+    python tasks/edgebench/fetch.py                          # list the 51 tasks
+    python tasks/edgebench/fetch.py ann_vector_search_qps    # convert one
+    python tasks/edgebench/fetch.py --all                    # convert all
 
-Converted tasks land in runs/edgebench-tasks/<task_id>/ and are stock Harbor
-tasks. Run one with:
-
-    lab = Lab("runs/edgebench")
-    await lab.run("runs/edgebench-tasks/<task_id>", agent,
-                  agent={"override_timeout_sec": 2 * 3600},   # the budget
-                  tags={"budget": 2})
+Converted tasks land next to this script and are stock Harbor tasks; see
+README.md here for how to run one.
 
 Note: EdgeBench tasks reference prebuilt work/judge images from the EdgeBench
 registry; pulling them follows their docs (`sforge pull`). Requires
@@ -25,8 +20,8 @@ from pathlib import Path
 from tide.converters import convert_edgebench_task
 
 HF = "https://huggingface.co/datasets/ByteDance-Seed/EdgeBench/resolve/main"
-OUT = Path("runs/edgebench-tasks")
-CACHE = Path("runs/edgebench-specs")
+OUT = Path(__file__).parent
+CACHE = Path(__file__).parent / ".specs"
 
 
 def fetch(name: str) -> Path:

@@ -1,0 +1,4 @@
+# Fetched task dirs and cached specs stay local; only the entry point and
+# docs are committed.
+*/
+!.gitignore

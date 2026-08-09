@@ -19,7 +19,7 @@ from pathlib import Path
 
 from tide import Lab
 
-TASK = str(Path(__file__).parent / "tasks" / "circle-packing-mini")
+TASK = str(Path(__file__).parent.parent / "tasks" / "circle-packing-mini")
 
 
 async def main(agent: str, model: str | None, check: bool = False):

@@ -13,7 +13,6 @@ import pytest
 
 GRADE_PY = (
     Path(__file__).parent.parent
-    / "examples"
     / "tasks"
     / "circle-packing-mini"
     / "tests"

@@ -42,9 +42,7 @@ def test_exemplar_task_is_valid_stock_harbor(request):
 
     from harbor.models.task.config import TaskConfig
 
-    task_dir = (
-        Path(request.config.rootpath) / "examples" / "tasks" / "circle-packing-mini"
-    )
+    task_dir = Path(request.config.rootpath) / "tasks" / "circle-packing-mini"
     raw = tomllib.loads((task_dir / "task.toml").read_text())
     cfg = TaskConfig.model_validate(raw)
     assert cfg.verifier is not None
