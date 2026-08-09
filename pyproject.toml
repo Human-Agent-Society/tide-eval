@@ -27,9 +27,11 @@ Issues = "https://github.com/Human-Agent-Society/tide-eval/issues"
 harbor = ["harbor==0.20.0"]
 # The default OpenAI-compatible client for the probe executor.
 probe = ["openai>=1.40"]
+# Benchmark converters (EdgeBench spec parsing).
+converters = ["pyyaml>=6"]
 
 [dependency-groups]
-dev = ["pytest>=8", "pytest-asyncio>=0.24"]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "pyyaml>=6"]
 
 [build-system]
 requires = ["hatchling"]

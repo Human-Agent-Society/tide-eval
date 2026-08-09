@@ -19,6 +19,13 @@ REWARD_PATH = Path("/logs/verifier/reward.json")
 
 
 def find_artifact(name: str) -> Path | None:
+    # Harbor re-materializes declared artifacts at their ORIGINAL container
+    # paths inside the separate verifier env (only the convention publish dir
+    # lands under /logs/artifacts). Check the canonical path first; fall back
+    # to searching the artifacts dir for regrade-style layouts.
+    canonical = Path("/app/best") / name
+    if canonical.exists():
+        return canonical
     hits = sorted(Path("/logs/artifacts").rglob(name))
     return hits[0] if hits else None
 
