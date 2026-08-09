@@ -17,6 +17,9 @@ dependencies = [
     "pandas>=2.0",
 ]
 
+[project.scripts]
+tide = "tide.cli:main"
+
 [project.urls]
 Repository = "https://github.com/Human-Agent-Society/tide-eval"
 Issues = "https://github.com/Human-Agent-Society/tide-eval/issues"

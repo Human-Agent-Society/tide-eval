@@ -1,5 +1,11 @@
 # tasks/ — the benchmark catalog
 
+> **Where this sits**: the framework is `tide/` (Lab, executors, converters,
+> metrics — the interface everything runs through). This folder is the
+> *content layer* that flows through it: first-party exemplar tasks, stream
+> benchmarks, and the adapted surface of external benchmarks (vendored
+> samples for browsability + `fetch.py` as the real distribution channel).
+
 Every folder here is either a runnable Harbor task, a stream benchmark, or an
 external benchmark's home (vendored samples + a `fetch.py` for the rest).
 Anything that is a task runs two ways, always:

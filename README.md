@@ -4,61 +4,57 @@
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
 
-**Continual evaluation infrastructure on the [Harbor](https://github.com/laude-institute/harbor) task standard.**
+**The Gym for LLM continual learning** — environments where language-model
+systems are measured on how they *improve with experience*: open-ended tasks
+they can iterate on, streams that test what their memory retains, and metrics
+that separate learning from raw capability. Built on the
+[Harbor](https://github.com/laude-institute/harbor) task standard, so every
+environment is also a containerized benchmark for full agents.
 
-Harbor is very good at one thing: scoring an agent on one task, once, in a way
-you can trust. tide is for everything that happens *after* that stops being
-enough — agents that self-evaluate hundreds of times inside a single budget
-(autoresearch), learners whose memory or weights evolve across an ordered
-sequence of tasks (continual learning), and tasks that simply never end (live
-trading, ops). All of it runs on Harbor tasks, unmodified.
+```python
+import tide
 
-## Two primitives
-
-Every benchmark tide supports reduces to two ideas:
-
-**An episode is one trusted measurement.** You give an agent a Harbor task, it
-works, and a verifier produces a score you can trust. How often the agent
-evaluated *itself* along the way doesn't matter — an episode boundary exists
-wherever the *harness* needs a number it can rely on, and nowhere else.
-
-**A stream is an ordered sequence of episodes with one crossing channel.**
-Between episodes, exactly one thing survives: a state folder (or, for model
-weights, a version reference). The folder is git-versioned, so you can always
-see what the learner carried forward — and streams are allowed to be infinite.
-
-Three more words appear throughout this README. Each has a precise meaning
-and a concrete home in the codebase:
-
-| Term | What it means in tide | Where it lives |
-|---|---|---|
-| **benchmark** | a set of tasks or probes plus the code that obtains them: either stock Harbor task dirs (from the registry or a **converter** script) or `Probe` objects (from a **loader** function) | loaders: [`tide/loaders.py`](tide/loaders.py) · authoring converters: [tasks.md](docs/components/tasks.md) · per-benchmark entry points: [the catalog below](#supported-benchmarks) |
-| **protocol** | the schedule that decides what runs when — task orderings, feedback policy, probe sampling, control arms. Always a Python script calling `Lab`, never a config dialect | complete example: [`examples/stream_cl.py`](examples/stream_cl.py) · rules & rationale: [stream.md](docs/components/stream.md) |
-| **metric** | a pure function `DataFrame → DataFrame` over the results store; each declares the tag columns it expects | implementations: [`tide/metrics.py`](tide/metrics.py) · catalog of all metrics: [metrics.md](docs/components/metrics.md) |
-
-```mermaid
-flowchart LR
-    subgraph conv[" benchmark converters "]
-        direction TB
-        FC[FrontierCS]
-        EB[EdgeBench]
-        CLB[CL-Bench]
-    end
-    conv ==> T["Harbor task dirs<br/><i>100% stock format</i>"]
-    T ==> LAB
-    subgraph LAB[" tide.Lab "]
-        direction TB
-        EX["episode executor<br/><i>Harbor trial, containerized</i>"]
-        PR["probe executor<br/><i>direct inference + judge</i>"]
-    end
-    SS["stream scripts<br/>+ StateDir"] ==> LAB
-    LAB ==> ST[("results store<br/><i>tags + raw rewards</i>")]
-    ST ==> M["metrics<br/><i>anytime · gain · forgetting</i>"]
-    W["weight plane<br/><i>reef / vLLM / static</i>"] -.->|api_base| EX
-
+env = tide.make("tide/HiddenRules-v0")  # a hidden rule, learnable across phases
+obs, info = env.reset()
+memory = []
+while True:
+    memory.append(obs["ingest"])  # your memory, your design
+    answers = my_system(obs["questions"], memory)  # your LLM system
+    obs, reward, terminated, truncated, info = env.step(answers)
+    if terminated:
+        break
 ```
 
----
+Gym's contract, with continual-learning payloads: observations carry
+**material to learn from** and **questions to answer**; actions are your
+system's answers or solutions; rewards come from trusted graders. The env
+never manages your memory — carrying knowledge forward is your system's job,
+and exactly the thing being measured. Run the loop twice — memory kept
+(*stateful*) vs wiped every phase (*fresh*) — and `tide.metrics.gain` tells
+you how much of the score is *learning*.
+
+## Environments
+
+| Env id | What it measures |
+|---|---|
+| `tide/OceanFacts-v0` | ingest-then-probe over 8 documents; cumulative re-probing measures forgetting |
+| `tide/HiddenRules-v0` | infer a latent rule across 6 phases; accumulated evidence should widen the gain |
+| `tide/CirclePacking-v0` | open-ended optimization: pack circles, maximize Σ radii (exact-arithmetic grading) |
+| `tide/FunctionMinimization-v0` | escape a deceptive landscape (Levi N.13) |
+| `tide/TspTour-v0` | shorten a 40-city tour; continuous improvement signal |
+| `tide/BinPacking-v0` | beat first-fit under exact constraint checking |
+| `tide/SymbolicRegression-v0` | recover a formula; steps score on train, `final()` on held-out — the anti-overfitting wall |
+| `tide/StringCompression-v0` | ship a decompressor; agent code graded in a sandbox |
+
+Full Gym-style doc pages: [docs/envs/](docs/envs/). Task envs score each
+`step` with the task's **real grader, locally** (milliseconds, no Docker);
+`env.final()` reports the trusted number. Register your own with
+`tide.register("you/YourBench-v0", ...)` — third-party packages auto-register
+via the `tide.envs` entry-point group, exactly like Gym.
+
+The same tasks also run as **containerized agent benchmarks** (a full agent
+with its own tooling, wall-clock budgets, anti-cheat isolation) — that's the
+CLI below. One catalog, one grading truth, two surfaces.
 
 ## Quick start
 
@@ -67,7 +63,23 @@ pip install tide-eval            # core: no containers, no heavy deps
 pip install "tide-eval[harbor]"  # + the real Harbor executor (needs Docker)
 ```
 
-The whole API is one class:
+One command runs anything — a task, a whole category, or a Harbor registry id:
+
+```bash
+tide list                                                    # what's runnable
+tide run autoresearch --agent oracle                         # all 6 first-party tasks (Docker)
+tide run tasks/autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5
+tide run terminal-bench/hello-world --agent claude-code --model ...   # registry id
+tide run edgebench/ann_vector_search_qps --agent codex --budget 2     # budget in hours
+tide report                                                  # summarize the store
+tide run autoresearch --agent oracle --fake                  # no Docker: offline smoke
+```
+
+Every run lands in the same tagged, idempotent results store — re-running a
+crashed sweep resumes it, and `tide report` is a query, not a pipeline.
+
+For protocols the CLI can't express (streams, control arms, custom
+schedules), the same store is one class away:
 
 ```python
 from tide import Lab
@@ -244,6 +256,7 @@ break:
 
 | Component | Code | What it does | Change it when you need… | Doc |
 |---|---|---|---|---|
+| **CLI** | `tide/cli.py` | `tide run/list/report/fetch` — the one-command surface; a thin caller of `Lab` | new commands, target resolution | `tide --help` |
 | **Lab & store** | `tide/lab.py` · `tide/store.py` | episodes/probes in, DataFrame out | new row kinds, key semantics | [lab.md](docs/components/lab.md) |
 | **Executors** | `tide/executors.py` | `EpisodeSpec → EpisodeResult` | a new backend (SSH, cloud, simulator) | [executors.md](docs/components/executors.md) |
 | **Probes** | `tide/probe.py` | inference + rubric judging | a different judge or aggregation | [probe.md](docs/components/probe.md) |

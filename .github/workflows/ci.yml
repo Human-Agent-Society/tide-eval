@@ -25,3 +25,9 @@ jobs:
         run: |
           uv run python examples/quickstart.py
           uv run python examples/stream_cl.py
+          uv run python examples/gym_quickstart.py
+      - name: CLI smoke (offline)
+        run: |
+          uv run tide list
+          uv run tide run autoresearch --agent oracle --fake --lab runs/ci-smoke
+          uv run tide report --lab runs/ci-smoke
