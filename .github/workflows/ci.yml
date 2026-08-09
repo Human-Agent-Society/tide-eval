@@ -11,17 +11,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v4
-        with:
-          python-version: "3.12"
       - name: Install
-        run: uv pip install -e . pytest pytest-asyncio ruff --system
+        run: |
+          uv venv --python 3.12
+          uv pip install -e . pytest pytest-asyncio ruff
       - name: Lint
         run: |
-          ruff check .
-          ruff format --check .
+          uv run ruff check .
+          uv run ruff format --check .
       - name: Test (core — harbor-dependent tests skip)
-        run: pytest tests/ -q
+        run: uv run pytest tests/ -q
       - name: Examples run offline
         run: |
-          python examples/quickstart.py
-          python examples/stream_cl.py
+          uv run python examples/quickstart.py
+          uv run python examples/stream_cl.py
