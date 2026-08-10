@@ -22,7 +22,7 @@ my-task/
 ├── tests/             # verifier container — its own Dockerfile, built separately
 │   ├── test.sh        #   entrypoint: runs grade.py
 │   ├── grade.py       #   PRIVATE eval: the trusted grader
-│   └── vectors.json   #   test vectors for the grader (oracle + cheat cases)
+│   └── grader_tests.json   #   unit tests for grade.py (one good case + cheat cases)
 └── solution/          # reference solution — the oracle agent runs solve.sh
 ```
 
@@ -92,35 +92,52 @@ round); missing/malformed artifact → `0.0` with a reason, never an
 exception. The script writes `reward.json` (numbers only) and `reason.txt`
 to `/logs/verifier/`.
 
-## Testing your task: `tests/vectors.json`
+## Unit-testing the grader: `tests/grader_tests.json`
 
-`vectors.json` holds the grader's test vectors: one **oracle case** (a
-known-good artifact and the exact reward it must earn) and a set of
-**cheat cases** — adversarial artifacts each embodying one way to fake the
-score (a constraint violation, a float-epsilon exploit, a forged
-self-reported score). Each cheat case must grade **exactly 0.0, with a
-reason**; the suite re-checks them on every CI run. The exemplar's real file:
-[circle-packing/tests/vectors.json](../../tasks/autoresearch/circle-packing/tests/vectors.json).
+Three questions, answered up front:
 
-```jsonc
+- **Is this a Harbor concept?** No. Harbor's own quality check is running
+  the oracle agent in real containers — correct but slow, and it needs
+  Docker. `grader_tests.json` is tide's fast path: it unit-tests
+  `grade.py` directly, in milliseconds, offline, on every CI run.
+- **Do you need it?** To *run* a task — no; tasks without it work fine
+  (none of the external catalogs have one). To merge a **first-party**
+  task — yes, and the suite enforces that. Autoresearch graders hand out
+  continuous scores computed from agent-written files: one lenient check
+  is free points, and an agent with an hours-long budget will find it.
+- **How do you write it?** A ten-minute recipe:
+  1. take a solution you know is correct — that's the `oracle` entry;
+     write down the exact reward `grade.py` must give it;
+  2. for **each rule your grader enforces**, write one artifact that
+     breaks it — those are the `cheats`; each must score exactly `0.0`
+     with a reason;
+  3. run `pytest tests/test_task_suite.py` — any folder with this file is
+     picked up automatically.
+
+The template's complete file, for the maximize-`x` task:
+
+```json
 {
-  "oracle": {
-    "artifact": { "circles": [[0.25, 0.25, 0.25], ...] },  // known-good solution
-    "reward": 0.75          // exact (± "tolerance"); or "reward_min"/"reward_max";
-  },                        // "live_min"/"live_max" for the containerized E2E gate
+  "oracle": {"artifact": {"x": 0.5}, "reward": 0.5},
   "cheats": [
-    { "name": "overlap",      "artifact": { "circles": [...] } },
-    { "name": "forged_claim", "artifact": { "circles": [...], "claimed_score": 999.0 } }
+    {"name": "out_of_bounds", "artifact": {"x": 1.5}},
+    {"name": "epsilon_over", "artifact": {"x": 1.0000000001}},
+    {"name": "forged_claim", "artifact": {"x": 0.0, "claimed_score": 999.0}},
+    {"name": "malformed", "artifact": {"nonsense": true}}
   ]
 }
 ```
 
-Any task folder with a `vectors.json` is picked up by
-`pytest tests/test_task_suite.py` automatically: oracle scores its declared
-reward, every cheat scores 0.0, missing artifact scores 0.0, `task.toml`
-validates under Harbor's schema. Then `--agent oracle` in real containers
-must reproduce the score (the E2E gate), and `--agent nop` must score 0 —
-if it doesn't, the environment is leaking the answer.
+Advanced knobs, only when you need them: `"tolerance"` for float
+comparison against the oracle reward; `"reward_min"`/`"reward_max"` when
+the legitimate reward is a range; `"live_min"`/`"live_max"` when the
+*containerized* oracle run legitimately varies (compression ratios across
+zlib builds) — used only by the E2E gate.
+
+The container-level checks stay Harbor-native and complement this file:
+`--agent oracle` must reproduce the score end to end (the E2E gate), and
+`--agent nop` must score 0 — if it doesn't, the environment leaks the
+answer.
 
 ## Network policy
 

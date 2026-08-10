@@ -15,7 +15,7 @@ Work through the `TODO(task)` markers:
 2. `instruction.md` — the problem, the output format, the protocol
 3. `environment/scorer.py` — the public scorer the agent iterates against
 4. `tests/grade.py` — the private grader: recompute from the artifact, never trust claims
-5. `tests/vectors.json` — the oracle's expected reward + every cheat you can think of
+5. `tests/grader_tests.json` — the oracle's expected reward + every cheat you can think of
 6. `solution/solve.sh` — the oracle baseline (proves the task is solvable)
 
 Then prove it in containers: `harbor trial start -p tasks/autoresearch/my-task`.
@@ -40,6 +40,6 @@ Keep the shared function in `tests/` and copy it into `environment/`
 yourself; the default is duplication because the private side usually
 diverges on purpose.
 
-Full reference — the grader contract, the `vectors.json` schema (what a
+Full reference — the grader contract, the `grader_tests.json` schema (what a
 cheat case is), network policy, and GPU tasks:
 [docs/components/tasks.md](../../docs/components/tasks.md).

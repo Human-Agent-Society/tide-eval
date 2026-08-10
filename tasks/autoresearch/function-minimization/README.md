@@ -12,5 +12,5 @@ Minimize the deceptive Levi N.13 function; reward = 1/(1+f).
 **What this task teaches:** Deceptive landscapes: local search stalls, the agent must explore. Cheap to grade, instant to iterate.
 
 Files: `instruction.md` (what the agent sees) · `environment/` (its world,
-scorer included) · `tests/` (the separate-verifier grader + `vectors.json`
+scorer included) · `tests/` (the separate-verifier grader + `grader_tests.json`
 cheat suite) · `solution/` (the oracle baseline).

@@ -12,5 +12,5 @@ Pack 3 circles in the unit square, maximize the sum of radii.
 **What this task teaches:** The reference task: the full autoresearch protocol in its simplest form. Grader uses exact rational arithmetic — a 5e-9 overlap scores zero.
 
 Files: `instruction.md` (what the agent sees) · `environment/` (its world,
-scorer included) · `tests/` (the separate-verifier grader + `vectors.json`
+scorer included) · `tests/` (the separate-verifier grader + `grader_tests.json`
 cheat suite) · `solution/` (the oracle baseline).

@@ -12,5 +12,5 @@ Ship a decompressor + payload; reward = corpus / compressed bytes, byte-exact ro
 **What this task teaches:** Grading agent-shipped CODE safely: subprocess + timeout, and every corpus copy is deleted before the decompressor runs — reading the reference scores zero.
 
 Files: `instruction.md` (what the agent sees) · `environment/` (its world,
-scorer included) · `tests/` (the separate-verifier grader + `vectors.json`
+scorer included) · `tests/` (the separate-verifier grader + `grader_tests.json`
 cheat suite) · `solution/` (the oracle baseline).

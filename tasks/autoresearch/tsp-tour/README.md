@@ -12,5 +12,5 @@ Shortest closed tour over 40 fixed cities; reward = identity length / yours.
 **What this task teaches:** Classic combinatorial search with a continuous improvement signal — 2-opt and beyond.
 
 Files: `instruction.md` (what the agent sees) · `environment/` (its world,
-scorer included) · `tests/` (the separate-verifier grader + `vectors.json`
+scorer included) · `tests/` (the separate-verifier grader + `grader_tests.json`
 cheat suite) · `solution/` (the oracle baseline).

@@ -1,11 +1,11 @@
 """The E2E gate: run the oracle through real containers on every first-party
-task and require each score to match its vectors.json expectation.
+task and require each score to match its grader_tests.json expectation.
 
-    python scripts/e2e_oracle.py                 # all tasks with vectors.json
+    python scripts/e2e_oracle.py                 # all tasks with grader_tests.json
     python scripts/e2e_oracle.py circle-packing  # a subset, by name
 
 A task's live expectation is its pinned oracle reward (± tolerance), unless
-vectors.json declares a ``live_min``/``live_max`` range (used where the live
+grader_tests.json declares a ``live_min``/``live_max`` range (used where the live
 oracle legitimately varies, e.g. compression ratios across zlib builds).
 """
 
@@ -21,7 +21,7 @@ TASKS_ROOT = Path(__file__).parent.parent / "tasks"
 
 def discover(names: list[str]) -> list[Path]:
     tasks = sorted(
-        {p.parent.parent for p in TASKS_ROOT.glob("*/*/tests/vectors.json")}
+        {p.parent.parent for p in TASKS_ROOT.glob("*/*/tests/grader_tests.json")}
         | {TASKS_ROOT / "_template"},  # the template is a working task; keep it working
         key=lambda p: p.name,
     )
@@ -37,7 +37,7 @@ async def main(names: list[str]) -> None:
     lab = Lab("runs/e2e-oracle")
     failures = []
     for task_dir in tasks:
-        oracle = json.loads((task_dir / "tests" / "vectors.json").read_text())["oracle"]
+        oracle = json.loads((task_dir / "tests" / "grader_tests.json").read_text())["oracle"]
         row = await lab.run(str(task_dir), {"name": "oracle"}, tags={"gate": "e2e"})
         reward = row.rewards.get("reward")
         if "live_min" in oracle:

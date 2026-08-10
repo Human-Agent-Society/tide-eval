@@ -12,5 +12,5 @@ Recover a hidden formula from samples; reward = 1/(1+RMSE) on HELD-OUT points.
 **What this task teaches:** The anti-overfitting wall: the agent optimizes against training points, the grader scores generalization. Expressions run through an AST whitelist, never eval().
 
 Files: `instruction.md` (what the agent sees) · `environment/` (its world,
-scorer included) · `tests/` (the separate-verifier grader + `vectors.json`
+scorer included) · `tests/` (the separate-verifier grader + `grader_tests.json`
 cheat suite) · `solution/` (the oracle baseline).

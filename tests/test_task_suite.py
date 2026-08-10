@@ -1,6 +1,6 @@
 """The task-suite contract, enforced for every first-party task.
 
-Each task under tasks/ that ships a ``tests/vectors.json`` gets, automatically:
+Each task under tasks/ that ships a ``tests/grader_tests.json`` gets, automatically:
 
 - an **oracle check** — the known-good artifact scores its expected reward
   (exact, approx, or a [min, max] range);
@@ -22,8 +22,8 @@ import pytest
 TASKS_ROOT = Path(__file__).parent.parent / "tasks"
 # The template ships as a complete working task and is held to the same
 # contract, so copying it always starts from green.
-VECTOR_TASKS = sorted(
-    p.parent.parent for p in TASKS_ROOT.glob("*/*/tests/vectors.json")
+GRADER_TESTED_TASKS = sorted(
+    p.parent.parent for p in TASKS_ROOT.glob("*/*/tests/grader_tests.json")
 ) + [TASKS_ROOT / "_template"]
 ALL_TASKS = sorted(
     p.parent
@@ -47,14 +47,14 @@ def _write_artifact(tmp_path: Path, payload) -> Path:
     return artifact
 
 
-def _vectors(task_dir: Path) -> dict:
-    return json.loads((task_dir / "tests" / "vectors.json").read_text())
+def _grader_tests(task_dir: Path) -> dict:
+    return json.loads((task_dir / "tests" / "grader_tests.json").read_text())
 
 
-@pytest.mark.parametrize("task_dir", VECTOR_TASKS, ids=lambda p: p.name)
+@pytest.mark.parametrize("task_dir", GRADER_TESTED_TASKS, ids=lambda p: p.name)
 def test_oracle_scores_expected(task_dir, tmp_path):
     grader = _load_grader(task_dir)
-    oracle = _vectors(task_dir)["oracle"]
+    oracle = _grader_tests(task_dir)["oracle"]
     result = grader.grade(_write_artifact(tmp_path, oracle["artifact"]))
     reward = result["reward"]
     if "reward" in oracle:
@@ -65,22 +65,22 @@ def test_oracle_scores_expected(task_dir, tmp_path):
         assert oracle["reward_min"] <= reward <= oracle["reward_max"], result
 
 
-@pytest.mark.parametrize("task_dir", VECTOR_TASKS, ids=lambda p: p.name)
+@pytest.mark.parametrize("task_dir", GRADER_TESTED_TASKS, ids=lambda p: p.name)
 def test_cheats_score_zero(task_dir, tmp_path):
     grader = _load_grader(task_dir)
-    for cheat in _vectors(task_dir)["cheats"]:
+    for cheat in _grader_tests(task_dir)["cheats"]:
         result = grader.grade(_write_artifact(tmp_path, cheat["artifact"]))
         assert result["reward"] == 0.0, f"cheat {cheat['name']!r} scored: {result}"
         assert result.get("reason"), f"cheat {cheat['name']!r} gave no reason"
 
 
-@pytest.mark.parametrize("task_dir", VECTOR_TASKS, ids=lambda p: p.name)
+@pytest.mark.parametrize("task_dir", GRADER_TESTED_TASKS, ids=lambda p: p.name)
 def test_missing_artifact_scores_zero(task_dir):
     grader = _load_grader(task_dir)
     assert grader.grade(None)["reward"] == 0.0
 
 
-@pytest.mark.parametrize("task_dir", VECTOR_TASKS, ids=lambda p: p.name)
+@pytest.mark.parametrize("task_dir", GRADER_TESTED_TASKS, ids=lambda p: p.name)
 def test_task_is_stock_harbor(task_dir):
     pytest.importorskip("harbor")
     import tomllib
@@ -110,3 +110,17 @@ def test_every_committed_task_validates(task_dir):
 
     TaskConfig.model_validate(tomllib.loads((task_dir / "task.toml").read_text()))
     assert (task_dir / "instruction.md").exists()
+
+
+@pytest.mark.parametrize(
+    "task_dir",
+    sorted(TASKS_ROOT.glob("autoresearch/*/")),
+    ids=lambda p: p.name,
+)
+def test_first_party_tasks_ship_grader_tests(task_dir):
+    """Policy: grader unit tests are optional for your own tasks, required
+    for first-party ones — their graders hand out continuous scores from
+    agent-written files, so untested leniency is free points."""
+    assert (task_dir / "tests" / "grader_tests.json").is_file(), (
+        f"{task_dir.name} is first-party and must ship tests/grader_tests.json"
+    )
