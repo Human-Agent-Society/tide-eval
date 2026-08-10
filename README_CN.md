@@ -129,6 +129,8 @@ metrics.scaling(lab.df("episode"))  # 更多预算买到多少分?
 | [FrontierCS 2.0](tasks/frontier-cs) | 20 · 含 4 个 GPU kernel | [FrontierCS/Frontier-CS](https://github.com/FrontierCS/Frontier-CS) | `tide run frontier-cs/<task> --agent <a>` |
 | [AlgoTune](tasks/algotune) | 154 · 经 `fetch.py` 转 judge 协议 | [oripress/AlgoTune](https://github.com/oripress/AlgoTune) | 转换后 `tide run algotune/<task> --agent <a>` |
 
+下一批转换目标(已按 autoresearch 契合度筛过)见 [Roadmap](#roadmap)。
+
 每个第一方任务教会这个类别里的一个难点(oracle 在真容器中验证过,作弊用例
 在 CI 中持续复测):
 
@@ -160,7 +162,12 @@ pytest tests/test_task_suite.py          # 自动被识别——而且直接是�
 - [ ] GPU 示例任务,在 CI 中以 oracle 把关
 - [ ] Harbor 版本升级的安全流程
 - [ ] [Frontier-Eng](https://arxiv.org/abs/2604.12290) 转换器——47 个工程任务,其 interaction budget
-  循环与提交额度直接对应——以及更多 autoresearch 转换器
+  循环与提交额度直接对应
+- [ ] [FrontierCS 1.0](https://frontier-cs.org/blog/feb-release/) 转换器——240 个专家出题的开放式任务(最优解
+  未知、可客观打部分分);其 2.0 轨我们已经在跑
+- [ ] [SOL-ExecBench](https://github.com/nvidia/sol-execbench) 转换器——235 个真实 CUDA kernel,对照硬件
+  Speed-of-Light 理论极限打分(固定靶标,计时不再依赖相对基线);需要
+  NVIDIA Blackwell GPU
 - [ ] 把 EdgeBench 转换重新生成到 judge 协议上(AlgoTune 转换器是先例)
 - [ ] 托管的结果查看器
 - [ ] autoresearch 之外:持续学习任务流与在线任务——以

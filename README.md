@@ -138,6 +138,9 @@ with the `BaseAgent` skeleton and the OpenEvolve pattern:
 | [FrontierCS 2.0](tasks/frontier-cs) | 20 · incl. 4 GPU kernel | [FrontierCS/Frontier-CS](https://github.com/FrontierCS/Frontier-CS) | `tide run frontier-cs/<task> --agent <a>` |
 | [AlgoTune](tasks/algotune) | 154 · judge protocol via `fetch.py` | [oripress/AlgoTune](https://github.com/oripress/AlgoTune) | convert, then `tide run algotune/<task> --agent <a>` |
 
+The next converters, vetted for autoresearch fit, are on the
+[roadmap](#roadmap).
+
 Each first-party task teaches one hard part of the category
 (oracle-verified in real containers, cheat cases re-tested in CI):
 
@@ -170,8 +173,13 @@ config. Guide: **[docs/components/tasks.md](docs/components/tasks.md)**.
 - [ ] GPU exemplar task, oracle-gated in CI
 - [ ] Harbor pin-upgrade workflow
 - [ ] [Frontier-Eng](https://arxiv.org/abs/2604.12290) converter — 47 engineering tasks whose
-  interaction-budget loop maps directly onto the submission budget —
-  and more autoresearch converters
+  interaction-budget loop maps directly onto the submission budget
+- [ ] [FrontierCS 1.0](https://frontier-cs.org/blog/feb-release/) converter — 240 expert-curated open-ended
+  tasks (unknown optimum, objective partial scoring); we already run its
+  2.0 track
+- [ ] [SOL-ExecBench](https://github.com/nvidia/sol-execbench) converter — 235 real CUDA kernels scored
+  against Speed-of-Light hardware bounds (fixed targets, so timing stops
+  being hardware-relative); needs NVIDIA Blackwell GPUs
 - [ ] Regenerate the EdgeBench conversion onto the judge protocol (the
   AlgoTune converter is the precedent)
 - [ ] Hosted results viewer

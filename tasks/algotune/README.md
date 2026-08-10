@@ -43,5 +43,8 @@ too, yielding upstream's single final score with no submission log:
 tide run algotune/<registry-task-id> --agent <a>
 ```
 
-One upstream caveat carries over: timing is hardware-sensitive, so
-compare runs from the same machine.
+Two caveats. Timing is hardware-sensitive (upstream's known
+constraint), so compare runs from the same machine. And relative to the
+rest of the catalog, many AlgoTune tasks reward knowing the right library
+call more than sustained iteration — useful breadth, but the shallow end
+of autoresearch.
