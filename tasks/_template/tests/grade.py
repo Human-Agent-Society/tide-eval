@@ -7,8 +7,8 @@
 
 Written separately from environment/scorer.py ON PURPOSE — the two files
 live in different build contexts and the private side is stricter (this one
-rejects x > 1 exactly; the public scorer tolerates 1e-9 — the epsilon_over
-cheat case in grader_tests.json pins that gap).
+rejects x > 1 exactly; the public scorer tolerates 1e-9 — the epsilon case
+in grader_tests.json pins that gap).
 
 TODO(task): replace the checks in grade() with your task's.
 """

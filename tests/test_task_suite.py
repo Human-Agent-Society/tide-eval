@@ -1,10 +1,10 @@
 """The task-suite contract, enforced for every first-party task.
 
-Each task under tasks/ that ships a ``tests/grader_tests.json`` gets, automatically:
+Each task under tasks/ that ships a ``tests/grader_tests.json`` gets,
+automatically:
 
-- an **oracle check** — the known-good artifact scores its expected reward
-  (exact, approx, or a [min, max] range);
-- **cheat checks** — every cheat artifact scores exactly 0 with a reason;
+- **grader cases** — every declared solution scores its declared reward
+  (each case says why; zero-reward cases must also produce a reason);
 - a **stock-Harbor check** — its ``task.toml`` validates under Harbor's
   ``TaskConfig`` (skipped when harbor isn't installed).
 
@@ -52,26 +52,17 @@ def _grader_tests(task_dir: Path) -> dict:
 
 
 @pytest.mark.parametrize("task_dir", GRADER_TESTED_TASKS, ids=lambda p: p.name)
-def test_oracle_scores_expected(task_dir, tmp_path):
+def test_grader_cases(task_dir, tmp_path):
     grader = _load_grader(task_dir)
-    oracle = _grader_tests(task_dir)["oracle"]
-    result = grader.grade(_write_artifact(tmp_path, oracle["artifact"]))
-    reward = result["reward"]
-    if "reward" in oracle:
-        assert reward == pytest.approx(
-            oracle["reward"], abs=oracle.get("tolerance", 1e-9)
-        ), result
-    else:
-        assert oracle["reward_min"] <= reward <= oracle["reward_max"], result
-
-
-@pytest.mark.parametrize("task_dir", GRADER_TESTED_TASKS, ids=lambda p: p.name)
-def test_cheats_score_zero(task_dir, tmp_path):
-    grader = _load_grader(task_dir)
-    for cheat in _grader_tests(task_dir)["cheats"]:
-        result = grader.grade(_write_artifact(tmp_path, cheat["artifact"]))
-        assert result["reward"] == 0.0, f"cheat {cheat['name']!r} scored: {result}"
-        assert result.get("reason"), f"cheat {cheat['name']!r} gave no reason"
+    for case in _grader_tests(task_dir)["cases"]:
+        result = grader.grade(_write_artifact(tmp_path, case["solution"]))
+        assert result["reward"] == pytest.approx(
+            case["reward"], abs=case.get("tolerance", 1e-9)
+        ), (case["why"], result)
+        if case["reward"] == 0.0:
+            assert result.get("reason"), (
+                f"zero-reward case gave no reason: {case['why']}"
+            )
 
 
 @pytest.mark.parametrize("task_dir", GRADER_TESTED_TASKS, ids=lambda p: p.name)

@@ -1,12 +1,11 @@
-"""The E2E gate: run the oracle through real containers on every first-party
-task and require each score to match its grader_tests.json expectation.
+"""The E2E gate: run the oracle agent through real containers on every
+first-party task and require each score to match ``solve_sh_scores`` in its
+grader_tests.json — a number for an exact expectation, or ``{"min", "max"}``
+where the live run legitimately varies (e.g. compression ratios across zlib
+builds).
 
     python scripts/e2e_oracle.py                 # all tasks with grader_tests.json
     python scripts/e2e_oracle.py circle-packing  # a subset, by name
-
-A task's live expectation is its pinned oracle reward (± tolerance), unless
-grader_tests.json declares a ``live_min``/``live_max`` range (used where the live
-oracle legitimately varies, e.g. compression ratios across zlib builds).
 """
 
 import asyncio
@@ -37,23 +36,17 @@ async def main(names: list[str]) -> None:
     lab = Lab("runs/e2e-oracle")
     failures = []
     for task_dir in tasks:
-        oracle = json.loads((task_dir / "tests" / "grader_tests.json").read_text())[
-            "oracle"
+        expect = json.loads((task_dir / "tests" / "grader_tests.json").read_text())[
+            "solve_sh_scores"
         ]
         row = await lab.run(str(task_dir), {"name": "oracle"}, tags={"gate": "e2e"})
         reward = row.rewards.get("reward")
-        if "live_min" in oracle:
-            ok = (
-                reward is not None
-                and oracle["live_min"] <= reward <= oracle["live_max"]
-            )
-            expected = f"[{oracle['live_min']}, {oracle['live_max']}]"
+        if isinstance(expect, dict):
+            ok = reward is not None and expect["min"] <= reward <= expect["max"]
+            expected = f"[{expect['min']}, {expect['max']}]"
         else:
-            tolerance = oracle.get("tolerance", 1e-9)
-            ok = reward is not None and abs(reward - oracle["reward"]) <= max(
-                tolerance, 1e-6
-            )
-            expected = f"{oracle['reward']} ± {max(tolerance, 1e-6)}"
+            ok = reward is not None and abs(reward - expect) <= 1e-6
+            expected = f"{expect} ± 1e-6"
         status = "OK " if ok else "FAIL"
         print(f"{status} {task_dir.name}: reward={reward} expected {expected}")
         if not ok:

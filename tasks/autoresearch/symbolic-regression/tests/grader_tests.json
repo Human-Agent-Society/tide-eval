@@ -1,41 +1,48 @@
 {
-  "oracle": {
-    "artifact": {
-      "expr": "0.5 * x**2"
-    },
-    "reward": 0.604169977748831,
-    "tolerance": 1e-09
-  },
-  "cheats": [
+  "solve_sh_scores": 0.604169977748831,
+  "cases": [
     {
-      "name": "code_injection",
-      "artifact": {
+      "solution": {
+        "expr": "0.5 * x**2"
+      },
+      "reward": 0.604169977748831,
+      "tolerance": 1e-09,
+      "why": "the reference solution scores exactly this"
+    },
+    {
+      "solution": {
         "expr": "__import__('os').system('id')"
-      }
+      },
+      "reward": 0.0,
+      "why": "code injection in the expression must be rejected"
     },
     {
-      "name": "attribute_escape",
-      "artifact": {
+      "solution": {
         "expr": "().__class__"
-      }
+      },
+      "reward": 0.0,
+      "why": "an attribute-based sandbox escape must be rejected"
     },
     {
-      "name": "non_finite",
-      "artifact": {
+      "solution": {
         "expr": "exp(exp(exp(x + 100)))"
-      }
+      },
+      "reward": 0.0,
+      "why": "non-finite values must be rejected"
     },
     {
-      "name": "not_a_string",
-      "artifact": {
+      "solution": {
         "expr": 42
-      }
+      },
+      "reward": 0.0,
+      "why": "a non-string expression must be rejected"
     },
     {
-      "name": "malformed",
-      "artifact": {
+      "solution": {
         "formula": "x"
-      }
+      },
+      "reward": 0.0,
+      "why": "malformed input must score zero, not crash"
     }
   ]
 }

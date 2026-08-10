@@ -22,7 +22,7 @@ my-task/
 ├── tests/             # verifier container — its own Dockerfile, built separately
 │   ├── test.sh        #   entrypoint: runs grade.py
 │   ├── grade.py       #   PRIVATE eval: the trusted grader
-│   └── grader_tests.json   #   unit tests for grade.py (one good case + cheat cases)
+│   └── grader_tests.json   #   unit tests for grade.py: solution → reward → why
 └── solution/          # reference solution — the oracle agent runs solve.sh
 ```
 
@@ -105,39 +105,36 @@ Three questions, answered up front:
   task — yes, and the suite enforces that. Autoresearch graders hand out
   continuous scores computed from agent-written files: one lenient check
   is free points, and an agent with an hours-long budget will find it.
-- **How do you write it?** A ten-minute recipe:
-  1. take a solution you know is correct — that's the `oracle` entry;
-     write down the exact reward `grade.py` must give it;
-  2. for **each rule your grader enforces**, write one artifact that
-     breaks it — those are the `cheats`; each must score exactly `0.0`
-     with a reason;
-  3. run `pytest tests/test_task_suite.py` — any folder with this file is
-     picked up automatically.
+- **How do you write it?** Each case is one sentence: *this solution must
+  score this reward, because…* Write one case for your reference solution
+  and one for **each rule your grader enforces** (expected reward `0.0`).
 
 The template's complete file, for the maximize-`x` task:
 
 ```json
 {
-  "oracle": {"artifact": {"x": 0.5}, "reward": 0.5},
-  "cheats": [
-    {"name": "out_of_bounds", "artifact": {"x": 1.5}},
-    {"name": "epsilon_over", "artifact": {"x": 1.0000000001}},
-    {"name": "forged_claim", "artifact": {"x": 0.0, "claimed_score": 999.0}},
-    {"name": "malformed", "artifact": {"nonsense": true}}
+  "solve_sh_scores": 0.5,
+  "cases": [
+    {"solution": {"x": 0.5}, "reward": 0.5, "why": "the reference solution scores exactly this"},
+    {"solution": {"x": 1.5}, "reward": 0.0, "why": "out-of-bounds values must be rejected"},
+    {"solution": {"x": 1.0000000001}, "reward": 0.0, "why": "epsilon over the bound is still out of bounds"},
+    {"solution": {"x": 0.0, "claimed_score": 999.0}, "reward": 0.0, "why": "a self-reported score must be ignored"},
+    {"solution": {"nonsense": true}, "reward": 0.0, "why": "malformed input must score zero, not crash"}
   ]
 }
 ```
 
-Advanced knobs, only when you need them: `"tolerance"` for float
-comparison against the oracle reward; `"reward_min"`/`"reward_max"` when
-the legitimate reward is a range; `"live_min"`/`"live_max"` when the
-*containerized* oracle run legitimately varies (compression ratios across
-zlib builds) — used only by the E2E gate.
+- `cases` drive the offline suite: each `solution` is written to a file,
+  passed to `grade()`, and must earn its `reward` (± optional
+  `"tolerance"`, default 1e-9). Zero-reward cases must also produce a
+  `reason`. `why` is documentation and the test-failure message.
+- `solve_sh_scores` drives the E2E gate: what the reference solution must
+  earn when the oracle agent runs it through real containers. A number for
+  an exact expectation, or `{"min": …, "max": …}` where the live run
+  legitimately varies (compression ratios across zlib builds).
 
-The container-level checks stay Harbor-native and complement this file:
-`--agent oracle` must reproduce the score end to end (the E2E gate), and
-`--agent nop` must score 0 — if it doesn't, the environment leaks the
-answer.
+`--agent nop` completes the picture: it must score 0 — if it doesn't, the
+environment leaks the answer.
 
 ## Network policy
 

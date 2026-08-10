@@ -1,118 +1,119 @@
 {
-  "oracle": {
-    "artifact": {
-      "bins": [
-        [
-          0,
-          1,
-          2
-        ],
-        [
-          3,
-          4,
-          5,
-          10
-        ],
-        [
-          6,
-          7,
-          8
-        ],
-        [
-          9,
-          11
-        ],
-        [
-          12,
-          13,
-          14,
-          15
-        ],
-        [
-          16,
-          17,
-          18,
-          19
-        ],
-        [
-          20,
-          21,
-          35
-        ],
-        [
-          22,
-          23,
-          24,
-          29
-        ],
-        [
-          25,
-          26,
-          33
-        ],
-        [
-          27,
-          30
-        ],
-        [
-          28,
-          31
-        ],
-        [
-          32,
-          34,
-          37,
-          57
-        ],
-        [
-          36,
-          38,
-          40
-        ],
-        [
-          39,
-          41,
-          59
-        ],
-        [
-          42,
-          43,
-          44
-        ],
-        [
-          45,
-          47,
-          48
-        ],
-        [
-          46,
-          52,
-          54
-        ],
-        [
-          49,
-          50
-        ],
-        [
-          51,
-          53
-        ],
-        [
-          55,
-          58
-        ],
-        [
-          56
-        ]
-      ]
-    },
-    "reward": 1.0,
-    "tolerance": 1e-12
-  },
-  "cheats": [
+  "solve_sh_scores": 1.0,
+  "cases": [
     {
-      "name": "drop_item",
-      "artifact": {
+      "solution": {
+        "bins": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            3,
+            4,
+            5,
+            10
+          ],
+          [
+            6,
+            7,
+            8
+          ],
+          [
+            9,
+            11
+          ],
+          [
+            12,
+            13,
+            14,
+            15
+          ],
+          [
+            16,
+            17,
+            18,
+            19
+          ],
+          [
+            20,
+            21,
+            35
+          ],
+          [
+            22,
+            23,
+            24,
+            29
+          ],
+          [
+            25,
+            26,
+            33
+          ],
+          [
+            27,
+            30
+          ],
+          [
+            28,
+            31
+          ],
+          [
+            32,
+            34,
+            37,
+            57
+          ],
+          [
+            36,
+            38,
+            40
+          ],
+          [
+            39,
+            41,
+            59
+          ],
+          [
+            42,
+            43,
+            44
+          ],
+          [
+            45,
+            47,
+            48
+          ],
+          [
+            46,
+            52,
+            54
+          ],
+          [
+            49,
+            50
+          ],
+          [
+            51,
+            53
+          ],
+          [
+            55,
+            58
+          ],
+          [
+            56
+          ]
+        ]
+      },
+      "reward": 1.0,
+      "tolerance": 1e-12,
+      "why": "the reference solution scores exactly this"
+    },
+    {
+      "solution": {
         "bins": [
           [
             0,
@@ -214,11 +215,12 @@
             58
           ]
         ]
-      }
+      },
+      "reward": 0.0,
+      "why": "dropping an item must be rejected"
     },
     {
-      "name": "duplicate_item",
-      "artifact": {
+      "solution": {
         "bins": [
           [
             0,
@@ -326,11 +328,12 @@
             0
           ]
         ]
-      }
+      },
+      "reward": 0.0,
+      "why": "packing an item twice must be rejected"
     },
     {
-      "name": "overfull_bin",
-      "artifact": {
+      "solution": {
         "bins": [
           [
             0,
@@ -395,13 +398,16 @@
             59
           ]
         ]
-      }
+      },
+      "reward": 0.0,
+      "why": "a bin over capacity must be rejected"
     },
     {
-      "name": "malformed",
-      "artifact": {
+      "solution": {
         "bins": "nope"
-      }
+      },
+      "reward": 0.0,
+      "why": "malformed input must score zero, not crash"
     }
   ]
 }
