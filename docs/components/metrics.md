@@ -16,18 +16,15 @@ metric, state its required columns in the docstring first.
 | `anytime(df, by=…)` | `t`, `score` (+groups) | best-so-far progress curve |
 | `auc(curve)` | `t`, `best_so_far` | the anytime score (left-Riemann, span-normalized) |
 | `scaling(df)` | `budget`, `reward` | score vs interaction budget (EdgeBench 2–12 h) |
-| `matrix(df)` | `phase`, `task`, `reward` | version × task accuracy matrix |
-| `forgetting(m)` / `backward_transfer(m)` | a matrix | peak − final per task / BWT |
-| `gain(df, by=…)` | `arm` ∈ {stateful, fresh}, `reward` | learning isolated from capability (CL-Bench) |
-| `internalization(df)` | `arm` ∈ {in_context, from_state}, `reward` | how much knowledge survived moving into state |
 | `rescale_linear` / `rescale_anchored` | a Series | 0–100 normalization; anchored stretches >100 past the best known result |
 
 ## Rules
 
 1. **Raw in the store, normalized in the view.** Rescales are applied at
    query time so re-anchoring never requires re-running anything.
-2. **Missing expectations are loud** — `gain` raises if an arm is absent
-   rather than silently returning half an answer. Keep that style.
+2. **Missing expectations are loud** — `rescale_linear` raises on a
+   degenerate anchor rather than silently returning half an answer. Keep
+   that style.
 3. Aggregation over repeats is `mean` unless a metric says otherwise.
 
 ## How to modify

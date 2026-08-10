@@ -1,11 +1,11 @@
 [project]
 name = "tide-eval"
 version = "0.1.0"
-description = "Continual evaluation infrastructure on the Harbor task standard: episodes, streams, and metrics for autoresearch and continual-learning benchmarks."
+description = "Autoresearch evaluation infrastructure on the Harbor task standard: budgeted open-ended tasks, tamper-proof scoring, score trajectories, and resumable sweeps."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "Apache-2.0" }
-keywords = ["evaluation", "benchmarks", "agents", "continual-learning", "autoresearch", "harbor"]
+keywords = ["evaluation", "benchmarks", "agents", "autoresearch", "harbor"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
@@ -25,11 +25,9 @@ Repository = "https://github.com/Human-Agent-Society/tide-eval"
 Issues = "https://github.com/Human-Agent-Society/tide-eval/issues"
 
 [project.optional-dependencies]
-# The Harbor executor. Kept optional so the core (store, metrics, fakes,
-# stream tooling) works without Harbor's heavy dependency tree.
+# The Harbor executor. Kept optional so the core (store, metrics, fakes)
+# works without Harbor's heavy dependency tree.
 harbor = ["harbor==0.20.0"]
-# The default OpenAI-compatible client for the probe executor.
-probe = ["openai>=1.40"]
 # Benchmark converters (EdgeBench spec parsing).
 converters = ["pyyaml>=6"]
 

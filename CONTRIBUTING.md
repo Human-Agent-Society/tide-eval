@@ -10,32 +10,32 @@ reviewed against a short list of design rules more than against style.
    change needs to break this, open an issue first — it means the design is
    wrong somewhere and we'd rather fix that.
 2. **Tasks stay stock Harbor.** No tide-specific fields in `task.toml`,
-   ever. Stream/benchmark structure lives in manifests and scripts *around*
-   tasks. `tests/test_harbor_integration.py` enforces this for the in-repo
-   exemplar; new example tasks should extend that test.
+   ever. Benchmark structure lives in scripts *around* tasks.
+   `tests/test_task_suite.py` enforces this for every committed task.
 3. **Abstractions are earned.** A helper enters the library when the same
    shape has appeared in at least two real scripts. Until then it lives in
-   `examples/`. (This is why there is no stream "runner" class.)
-4. **Dependency direction.** Converters/loaders depend on published formats
-   and tide's public types only. Metrics import pandas, never tide. The core
-   doesn't know streams exist.
+   `examples/`.
+4. **Dependency direction.** Converters depend on published formats
+   and tide's public types only. Metrics import pandas, never tide.
 5. **Trust boundaries are tested, not asserted.** Anything claiming to be an
-   anti-hack measure needs a test that actually cheats and fails — see
-   `tests/test_exemplar_grader.py` for the pattern.
+   anti-hack measure needs a test that actually cheats and fails — see the
+   cheat vectors in `tests/test_task_suite.py` for the pattern.
 6. **Loud beats lenient** for measurement code: a missing metric column, a
    duplicate store key, or a corrupt benchmark line raises; only
    agent-written data (score logs) is parsed leniently.
 
 ## What's welcome
 
-- **Benchmark converters/loaders** (see the README catalog's 🗺️ rows —
-  EdgeBench and AgentStream are the most wanted). A converter PR should
-  include: the conversion script, one converted sample task checked in as a
-  test fixture, and a catalog row update with honest status.
+- **Autoresearch tasks** — copy `tasks/_template`, work the TODO markers,
+  and `tests/test_task_suite.py` picks it up (oracle score, cheat suite,
+  stock-Harbor validation) with zero test code written.
+- **Benchmark converters**. A converter PR should include: the conversion
+  script, one converted sample task checked in as a test fixture, and a
+  catalog row update with honest status.
 - **Metrics**: one pure function + docstring declaring expected columns +
   a small-frame test. That's the whole checklist.
 - **Executors** for new backends, implementing the `Executor` protocol.
-- **Example protocols** under `examples/` — real CL/autoresearch scripts are
+- **Example protocols** under `examples/` — real autoresearch scripts are
   how library helpers get earned.
 
 ## Workflow

@@ -7,8 +7,6 @@ and, when the Harbor executor is used, the Harbor trial directories
 - ``run()``   — execute one episode (a Harbor task under an agent), store the
   trusted reward plus any untrusted score trajectory, and skip work whose
   idempotency key already has a result.
-- ``probe()`` — one direct-inference measurement judged against rubrics
-  (no container; see :mod:`tide.probe`).
 - ``df()``    — everything as a pandas DataFrame; metrics are queries.
 
 Persistence lives in the data: there is no daemon, and re-running a crashed
@@ -38,7 +36,6 @@ class Lab:
         root: Path | str,
         *,
         executor: Executor | None = None,
-        prober: Any | None = None,
         concurrency: int = 4,
     ):
         self.root = Path(root)
@@ -48,7 +45,6 @@ class Lab:
 
         self.store = Store(self.root / "results.sqlite")
         self.executor: Executor = executor or HarborExecutor(self.root / "trials")
-        self.prober = prober
         self._semaphore = asyncio.Semaphore(concurrency)
 
     # ------------------------------------------------------------- episodes
@@ -114,48 +110,6 @@ class Lab:
         the order of calls.
         """
         return list(await asyncio.gather(*(self.run(**call) for call in calls)))
-
-    # --------------------------------------------------------------- probes
-
-    async def probe(
-        self,
-        probe: Any,
-        model: dict[str, Any] | None = None,
-        *,
-        tags: Tags | None = None,
-        key: str | None = None,
-    ) -> Row:
-        """Run one direct-inference probe (see :mod:`tide.probe`).
-
-        Requires the Lab to be constructed with a ``prober``; kept separate
-        from ``run()`` because probes are API-cheap and containerless, which
-        is what makes dense per-phase measurement affordable.
-        """
-        if self.prober is None:
-            raise RuntimeError(
-                "This Lab has no prober. Construct it with "
-                "Lab(root, prober=ProbeExecutor(...))."
-            )
-        tags = dict(tags or {})
-        key = key or "probe:" + self._digest(
-            {"probe": getattr(probe, "id", repr(probe)), "model": model, "tags": tags}
-        )
-        if (existing := self.store.get(key)) is not None:
-            logger.info("skip %s (already recorded)", key)
-            return existing
-
-        async with self._semaphore:
-            rewards = await self.prober.execute(probe, model or {})
-
-        row = Row(
-            key=key,
-            kind="probe",
-            task=getattr(probe, "id", repr(probe)),
-            tags=tags,
-            rewards=rewards,
-        )
-        self.store.put(row)
-        return row
 
     # -------------------------------------------------------------- queries
 

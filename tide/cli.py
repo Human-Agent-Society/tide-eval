@@ -13,8 +13,8 @@ passed to Harbor as a registry id. The CLI is a thin caller of :class:`Lab`;
 everything it runs lands in the same tagged results store (``--lab``,
 default ``runs/cli``), so re-running resumes and ``tide report`` is a query.
 
-Streams are protocols (Python scripts), not CLI targets — see
-``examples/stream_cl.py`` and ``tasks/streams/*/README.md``.
+Protocols the CLI can't express (custom schedules, control arms) are plain
+Python scripts over :class:`Lab` — see ``examples/``.
 """
 
 from __future__ import annotations
@@ -211,7 +211,7 @@ def cmd_fetch(args: argparse.Namespace) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="tide", description="continual evaluation on the Harbor task standard"
+        prog="tide", description="autoresearch evaluation on the Harbor task standard"
     )
     parser.add_argument("--tasks-dir", default=None, help="tasks catalog root")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -253,7 +253,7 @@ def main(argv: list[str] | None = None) -> int:
     p_report = sub.add_parser("report", help="summarize a results store")
     p_report.add_argument("--lab", default="runs/cli")
     p_report.add_argument(
-        "--kind", default="episode", help="episode | trace | probe | '' for all"
+        "--kind", default="episode", help="episode | trace | '' for all"
     )
     p_report.set_defaults(func=cmd_report)
 

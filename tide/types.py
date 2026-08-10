@@ -5,7 +5,7 @@ The vocabulary is deliberately tiny:
 - An :class:`EpisodeSpec` says what to run (a Harbor task + an agent).
 - An :class:`EpisodeResult` is what an executor hands back.
 - A :class:`TracePoint` is one untrusted intermediate score emitted *during*
-  an episode (an agent self-evaluation, a trade, a checkpoint probe).
+  an episode (an agent self-evaluation).
 - A :class:`Row` is what actually lands in the results store.
 """
 
@@ -72,7 +72,9 @@ class Row:
 
     - ``episode`` — a trusted, verifier-backed score (one per episode)
     - ``trace``   — an untrusted intermediate score (many per episode)
-    - ``probe``   — a direct-inference probe judged against rubrics
+
+    ``kind`` is an open string, not an enum: future evaluation regimes add
+    new kinds (with their own key shapes) without touching this schema.
     """
 
     key: str

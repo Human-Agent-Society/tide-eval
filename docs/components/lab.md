@@ -1,19 +1,18 @@
 # Lab & store
 
 `tide/lab.py` · `tide/store.py` — **the frozen surface**. Everything else in
-tide (and everything users build) depends on exactly two things: the signature
-of `Lab.run` / `Lab.probe`, and the results table. Change anything here as an
+tide (and everything users build) depends on exactly two things: the
+signature of `Lab.run`, and the results table. Change anything here as an
 addition, never a mutation.
 
 ## What it does
 
-- `Lab(root, executor=…, prober=…, concurrency=…)` — a Lab **is a
+- `Lab(root, executor=…, concurrency=…)` — a Lab **is a
   directory**: `results.sqlite` plus (for the Harbor executor) `trials/`.
 - `run(task, agent, *, tags, key, **overrides) → Row` — one episode.
   Checks the idempotency key, bounds concurrency with a semaphore, executes,
   stores one `episode` row plus `key#t<i>` `trace` rows for any ingested
   score trajectory.
-- `probe(probe, model, *, tags, key) → Row` — one direct-inference probe.
 - `df(kind=None)` — the store as pandas, tags/rewards expanded to columns.
 
 ## The row model
@@ -22,7 +21,9 @@ addition, never a mutation.
 |---|---|---|
 | `episode` | trusted, verifier-backed score | `<key>` |
 | `trace` | untrusted intermediate score from inside an episode | `<key>#t<i>` |
-| `probe` | direct-inference measurement | `probe:<digest>` or yours |
+
+`kind` is an open string: future evaluation regimes add new kinds with their
+own key shapes, no schema change.
 
 Column collisions in `df()` are resolved with prefixes (`tag_`, `reward_`) so
 every column stays 1-dimensional — base columns win over tags, tags over

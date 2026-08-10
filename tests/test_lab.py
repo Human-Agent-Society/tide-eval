@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from tide import FakeExecutor, Lab, Probe, ProbeExecutor
+from tide import FakeExecutor, Lab
 from tide.types import TracePoint
 
 
@@ -89,47 +89,3 @@ async def test_error_recorded_in_tags(tmp_path):
     lab = Lab(tmp_path / "lab", executor=FailingExec())
     row = await lab.run("t/x", {"name": "nop"})
     assert "AgentTimeoutError" in row.tags["error"]
-
-
-async def test_probe_requires_prober_and_records(tmp_path):
-    async def infer(messages, model):
-        return "the answer is 42"
-
-    async def judge(output, probe):
-        return {"reward": 1.0 if "42" in output else 0.0}
-
-    lab = Lab(
-        tmp_path / "lab", executor=FakeExecutor(), prober=ProbeExecutor(infer, judge)
-    )
-    probe = Probe(
-        id="q1",
-        messages=[{"role": "user", "content": "6*7?"}],
-        rubrics=("mentions 42",),
-    )
-    row = await lab.probe(probe, {"model": "m"}, tags={"phase": 3})
-    assert row.kind == "probe"
-    assert row.rewards["reward"] == 1.0
-
-    bare = Lab(tmp_path / "lab2", executor=FakeExecutor())
-    with pytest.raises(RuntimeError, match="no prober"):
-        await bare.probe(probe)
-
-
-async def test_probe_idempotent(tmp_path):
-    calls = 0
-
-    async def infer(messages, model):
-        nonlocal calls
-        calls += 1
-        return "x"
-
-    async def judge(output, probe):
-        return {"reward": 0.0}
-
-    lab = Lab(
-        tmp_path / "lab", executor=FakeExecutor(), prober=ProbeExecutor(infer, judge)
-    )
-    probe = Probe(id="q", messages=[])
-    await lab.probe(probe, {"model": "m"}, tags={"v": 1})
-    await lab.probe(probe, {"model": "m"}, tags={"v": 1})
-    assert calls == 1

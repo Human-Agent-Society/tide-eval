@@ -47,10 +47,52 @@ value — pipeline proof), **nop** (must score 0 — leakage baseline), and a
 **cheater** (tampered scorer + forged log — must not move the trusted score;
 the exemplar's grader test does exactly this).
 
+## A GPU task (kernels, CUDA, ML workloads)
+
+A GPU task is a plain Harbor task with two extra pieces of configuration —
+tide adds nothing:
+
+1. Declare the requirement in `task.toml`; Harbor's schema validates it and
+   Harbor's cloud backends (Modal, Beam, GKE, SkyPilot, Daytona, …) honor it
+   natively:
+
+   ```toml
+   [environment]
+   gpus = 1
+   ```
+
+2. For local Docker, Harbor merges a task-authored
+   `environment/docker-compose.yaml` over its generated one (the agent's
+   service is named `main`). GPU access is a standard compose device
+   reservation, and needs the NVIDIA Container Toolkit on the host:
+
+   ```yaml
+   services:
+     main:
+       deploy:
+         resources:
+           reservations:
+             devices:
+               - driver: nvidia
+                 count: all
+                 capabilities: [gpu]
+   ```
+
+The same overlay mechanism composes with everything else — the vendored
+FrontierCS kernel tasks (`tasks/frontier-cs/*gpu-kernel*`) use it to add a
+separate judge sidecar with health checks. If the *verifier* needs the GPU
+too (re-timing kernels trustably), give `tests/` its own Dockerfile with the
+same reservation; in `separate` mode it is its own build context.
+
+One honest caveat for kernel-timing tasks: wall-clock speedups measured on
+shared/heterogeneous hosts are noisy. Prefer verifiers that grade against a
+reference implementation run *in the same container, same session* (relative
+speedup), and record the GPU model as a tag so curves never mix hardware.
+
 ## A benchmark converter
 
-A converter turns a published external format into a folder of task dirs
-(plus an ordered manifest for streams). Converters depend **only on the
+A converter turns a published external format into a folder of task dirs.
+Converters depend **only on the
 published format and tide's public types** — so they can't break anything.
 The reference implementation is `tide/converters/edgebench.py`: the spec's
 `work` half becomes `instruction.md` + `environment/`, its `judge` half
@@ -60,30 +102,3 @@ parameters (`tags={"budget": h}` + `metrics.scaling`). Its tests pin the
 converter to unmodified published spec files — do the same for any new
 converter: check one real spec into `tests/fixtures/` and validate the
 emitted task under Harbor's `TaskConfig`.
-
-## A stream benchmark
-
-Ship (a) tasks or probes, (b) an ordered manifest (a JSON list is fine),
-(c) the protocol script. The ingest-then-probe conversion for context-
-learning corpora is in [`examples/stream_cl.py`](../../examples/stream_cl.py):
-learn = ingest into `StateDir`; probe = ask *without* the context, both
-`stateful` and `fresh` arms; `metrics.gain` and `metrics.internalization`
-read the result.
-
-## Live tasks
-
-For tasks with no natural end (trading, ops), the mapping is:
-**infinite horizon = an unbounded stream of measurement windows.**
-
-- A window (day/week — or event-triggered: a market resolving, a drawdown
-  threshold) is one episode; `key` = the window id, which makes week-long
-  runs crash-resumable for free.
-- The verifier **observes external ground truth** (e.g. the exchange's
-  account API) instead of recomputing an artifact — same wall, different
-  source; the agent can't forge the exchange's ledger.
-- No reruns exist, so comparisons need **contemporaneous controls**: run all
-  arms in the same window, tagged. The nop agent means *hold*, so
-  `score − nop = alpha`.
-- Individual trades are actions *inside* an episode: log them through the
-  score-log path (verifier overwrites with the exchange's fill history) and
-  per-trade analytics become queries — no per-trade episodes.

@@ -4,30 +4,28 @@
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
 
-**Continual evaluation infrastructure on the [Harbor](https://github.com/laude-institute/harbor) task standard.**
+**Autoresearch evaluation infrastructure on the [Harbor](https://github.com/laude-institute/harbor) task standard.**
 
-Harbor is very good at one thing: scoring an agent on one task, once, in a way
-you can trust. tide is for everything that happens *after* that stops being
-enough — agents that self-evaluate hundreds of times inside a single budget
-(**autoresearch**), learners whose memory or weights evolve across an ordered
-sequence of tasks (**continual learning with task streams**), and tasks that
-simply never end (**live, infinite-horizon tasks** such as trading). All of it
-runs on Harbor tasks, unmodified.
+Harbor is very good at one thing: scoring an agent on one task, once, in a
+way you can trust. **Autoresearch** breaks that mold: the agent gets an
+open-ended optimization problem and an hours-long budget, evaluates itself
+hundreds of times, and produces a *continuous* score — not pass/fail. To
+evaluate that, you need everything around the single trusted score: the
+agent's self-eval trajectory, budget-scaling curves, tamper-proof grading,
+and sweeps that survive crashes. That is tide. All of it runs on stock
+Harbor tasks, unmodified.
 
-## Two primitives
+## Two ideas
 
-Every benchmark tide supports reduces to two ideas:
+**An episode is one trusted measurement.** You give an agent a Harbor task,
+it works until the budget runs out, and an isolated verifier produces a
+score you can trust. How often the agent evaluated *itself* along the way
+doesn't matter — those numbers are recorded, but never believed.
 
-**An episode is one trusted measurement.** You give an agent a Harbor task, it
-works, and a verifier produces a score you can trust. How often the agent
-evaluated *itself* along the way doesn't matter — an episode boundary exists
-wherever the *harness* needs a number it can rely on, and nowhere else.
-
-**A stream is an ordered sequence of episodes with one crossing channel.**
-Between episodes, exactly one thing survives: a state folder (or, for model
-weights, a version reference). The folder is git-versioned, so you can always
-see what the learner carried forward — and streams are allowed to be infinite:
-a live trading account is a stream whose settlement windows never stop.
+**Everything else is tags and queries.** There is no fixed result schema:
+budgets, attempts, models, and suites are free-form tags on an append-only
+store, and every metric — anytime score, AUC, budget scaling — is a pandas
+query over one table.
 
 ## What tide adds on top of Harbor
 
@@ -35,9 +33,8 @@ a live trading account is a stream whose settlement windows never stop.
 |---|---|---|
 | One trusted score per task | ✅ | + untrusted **score trajectories** (the agent's self-eval curve, queryable) |
 | Programmatic trials | per trial | **`Lab`**: idempotent keys (crash = resume), tagged append-only store accreting for weeks |
-| Batch stats (pass@k) | job-scoped | **cross-run metrics**: gain, forgetting, anytime/AUC, budget scaling — all queries |
-| Stateless trials | by design | **streams**: git-versioned state folder as the single crossing channel, frozen probes, fresh-control arms |
-| Container-scored tasks | ✅ | + a **probe executor** (direct inference + rubric judge, no container) for dense capability tracking |
+| Batch stats (pass@k) | job-scoped | **cross-run metrics**: anytime/AUC, budget scaling — all queries |
+| Container-scored tasks | ✅ | **budget semantics**: timeout = budget spent, a normal ending that still grades |
 | — | — | **task catalog**: 77 runnable tasks in-repo + one-command CLI (`tide run`) |
 
 ## Quick start
@@ -62,8 +59,8 @@ tide run autoresearch --agent oracle --fake                  # no Docker: offlin
 Every run lands in the same tagged, idempotent results store — re-running a
 crashed sweep resumes it, and `tide report` is a query, not a pipeline.
 
-For protocols the CLI can't express (streams, control arms, custom
-schedules), the same store is one class away:
+For protocols the CLI can't express (custom schedules, control arms), the
+same store is one class away:
 
 ```python
 from tide import Lab
@@ -71,11 +68,11 @@ from tide import Lab
 lab = Lab("runs/exp1")  # a Lab is a directory
 
 row = await lab.run(  # one episode = one trusted score
-    task="terminal-bench/hello-world",  # any Harbor task dir or registry id
+    task="tasks/autoresearch/circle-packing",  # any Harbor task dir or registry id
     agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"},
-    tags={"attempt": 0},  # free-form labels, your dimensions
+    tags={"budget": 2, "attempt": 0},  # free-form labels, your dimensions
 )
-print(row.rewards)  # {'reward': 1.0}
+print(row.rewards)  # {'reward': 0.83}
 
 df = lab.df()  # everything as pandas; metrics are queries
 ```
@@ -85,8 +82,8 @@ Three properties hold from day one:
 1. **Re-running resumes.** Every episode has an idempotency key (auto-derived,
    or yours via `key=`). If a script crashes halfway, run it again — finished
    episodes are skipped, unfinished ones run. That is the entire resume story.
-2. **Tags are the schema.** There is no fixed result format. A forgetting
-   matrix and a budget-scaling curve are both pivots over `lab.df()`.
+2. **Tags are the schema.** There is no fixed result format. A budget-scaling
+   curve and a model comparison are both pivots over `lab.df()`.
 3. **Every number is auditable.** Each row's `uri` points back to the Harbor
    trial directory that produced it, with full logs and artifacts.
 
@@ -94,29 +91,8 @@ Try it without Docker (fake executor, 30 seconds), then for real:
 
 ```bash
 python examples/quickstart.py           # the API shape, offline
-python examples/stream_cl.py            # a full continual-learning stream, offline
 python examples/run_circle_packing.py   # the real thing (Docker): oracle proves the pipeline
 ```
-
----
-
-## Episode or stream?
-
-```mermaid
-flowchart TD
-    Q1{"Do you need <b>more than one</b><br/>trusted score over time?"}
-    Q1 -->|no| E["<b>One episode</b><br/>self-evaluation stays inside<br/><i>autoresearch: FrontierCS, AlgoTune</i>"]
-    Q1 -->|yes| Q2{"Does state you want to measure<br/>carry across those moments?"}
-    Q2 -->|no| I["<b>Independent episodes</b><br/>dimensions go in tags<br/><i>sweeps, budget scans: EdgeBench</i>"]
-    Q2 -->|yes| S["<b>A stream</b><br/>StateDir + frozen probes<br/><i>CL-Bench, live trading windows</i>"]
-
-```
-
-The test is always the same question: *where does the harness need a score it
-can trust?* Each such moment is an episode boundary. An autoresearch agent
-scoring itself a thousand times creates zero boundaries — those numbers are
-advisory. A trading account you settle every Friday creates one boundary per
-week, forever.
 
 ---
 
@@ -136,7 +112,7 @@ sequenceDiagram
     participant V as verifier container<br/>(trusted, separate)
     participant S as results store
 
-    L->>A: start env · inject state/skills · run agent
+    L->>A: start env · run agent
     loop self-evaluation — unlimited, unisolated, unbelieved
         A->>A: run public scorer · append score_log.jsonl<br/>· atomically update best-so-far artifact
     end
@@ -151,56 +127,55 @@ sequenceDiagram
 Being killed at the deadline is fine: the task convention requires the agent
 to keep its best solution written to a fixed path at all times, so the
 verifier grades whatever the budget bought. The cheat-proofing is tested —
-`tests/test_exemplar_grader.py` feeds the grader overlapping circles,
-float-epsilon violations, and forged score claims, and expects zero for each.
+`tests/test_task_suite.py` feeds every grader its task's cheat vectors
+(overlapping circles, float-epsilon violations, forged score claims) and
+expects zero for each.
+
+The four task conventions behind this — public scorer in the image, the
+declared-artifacts wall, atomic best-so-far writes, `score_log.jsonl` — are
+specified in [docs/components/tasks.md](docs/components/tasks.md), with
+[`tasks/autoresearch/circle-packing`](tasks/autoresearch/circle-packing) as
+the reference implementation.
 
 ---
 
-## How a stream runs
+## GPU tasks (kernels, CUDA, ML workloads)
 
-A stream script is a plain Python loop. tide supplies the state machinery;
-the protocol — what to ingest, when to probe, what feedback the learner gets —
-stays in your script, where variation is cheap.
+Kernel-optimization and other GPU-bound tasks are plain Harbor tasks with two
+extra lines of configuration. tide adds no machinery — the point is that it
+doesn't need to:
 
-```mermaid
-flowchart LR
-    subgraph P0[" phase 0 "]
-        direction TB
-        L0[learn episode] --> S0["snapshot v0"]
-        S0 --> B0["probe battery<br/><i>stateful + fresh arms</i>"]
-    end
-    subgraph P1[" phase 1 "]
-        direction TB
-        L1[learn episode] --> S1["snapshot v1"]
-        S1 --> B1["probe battery<br/><i>probes ALL tasks seen</i>"]
-    end
-    S0 ==>|"state_dir<br/>(the only crossing)"| L1
-    P1 -.-> more(["… phase N (streams may be infinite)"])
+1. **Declare the requirement** in `task.toml` — validated by Harbor's schema,
+   honored natively by Harbor's cloud backends (Modal, Beam, GKE, SkyPilot,
+   Daytona, …):
 
-```
+   ```toml
+   [environment]
+   gpus = 1
+   ```
 
-```python
-state = StateDir("runs/exp/state")
-for i, doc in enumerate(corpus):
-    ingest(state.path, doc)  # your learner, your rules
-    ref = state.snapshot(f"phase {i}")  # frozen, diffable, replayable
-    frozen = state.materialize(ref)  # probes never touch live state
-    for j in sample(range(i + 1)):
-        await lab.probe(
-            probes[j], model_with(frozen), tags={"phase": i, "arm": "stateful"}
-        )
-        await lab.probe(
-            probes[j], model_with(None), tags={"phase": i, "arm": "fresh"}
-        )  # control arm
-```
+2. **On local Docker**, Harbor merges a task-authored
+   `environment/docker-compose.yaml` over its generated one, so GPU access is
+   a standard compose device reservation on the `main` service (requires the
+   NVIDIA Container Toolkit):
 
-The two arms are what make the measurement honest. "Stateful minus fresh" is
-CL-Bench's gain metric — how much of the score is *learning* rather than raw
-model capability — and here it costs two rows and one query
-(`metrics.gain`). Forgetting and transfer come from the same table
-(`metrics.matrix`, `metrics.forgetting`). Probes are direct inference plus a
-rubric judge, no container, so probing densely at every phase costs API
-calls, not machine time.
+   ```yaml
+   services:
+     main:
+       deploy:
+         resources:
+           reservations:
+             devices:
+               - driver: nvidia
+                 count: all
+                 capabilities: [gpu]
+   ```
+
+The same compose-overlay mechanism covers judge sidecars — see the vendored
+[FrontierCS GPU kernel tasks](tasks/frontier-cs) (kmeans / knn / ivf-pq /
+dbscan), which ship a separate judge container wired exactly this way.
+Because tasks stay stock Harbor, a GPU task runs identically under
+`harbor trial start`, `tide run`, and any cloud backend.
 
 ---
 
@@ -218,14 +193,10 @@ stock Harbor tasks — every task in this repo runs standalone under
 | Task format, env backends, verifier isolation, regrade, oracle/nop agents | used as-is, pinned |
 | `Trial.create/run` for one trial | `Lab`: idempotent keys, bounded concurrency, an append-only **tagged results store** that accretes across scripts and weeks |
 | One trusted score per trial | **score trajectories** — the agent's self-reported curve (`score_log.jsonl`), ingested as queryable `trace` rows next to the trusted score |
-| pass@k within a job | **cross-run metrics**: anytime/AUC, budget scaling, gain, forgetting, internalization |
-| stateless trials, by design | **streams**: a git-versioned `StateDir` as the single cross-episode channel, frozen probes, fresh-control arms |
-| container-scored tasks | a **probe executor** (inference + rubric judge, no container) for dense capability tracking |
-| — | **`WeightPlane`** — a two-method, vendor-neutral contract for learners whose state is model weights |
+| pass@k within a job | **cross-run metrics**: anytime/AUC, budget scaling |
 
-If you take away four ideas, take these: episode boundaries sit where the
-harness needs trust, not where the agent stops working; state crosses
-episodes through exactly one audited channel; self-evaluation is free
+If you take away three ideas, take these: the trusted score sits at the
+episode boundary, not where the agent stops working; self-evaluation is free
 *because* it is untrusted, while trusted scores are walled off; and every
 metric is a query over one table, not a pipeline.
 
@@ -234,23 +205,20 @@ metric is a query over one table, not a pipeline.
 ## Components
 
 One surface is frozen — `Lab.run`'s signature and the store schema (columns
-may be added, never changed). Five small modules sit around it, each with a
-doc that says how to modify it and which invariants your change must not
-break:
+may be added, never changed). Small modules sit around it, each with a doc
+that says how to modify it and which invariants your change must not break:
 
 | Component | Code | What it does | Change it when you need… | Doc |
 |---|---|---|---|---|
 | **CLI** | `tide/cli.py` | `tide run/list/report/fetch` — the one-command surface; a thin caller of `Lab` | new commands, target resolution | `tide --help` |
-| **Lab & store** | `tide/lab.py` · `tide/store.py` | episodes/probes in, DataFrame out | new row kinds, key semantics | [lab.md](docs/components/lab.md) |
+| **Lab & store** | `tide/lab.py` · `tide/store.py` | episodes in, DataFrame out | new row kinds, key semantics | [lab.md](docs/components/lab.md) |
 | **Executors** | `tide/executors.py` | `EpisodeSpec → EpisodeResult` | a new backend (SSH, cloud, simulator) | [executors.md](docs/components/executors.md) |
-| **Probes** | `tide/probe.py` | inference + rubric judging | a different judge or aggregation | [probe.md](docs/components/probe.md) |
-| **Stream tooling** | `tide/stream.py` | `StateDir`, `WeightPlane` | a new state channel or serving stack | [stream.md](docs/components/stream.md) |
+| **Trajectory** | `tide/trajectory.py` | `score_log.jsonl` → trace rows | a different score-log convention | (docstring) |
 | **Metrics** | `tide/metrics.py` | pure DataFrame functions | a new metric (add one function) | [metrics.md](docs/components/metrics.md) |
 | **Tasks** | `tasks/` | the benchmark catalog: vendored + fetchable Harbor tasks | to author tasks or benchmarks | [tasks/README.md](tasks/README.md) · [tasks.md](docs/components/tasks.md) |
 
-Four dependency rules keep it decoupled, and violating any of them is a
-design bug: converters see only the task format, never tide internals; the
-core does not know streams exist (stream scripts are pure callers of `Lab`);
+Three dependency rules keep it decoupled, and violating any of them is a
+design bug: converters see only the task format, never tide internals;
 metrics import pandas and nothing from tide; the store holds raw scores and
 all normalization happens at query time.
 
@@ -259,45 +227,26 @@ all normalization happens at query time.
 ## Supported benchmarks
 
 **The browsable catalog is [`tasks/`](tasks/)** — one folder per benchmark:
-six first-party autoresearch tasks and two stream benchmarks ship in-repo
-(oracle-verified in real containers by CI), external benchmarks come with
-vendored samples plus a `fetch.py`, and [`tasks/_template/`](tasks/_template)
-turns making your own into a five-minute copy-paste.
-
-Every row below says exactly what exists *in tide* to run it. The statuses are
-honest: ✅ one call runs it today · 🔧 the pattern is implemented in-repo,
-light assembly required · 🗺️ the mapping is documented but **no code exists
-in tide yet** (tracked in the [roadmap](#roadmap)).
-
-**Episodic / agentic** — the Harbor ecosystem, unchanged:
-
-| Benchmark | What it tests | Status | Run it in tide with |
-|---|---|---|---|
-| [terminal-bench 2](https://github.com/laude-institute/terminal-bench) | agentic terminal tasks | ✅ | `lab.run("terminal-bench/hello-world", agent)` — Harbor downloads the task by id |
-| [SWE-bench family + ~80 registry datasets](https://github.com/laude-institute/harbor/tree/main/adapters) | software engineering, QA, reasoning | ✅ | same: any Harbor registry id (`"swebench-verified/..."`, `"algotune/..."`, …) |
+six first-party autoresearch tasks ship in-repo (oracle-verified in real
+containers by CI), external benchmarks come with vendored tasks plus a
+`fetch.py`, and [`tasks/_template/`](tasks/_template) turns making your own
+into a five-minute copy-paste.
 
 **Autoresearch** — open-ended tasks, continuous scores, budgets:
 
-| Benchmark | What it tests | Status | Run it in tide with |
-|---|---|---|---|
-| [`tasks/autoresearch/circle-packing`](tasks/autoresearch/circle-packing) (in-repo exemplar) | dual scorer, anti-hack wall, budget semantics, score trajectory — the reference for the whole category | ✅ | `python examples/run_circle_packing.py` (Docker; also the E2E gate) |
-| [AlgoTune](https://github.com/oripress/AlgoTune) · 154 tasks | speed up code vs a reference | ✅ | `lab.run("algotune/<task>", agent)` via its [Harbor adapter](https://github.com/laude-institute/harbor/tree/main/adapters/algotune) |
-| [FrontierCS](https://github.com/FrontierCS/Frontier-CS) · 240 open problems (Erdős constructions, BBOPlace) | open-ended CS with expert evaluators | ✅ | `python examples/run_frontiercs.py` (pinned erdos export, any agent); generate more with their official adapter, then `lab.run(<dir>, agent)` |
-| [EdgeBench](https://github.com/ByteDance-Seed/EdgeBench) · 51 tasks, 2–12 h budgets | capability vs interaction time | ✅ | all 51 tasks committed in [tasks/edgebench/](tasks/edgebench) (specs CC-BY-4.0, converted verbatim); `tide run edgebench/<task> --agent <a> --budget <h>`; running needs their prebuilt images |
+| Benchmark | What it tests | Run it in tide with |
+|---|---|---|
+| [`tasks/autoresearch/`](tasks/autoresearch) · 6 first-party tasks | dual scorer, anti-hack wall, budget semantics, score trajectory — the reference for the whole category | `tide run autoresearch --agent <a>`; `python examples/run_circle_packing.py` is the E2E gate |
+| [AlgoTune](https://github.com/oripress/AlgoTune) · 154 tasks | speed up code vs a reference | `lab.run("algotune/<task>", agent)` via its [Harbor adapter](https://github.com/laude-institute/harbor/tree/main/adapters/algotune) |
+| [FrontierCS](https://github.com/FrontierCS/Frontier-CS) · 240 open problems | open-ended CS with expert evaluators; includes 4 GPU kernel tasks | **all 20 tasks of the 2.0 track committed** in [tasks/frontier-cs/](tasks/frontier-cs); `python examples/run_frontiercs.py` |
+| [EdgeBench](https://github.com/ByteDance-Seed/EdgeBench) · 51 tasks, 2–12 h budgets | capability vs interaction time | **all 51 tasks committed** in [tasks/edgebench/](tasks/edgebench) (specs CC-BY-4.0, converted verbatim); `tide run edgebench/<task> --agent <a> --budget <h>`; running needs their prebuilt images |
 
-**Continual learning / streams**:
+**Episodic / agentic** — the Harbor ecosystem, unchanged, by registry id:
 
-| Benchmark | What it tests | Status | Run it in tide with |
-|---|---|---|---|
-| [Continual Learning Bench](https://github.com/pgasawa/continual-learning-bench) ([arXiv 2606.05661](https://arxiv.org/abs/2606.05661)) · 6 stateful task families | does experience improve performance? | ✅ | `loaders.load_clbench_results` loads their published leaderboard runs (16,904 outcomes, 6 systems) straight into tide metrics; their harness runs via [tasks/continual-learning-bench/](tasks/continual-learning-bench). In-repo protocol instance: [tasks/streams/hidden-rules](tasks/streams/hidden-rules) |
-| [AgentStream](https://arxiv.org/abs/2608.00155) | any static benchmark, streamed by progressive reveal | ✅ | `loaders.reveal_phases(probe, n)` turns any rubric probe into an n-phase reveal stream; probe every phase for the checkpoint curve |
-| [SkillLearnBench](https://github.com/cxcscmu/SkillLearnBench) | continual skill generation | 🗺️ | nothing yet — maps onto the skills-channel `StateDir` |
-
-**Live / infinite-horizon**:
-
-| Pattern | What it tests | Status | Run it in tide with |
-|---|---|---|---|
-| Market trading (Kalshi-style) | unbounded stream of settlement windows; verifier observes the exchange's ledger; nop = hold ⇒ score − nop = alpha | 🗺️ | nothing yet — the full task design is written in [tasks.md](docs/components/tasks.md#live-tasks) |
+| Benchmark | Run it in tide with |
+|---|---|
+| [terminal-bench 2](https://github.com/laude-institute/terminal-bench) | `lab.run("terminal-bench/hello-world", agent)` — Harbor downloads the task by id |
+| [SWE-bench family + ~80 registry datasets](https://github.com/laude-institute/harbor/tree/main/adapters) | same: any Harbor registry id (`"swebench-verified/..."`, `"algotune/..."`, …) |
 
 ---
 
@@ -317,8 +266,6 @@ The five-minute version — the full guide is
   `score_log.jsonl` the agent appends to.
 - **A benchmark converter** is a script that emits task folders. It depends
   only on the task format, so it cannot break anything.
-- **A stream protocol** is a Python loop over `lab.run`/`lab.probe` — see
-  [examples/stream_cl.py](examples/stream_cl.py) for a complete one.
 
 Keep three agents in rotation while developing any task: **oracle** (runs
 `solution/`, proves the pipeline), **nop** (does nothing, catches leakage),
@@ -326,109 +273,52 @@ and a **cheater** (tampers with scorers, must not move the trusted score).
 
 ---
 
-## Plugging in a learning stack (reef, vLLM, yours)
-
-tide has zero reef dependency. When the evolving state is model weights, the
-entire contract between tide and any serving/training stack is two methods:
-
-```python
-class WeightPlane(Protocol):
-    def snapshot(self) -> str: ...  # freeze current weights → version ref
-    def serve(self, ref: str) -> str: ...  # any historical ref → OpenAI-compatible URL
-```
-
-[reef](https://github.com/Human-Agent-Society/reef) implements this naturally
-(version chains, CAS publishing, per-request attribution). So does vLLM with
-a checkpoint directory. A model that never learns implements it in three
-lines (`StaticWeightPlane`) — and doubles as the fresh-control arm.
-
-```mermaid
-flowchart LR
-    subgraph eval[" evaluation plane — tide, ephemeral "]
-        L[Lab] --> A[agent containers]
-        L --> DB[(results store)]
-    end
-    subgraph serve[" serving plane — long-lived "]
-        R["reef serve<br/><i>version chain · training</i>"]
-    end
-    A -->|"inference<br/>(api_base pins the version)"| R
-    DB -->|"runner reads rewards<br/>POST /reef/report"| R
-
-```
-
-One lap of the loop
-(full file: [examples/reef_weightplane.py](examples/reef_weightplane.py)):
-
-```python
-ref = plane.snapshot()  # freeze current weights
-row = await lab.run(
-    task,
-    {
-        "name": "terminus-2",  # host-side brain: the container stays offline
-        "kwargs": {"api_base": plane.serve(ref)},  # version-pinned inference
-    },
-    tags={"version": ref},
-)
-report(score=row.rewards["reward"], references=[ref])  # reef trains; next lap, new ref
-```
-
-Rewards accumulate as `(version, task, reward)` rows; learning curves, gain
-against a static control, and forgetting matrices are queries from then on.
-One discipline: a probe battery always pins the `ref` it started with, so
-asynchronous training can never dirty a measurement mid-battery.
-
----
-
 ## Design rules
 
 1. **One frozen surface.** `Lab.run`'s signature and the store schema.
    Everything else stays cheap to revisit.
-2. **Tasks stay stock Harbor.** Streams are manifests around tasks, never a
-   dialect inside them.
+2. **Tasks stay stock Harbor.** No tide-specific fields in `task.toml`, ever.
 3. **Trust is walled, never assumed.** Self-evaluation is free because it is
-   untrusted; trusted scores come only from separate verifiers or external
-   ground truth.
-4. **One audited crossing channel.** State moves between episodes as a
-   git-versioned folder or a version ref — environments are always
-   disposable.
-5. **Persistence lives in data, not processes.** No daemon. Idempotent keys
+   untrusted; trusted scores come only from separate verifiers.
+4. **Persistence lives in data, not processes.** No daemon. Idempotent keys
    make any crashed script resumable.
-6. **Abstractions are earned.** A helper enters the library when it has
+5. **Abstractions are earned.** A helper enters the library when it has
    repeated in at least two real scripts, not before.
+
+These rules are also the extension mechanism. `Row.kind` is an open string,
+executors are a two-line protocol, and metrics are standalone functions — so
+future evaluation regimes (task streams with carried state, live
+infinite-horizon tasks) slot in as new row kinds, new executors, and new
+metric functions without touching the frozen surface. That's the roadmap,
+not the present: today tide does one thing well.
 
 ## Roadmap
 
-Where this sits today, honestly: the core is small, tested (43 tests, CI),
-and the patterns are proven offline. The distance to a mature ecosystem is
-mostly breadth, and it's tracked here:
+Where this sits today, honestly: the core is small, tested, and the
+autoresearch pipeline is proven end-to-end in CI (the E2E workflow runs the
+oracle through real containers and requires exact scores — it caught two
+real bugs on its first runs).
 
-- [x] **Docker end-to-end in CI** — the E2E workflow runs the oracle through
-  real containers and requires exactly 0.75 (green; it caught two real bugs
-  on its first runs)
-- [x] **EdgeBench converter** — `converters.convert_edgebench_task`, tested
-  against unmodified published specs. Running a converted task additionally
-  needs their prebuilt work/judge images (or `setup_cmds`-built bases)
-- [x] **AgentStream-style reveal** — `loaders.reveal_phases` turns any
-  rubric probe into a progressive-reveal stream
-- [x] **FrontierCS verified** — an erdos task generated by their official
-  adapter is vendored in tasks/frontier-cs/ and validated as stock Harbor
-- [x] **Continual-Learning-Bench integration** — results loader over their
-  published runs (their tasks are interactive simulations; a static-dir
-  conversion is neither possible nor needed)
-- [ ] **SkillLearnBench packaging** — maps onto the skills-channel `StateDir`
-- [ ] **Harbor pin upgrades** — golden-file workflow for bumping the pinned
-  version safely
 - [ ] **PyPI release** — publish `tide-eval` (the name is reserved in
   pyproject; not yet released)
+- [ ] **A GPU exemplar task in CI** — a first-party kernel task with the
+  compose-overlay GPU wiring, oracle-gated on a GPU runner
+- [ ] **Harbor pin upgrades** — golden-file workflow for bumping the pinned
+  version safely
+- [ ] **More converters** — the autoresearch corner of the ecosystem is
+  bigger than our catalog
 - [ ] **A hosted results viewer** — `lab.df()` is enough for research use;
   a shared leaderboard view is not built
+- [ ] **Beyond autoresearch** — continual-learning task streams and live
+  infinite-horizon tasks, designed to land as extensions (new row kinds +
+  executors), not rewrites
 
 ## Development
 
 ```bash
 git clone https://github.com/Human-Agent-Society/tide-eval && cd tide-eval
 uv venv --python 3.12 && uv pip install -e . pytest pytest-asyncio ruff
-.venv/bin/python -m pytest tests/ -q     # 43 tests; harbor tests skip if absent
+.venv/bin/python -m pytest tests/ -q     # harbor tests skip if absent
 uv pip install -e path/to/harbor         # optional: enables the integration tests
 .venv/bin/ruff check . && .venv/bin/ruff format --check .
 ```
