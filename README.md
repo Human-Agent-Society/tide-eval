@@ -14,7 +14,7 @@ evaluates that regime honestly:
 | | |
 |---|---|
 | **Trusted score** | a separate verifier container recomputes it from declared artifacts; agent claims are ignored (cheat-tested in CI) |
-| **Score trajectory** | every self-eval the agent claimed, stored as queryable `trace` rows |
+| **Score log** | every score the agent gave itself along the way, stored as queryable `trace` rows |
 | **Budget semantics** | timeout is a normal ending — the best-so-far artifact still grades |
 | **Resumable sweeps** | idempotency keys: re-run a crashed sweep, finished episodes skip |
 | **Metrics = queries** | anytime curve, AUC, budget scaling — pandas over one table, every number auditable via its trial `uri` |
@@ -56,11 +56,11 @@ No Docker? `tide run autoresearch --agent oracle --fake` and
 must score exactly 0.75), and `python examples/minimal_harness.py` runs
 the **smallest complete harness** — a ~30-line adapter + a random-search
 loop, no LLM, no keys — through the full loop: containerized search,
-trusted verifier score, claimed trajectory back as data.
+trusted verifier score, the agent's score log back as data.
 
 ## Use the API
 
-A `Lab` is a directory; `run` is one episode; `df` is the export story:
+A `Lab` is a directory; `run` is one episode (= one Harbor trial); `df` is the export story:
 
 ```python
 from tide import Lab, metrics
@@ -73,7 +73,7 @@ row = await lab.run(
 )
 row.rewards  # trusted score          row.uri → the auditable trial dir
 
-curve = metrics.anytime(lab.df("trace"))  # claimed progress over time
+curve = metrics.anytime(lab.df("trace"))  # the agent's own scores over time
 metrics.auc(curve)  # the anytime score
 metrics.scaling(lab.df("episode"), by=["model"])  # what does more budget buy?
 ```

@@ -3,8 +3,8 @@
 Pairs with ``minimal_harness_search.py`` (the in-container random-search
 loop) to show the full integration path end to end: upload your method
 into the container, run it against the task's public scorer, and get back
-a trusted verifier score plus your method's claimed trajectory as trace
-rows. Requires Docker + ``pip install tide-eval[harbor]``.
+a trusted verifier score plus your method's score log as trace rows.
+Requires Docker + ``pip install tide-eval[harbor]``.
 
     python examples/minimal_harness.py
 """
@@ -56,7 +56,7 @@ async def main():
     trace = lab.df("trace")
     if not trace.empty:
         curve = metrics.anytime(trace)
-        print("\nclaimed progress (from the harness's own score log):")
+        print("\nthe harness's own score log, as ingested:")
         print(curve[["t", "score", "best_so_far"]].to_string(index=False))
         print("anytime AUC:", round(metrics.auc(curve), 4))
 

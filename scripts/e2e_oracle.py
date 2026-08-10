@@ -37,7 +37,9 @@ async def main(names: list[str]) -> None:
     lab = Lab("runs/e2e-oracle")
     failures = []
     for task_dir in tasks:
-        oracle = json.loads((task_dir / "tests" / "grader_tests.json").read_text())["oracle"]
+        oracle = json.loads((task_dir / "tests" / "grader_tests.json").read_text())[
+            "oracle"
+        ]
         row = await lab.run(str(task_dir), {"name": "oracle"}, tags={"gate": "e2e"})
         reward = row.rewards.get("reward")
         if "live_min" in oracle:

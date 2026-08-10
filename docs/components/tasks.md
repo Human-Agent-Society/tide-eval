@@ -74,7 +74,7 @@ Reference implementation: [`tasks/autoresearch/circle-packing`](../../tasks/auto
    still scores the best snapshot.
 4. **Score log**: the agent appends `{"t": <sec>, "score": <x>}` to
    `score_log.jsonl` in the artifact dir. tide ingests it as `trace` rows —
-   the untrusted progress curve — and `metrics.anytime` does the rest.
+   the agent's own (untrusted) scores — and `metrics.anytime` does the rest.
 
 ## The grader contract
 

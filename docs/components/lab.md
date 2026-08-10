@@ -36,7 +36,7 @@ Three things to know about `run`:
 
 | kind | one row per | key shape | trusted |
 |---|---|---|---|
-| `episode` | task × agent × tags | `<key>` | yes — verifier-backed |
+| `episode` | one task run (= one Harbor trial) | `<key>` | yes — verifier-backed |
 | `trace` | one self-evaluation | `<key>#t<i>` | no — agent-claimed |
 
 `kind` is an open string: a future evaluation regime adds new kinds (with

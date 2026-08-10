@@ -4,7 +4,7 @@ How tide evaluates autoresearch, and why it is shaped the way it is.
 For the module-by-module reference see [components/](components/); for
 integrating an agent see [integration.md](integration.md).
 
-## The regime
+## What an autoresearch task is
 
 An autoresearch task is an open-ended optimization problem with three
 properties that break a pass/fail harness:
@@ -40,7 +40,7 @@ sequenceDiagram
     L->>V: fresh container + artifacts + tests
     V->>V: recompute score from artifacts<br/>exact arithmetic · agent claims ignored
     V-->>L: reward.json
-    L->>S: 1 episode row (trusted)<br/>+ N trace rows (the agent's claimed curve)
+    L->>S: 1 episode row (trusted)<br/>+ N trace rows (the agent's score log)
 ```
 
 Inside its container the agent may tamper with anything — the scorer, the
@@ -73,7 +73,7 @@ two kinds:
 
 | kind | one row per | key shape | trust |
 |---|---|---|---|
-| `episode` | task × agent × tags | `<key>` | verifier-backed |
+| `episode` | one task run (= one Harbor trial) | `<key>` | verifier-backed |
 | `trace` | self-evaluation inside an episode | `<key>#t<i>` | agent-claimed |
 
 Three load-bearing decisions:
@@ -102,7 +102,7 @@ a wrapper keeps it. Tasks remain 100% stock Harbor tasks (enforced by
 test): every task here also runs standalone under `harbor trial start`, and
 Harbor registry ids run here unchanged. tide's own surface stays small on
 purpose — roughly: `Lab` (orchestration + store), an `Executor` protocol
-with a Harbor implementation, trajectory ingestion, and pure-pandas
+with a Harbor implementation, score-log ingestion, and pure-pandas
 metrics. See [components/](components/) for each module's invariants.
 
 ## Extensibility
