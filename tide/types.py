@@ -24,7 +24,7 @@ class EpisodeSpec:
     """What to run: a Harbor task under a given agent configuration.
 
     ``task`` is a Harbor task directory path or a registry id
-    (e.g. ``"algotune/<task>"``). ``agent`` uses Harbor's own
+    (e.g. ``"some-benchmark/some-task"``). ``agent`` uses Harbor's own
     ``AgentConfig`` field names verbatim (``name``, ``model_name``,
     ``import_path``, ...) — tide adds no translation layer.
     ``overrides`` are passed through to Harbor's ``TrialConfig`` for anything

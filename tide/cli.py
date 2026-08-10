@@ -138,7 +138,6 @@ def cmd_list(args: argparse.Namespace) -> int:
         print(f"  {rel}")
     print("\nRun one:      tide run <name-above> --agent oracle")
     print("Run a folder: tide run autoresearch --agent oracle")
-    print("Registry ids: tide run algotune/<task> --agent <agent> --model <m>")
     return 0
 
 
