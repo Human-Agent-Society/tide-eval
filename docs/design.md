@@ -58,7 +58,7 @@ Four task conventions carry the model (reference implementation:
 | 1 | **Public scorer in the image** | `environment/scorer.py` — the agent's inner-loop feedback; deliberately unisolated |
 | 2 | **The wall** | `environment_mode = "separate"` + `artifacts = [...]` in `task.toml`; `tests/grade.py` recomputes from artifacts alone |
 | 3 | **Timeout = budget** | the instruction mandates atomic best-so-far writes (temp file + rename), so a deadline kill still grades |
-| 4 | **Score log** | one JSON line per self-eval (`{"t": sec, "score": x}`) appended to `score_log.jsonl`; ingested as untrusted `trace` rows |
+| 4 | **Score log** | `{"t": sec, "score": x}` lines appended to `score_log.jsonl` — on every improvement at minimum, every self-eval ideally (`metrics.improvements` needs the latter); ingested as untrusted `trace` rows |
 
 Trust is tested, not asserted. `tests/test_task_suite.py` feeds every
 grader its task's cheat vectors — overlapping circles, float-epsilon
@@ -113,8 +113,9 @@ points are structural rather than speculative:
 
 - `Row.kind` is an open string: a future regime adds new kinds with their
   own key shapes, no schema change;
-- `Executor` is a two-method protocol: new backends (SSH, cloud batch, a
-  simulator, an external-ground-truth observer) never touch the core;
+- `Executor` is a one-method protocol (`execute(spec) → result`): new
+  backends (SSH, cloud batch, a simulator, an external-ground-truth
+  observer) never touch the core;
 - metrics are standalone functions over the one table: a new metric is one
   function plus a docstring declaring its expected columns.
 

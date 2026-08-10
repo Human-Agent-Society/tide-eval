@@ -21,27 +21,22 @@ TASKS_ROOT = Path(__file__).parent.parent / "tasks"
 
 def discover(names: list[str]) -> list[Path]:
     tasks = sorted(
-        {
-            p.parent.parent
-            for pattern in ("*/*/tests/vectors.json", "*/*/tests/expected_oracle.json")
-            for p in TASKS_ROOT.glob(pattern)
-        },
+        {p.parent.parent for p in TASKS_ROOT.glob("*/*/tests/vectors.json")},
         key=lambda p: p.name,
     )
     return [t for t in tasks if t.name in names] if names else tasks
 
 
 async def main(names: list[str]) -> None:
+    tasks = discover(names)
+    if not tasks:
+        known = [t.name for t in discover([])]
+        sys.exit(f"no tasks matched {names!r}; known tasks: {known}")
+
     lab = Lab("runs/e2e-oracle")
     failures = []
-    for task_dir in discover(names):
-        vectors_path = task_dir / "tests" / "vectors.json"
-        if vectors_path.exists():
-            oracle = json.loads(vectors_path.read_text())["oracle"]
-        else:
-            oracle = json.loads(
-                (task_dir / "tests" / "expected_oracle.json").read_text()
-            )
+    for task_dir in tasks:
+        oracle = json.loads((task_dir / "tests" / "vectors.json").read_text())["oracle"]
         row = await lab.run(str(task_dir), {"name": "oracle"}, tags={"gate": "e2e"})
         reward = row.rewards.get("reward")
         if "live_min" in oracle:
