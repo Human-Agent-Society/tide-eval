@@ -14,7 +14,7 @@ Autoresearch 任务——AlphaEvolve / OpenEvolve 那一类工作负载——是
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-hero-dark.svg">
-  <img src="docs/assets/readme-hero-light.svg" alt="The agent scores itself while it searches, but its own scores are not trusted. Its best solution crosses to an isolated verifier, which re-scores it while ignoring what the agent claimed. The trusted score and the agent's own scores land in one table, with score over time as a curve." width="100%">
+  <img src="docs/assets/readme-hero-light.svg" alt="The agent scores itself while it searches, but its own scores are not trusted. Its best solution crosses to an isolated verifier, which re-scores it while ignoring what the agent claimed. The trusted score and the agent's own scores land in one table, with score over time as a curve — the curve self-reported, its endpoint verified." width="100%">
 </picture>
 
 任务是 100% 原生 Harbor 任务(有测试强制保证)。agent 是任何能在容器里工作

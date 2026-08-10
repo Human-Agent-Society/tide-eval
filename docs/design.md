@@ -94,6 +94,16 @@ Every row's `uri` points at the Harbor trial directory that produced it —
 logs, graded artifacts, verifier output — so any number in any table can be
 audited back to its evidence.
 
+**A trusted curve, when you need one.** The score-over-time curve is
+self-reported and stays that way — it is free precisely because it is
+untrusted, and faking it cannot move the benchmark number. When you need
+intermediate points you can trust, run the same task at several budgets:
+each episode's final score is verifier-backed, and `metrics.scaling`
+assembles them into a curve whose every point is trusted. That costs real
+re-runs, which is the price of trust here. A finer-grained option — the
+verifier re-scoring timestamped snapshots inside one episode, stored as a
+new row kind — fits the store design but is not built.
+
 ## Why Harbor, as a library
 
 Harbor already solved single-trial evaluation well: task format, container

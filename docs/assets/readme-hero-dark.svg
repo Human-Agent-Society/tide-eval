@@ -66,7 +66,7 @@
   <text x="728" y="122" class="sm m">the agent's own scores</text>
 
   <path d="M 580 158 V 218 H 700" class="draw-f"/>
-  <polyline points="586,210 610,210 610,196 636,196 636,186 662,186 662,174 692,174" class="draw-a"/>
+  <polyline points="586,210 610,210 610,196 636,196 636,186 662,186 662,174 692,174" class="draw-c"/>
   <circle cx="692" cy="174" r="4" fill="#45B2C6"/>
   <text x="728" y="202" class="sm m">score over time</text>
 </svg>
