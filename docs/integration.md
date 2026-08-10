@@ -1,7 +1,9 @@
 # Evaluating your agent, harness, or method
 
-An "agent" is anything Harbor can run against the task container. Same
-tasks, same isolated verifier, same store — numbers stay comparable across methods.
+An "agent" is anything Harbor can run against the task container. Three
+integration levels follow, cheapest first. Whichever you pick, the task,
+the isolated verifier, and the results store are identical, so numbers
+stay comparable across methods.
 
 ## Level 1 — a supported harness (zero code)
 
@@ -151,7 +153,8 @@ class OpenEvolveAgent(BaseAgent):
 - **You cannot bring your own grader.** Trusted scores come from the task's
   verifier or they don't exist. Different scoring rule = a new task
   ([`tasks/_template`](../tasks/_template)), not a new grader.
-- **Compare at the same `budget` tag**; trusted `reward` first, claimed
-  anytime/AUC second. `oracle` and `nop` bracket the range.
+- **Compare methods at the same `budget` tag**, and lead with the trusted
+  `reward` — the claimed anytime/AUC numbers come second, clearly labeled
+  as the agent's own. `oracle` and `nop` bracket the plausible range.
 - **Sanity-check cheaply**: `--agent oracle` proves the task, `--agent nop`
   proves no leakage, `--fake` exercises your sweep script with no containers.

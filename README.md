@@ -13,11 +13,11 @@ evaluates that regime honestly:
 
 | | |
 |---|---|
-| **Trusted score** | a separate verifier container recomputes it from declared artifacts; agent claims are ignored (cheat-tested in CI) |
-| **Score log** | every score the agent gave itself along the way, stored as queryable `trace` rows |
-| **Budget semantics** | timeout is a normal ending — the best-so-far artifact still grades |
-| **Resumable sweeps** | idempotency keys: re-run a crashed sweep, finished episodes skip |
-| **Metrics = queries** | anytime curve, AUC, budget scaling — pandas over one table, every number auditable via its trial `uri` |
+| **Trusted scores** | Every score is recomputed by a verifier in a separate container, from declared artifacts only. The agent's own claims are never read, and the cheat cases proving that are re-tested in CI. |
+| **The score log** | Every score the agent gave itself along the way is stored as `trace` rows next to the trusted one, so you can see not just how good it got, but how fast. |
+| **Budget semantics** | Hitting the timeout is a normal ending, not a failure: the verifier grades the best solution the budget bought. |
+| **Resumable sweeps** | Every episode has an idempotency key, so re-running a crashed sweep simply skips whatever already finished. |
+| **Metrics as queries** | The anytime curve, its AUC, and budget-scaling curves are all pandas queries over one results table, and every number traces back to the trial directory that produced it. |
 
 Tasks are 100% stock Harbor tasks (enforced by test). Agents are anything
 that can work inside a container — including your own harness or method.
@@ -50,17 +50,19 @@ tide run edgebench/ann_vector_search_qps --agent codex --budget 2   # hours
 tide report                              # summarize the results store
 ```
 
-No Docker? `tide run autoresearch --agent oracle --fake` and
-`python examples/quickstart.py` run offline in seconds. Then, for real:
-`python examples/run_circle_packing.py` proves the pipeline (the oracle
-must score exactly 0.75), and `python examples/minimal_harness.py` runs
-the **smallest complete harness** — a ~30-line adapter + a random-search
-loop, no LLM, no keys — through the full loop: containerized search,
-trusted verifier score, the agent's score log back as data.
+No Docker yet? `tide run autoresearch --agent oracle --fake` and
+`python examples/quickstart.py` run offline in seconds. When you have
+Docker, `python examples/run_circle_packing.py` proves the real pipeline
+end to end — the oracle must score exactly 0.75. And
+`python examples/minimal_harness.py` is the smallest complete harness:
+about thirty lines of adapter around a random-search loop, with no LLM
+and no API keys, that searches inside the container, gets a trusted score
+from the verifier, and brings its own score log back as data.
 
 ## Use the API
 
-A `Lab` is a directory; `run` is one episode (= one Harbor trial); `df` is the export story:
+A `Lab` is a directory. Each `run` call is one episode (one Harbor
+trial), and `df` returns everything recorded so far as a pandas DataFrame:
 
 ```python
 from tide import Lab, metrics
@@ -84,7 +86,8 @@ Re-running any script resumes it. Reference:
 
 ## Evaluate *your* agent
 
-Same tasks, same isolated verifier, same store — numbers stay comparable across methods:
+Whichever way you integrate, the task, the isolated verifier, and the
+results store are identical — so numbers stay comparable across methods:
 
 | You have | Integration |
 |---|---|
