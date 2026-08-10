@@ -179,8 +179,7 @@ config. Guide: **[docs/components/tasks.md](docs/components/tasks.md)**.
 - [ ] [SOL-ExecBench](https://github.com/nvidia/sol-execbench) converter — 235 real CUDA kernels scored
   against Speed-of-Light hardware bounds (fixed targets, so timing stops
   being hardware-relative); needs NVIDIA Blackwell GPUs
-- [ ] Regenerate the EdgeBench conversion onto the judge protocol (the
-  AlgoTune converter is the precedent)
+- [ ] Regenerate the EdgeBench conversion onto the judge protocol
 - [ ] Hosted results viewer
 - [ ] Beyond autoresearch: continual-learning streams and live tasks — as
   [extensions](docs/design.md#extensibility), not rewrites

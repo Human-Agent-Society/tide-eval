@@ -167,7 +167,7 @@ pytest tests/test_task_suite.py          # 自动被识别——而且直接是�
 - [ ] [SOL-ExecBench](https://github.com/nvidia/sol-execbench) 转换器——235 个真实 CUDA kernel,对照硬件
   Speed-of-Light 理论极限打分(固定靶标,计时不再依赖相对基线);需要
   NVIDIA Blackwell GPU
-- [ ] 把 EdgeBench 转换重新生成到 judge 协议上(AlgoTune 转换器是先例)
+- [ ] 把 EdgeBench 转换重新生成到 judge 协议上
 - [ ] 托管的结果查看器
 - [ ] autoresearch 之外:持续学习任务流与在线任务——以
   [扩展](docs/design.md#extensibility)的形式落地,而不是重写
