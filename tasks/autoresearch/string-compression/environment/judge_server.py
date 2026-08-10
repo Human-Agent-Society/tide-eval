@@ -17,14 +17,14 @@ files next to it:
 Endpoints (body in, JSON out):
 
 - ``POST /submit``  — body = the raw solution file. Scores it, appends to
-  the ledger, returns ``{"n", "score", "reason", "best", "remaining"}``.
+  the submission log, returns ``{"n", "score", "reason", "best", "remaining"}``.
   Over budget or too soon → 429.
 - ``GET /status``   — ``{"used", "remaining", "best"}``.
-- ``GET /final``    — ``{"reward", "reason", "best_n", "ledger"}``: the
+- ``GET /final``    — ``{"reward", "reason", "best_n", "submissions"}``: the
   final judgment (final.py on the best submission if present, else the
-  best session score) plus the full ledger. **Finalizing is terminal**:
+  best session score) plus the full submission log. **Finalizing is terminal**:
   the first call locks the session — the result is computed once and
-  cached (idempotent for the verifier), and every later /submit is
+  cached (safe for the verifier to retry), and every later /submit is
   refused. An agent that peeks early ends its own run.
 - ``GET /health``   — liveness.
 
@@ -69,7 +69,7 @@ class Judge:
         self.max_submissions = config.get("max_submissions")
         self.min_interval_sec = float(config.get("min_interval_sec", 0))
         self.t0 = time.monotonic()
-        self.ledger: list[dict] = []
+        self.log: list[dict] = []
         self.finalized: dict | None = None
         self.lock = threading.Lock()
         DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -79,18 +79,18 @@ class Judge:
             if self.finalized is not None:
                 return 429, {"error": "session finalized — no more submissions"}
             now = time.monotonic() - self.t0
-            if self.max_submissions is not None and len(self.ledger) >= int(
+            if self.max_submissions is not None and len(self.log) >= int(
                 self.max_submissions
             ):
                 return 429, {
                     "error": "submission limit reached",
-                    "used": len(self.ledger),
+                    "used": len(self.log),
                 }
-            if self.ledger and now - self.ledger[-1]["t"] < self.min_interval_sec:
-                wait = self.min_interval_sec - (now - self.ledger[-1]["t"])
+            if self.log and now - self.log[-1]["t"] < self.min_interval_sec:
+                wait = self.min_interval_sec - (now - self.log[-1]["t"])
                 return 429, {"error": "too soon", "retry_after_sec": round(wait, 1)}
 
-            n = len(self.ledger)
+            n = len(self.log)
             payload = DATA_DIR / f"submission_{n}"
             payload.write_bytes(body)
             try:
@@ -98,14 +98,14 @@ class Judge:
                 score, reason = float(result["reward"]), result.get("reason", "")
             except Exception as e:  # a broken submission scores 0, loudly
                 score, reason = 0.0, f"scoring failed: {e!r}"
-            self.ledger.append(
+            self.log.append(
                 {"n": n, "t": round(now, 3), "score": score, "reason": reason}
             )
-            best = max(entry["score"] for entry in self.ledger)
+            best = max(entry["score"] for entry in self.log)
             remaining = (
                 None
                 if self.max_submissions is None
-                else int(self.max_submissions) - len(self.ledger)
+                else int(self.max_submissions) - len(self.log)
             )
             return 200, {
                 "n": n,
@@ -118,13 +118,13 @@ class Judge:
     def status(self) -> dict:
         with self.lock:
             return {
-                "used": len(self.ledger),
+                "used": len(self.log),
                 "remaining": (
                     None
                     if self.max_submissions is None
-                    else int(self.max_submissions) - len(self.ledger)
+                    else int(self.max_submissions) - len(self.log)
                 ),
-                "best": max((e["score"] for e in self.ledger), default=None),
+                "best": max((e["score"] for e in self.log), default=None),
             }
 
     def final_result(self) -> dict:
@@ -135,14 +135,14 @@ class Judge:
             return self.finalized
 
     def _compute_final(self) -> dict:
-        if not self.ledger:
+        if not self.log:
             return {
                 "reward": 0.0,
                 "reason": "no submissions",
                 "best_n": None,
-                "ledger": [],
+                "submissions": [],
             }
-        best = max(self.ledger, key=lambda e: (e["score"], -e["n"]))
+        best = max(self.log, key=lambda e: (e["score"], -e["n"]))
         if self.final is not None:
             payload = DATA_DIR / f"submission_{best['n']}"
             try:
@@ -156,7 +156,7 @@ class Judge:
             "reward": reward,
             "reason": reason,
             "best_n": best["n"],
-            "ledger": list(self.ledger),
+            "submissions": list(self.log),
         }
 
 

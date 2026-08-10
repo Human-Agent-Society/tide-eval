@@ -23,11 +23,12 @@ df = lab.df("episode")  # the store as pandas
 
 Three things to know about `run`:
 
-- **Idempotency = resume.** The episode key is auto-derived from
-  (task, agent, tags, overrides) — or passed as `key=`. If the key already
-  has a row, nothing executes and the stored row is returned. Re-running a
-  crashed sweep therefore resumes it; that's the whole mechanism.
-- **Trace comes for free.** The judge's submission ledger is stored as
+- **Re-running = resuming.** Every episode gets a stable ID, auto-derived
+  from (task, agent, tags, overrides) or passed as `key=`. If that ID is
+  already in the table, nothing executes and the stored row is returned —
+  so running the same script again picks up where it crashed. (Engineers
+  know this pattern as an idempotency key.)
+- **Trace comes for free.** The judge's submission log is stored as
   `<key>#t<i>` rows of kind `trace`, next to the `episode` row — every
   point judge-scored, so the curve is trusted.
 - **`**overrides` reach the executor** — for Harbor, these are
@@ -47,16 +48,17 @@ lab.df("episode").groupby(["model", "task"])["reward"].mean()
 
 Accumulation and resume are the same mechanism: a re-run of Thursday's
 crashed sweep finds most of its keys already in the table and only runs
-what's missing. And it costs no provenance — every row's `uri` still
-points at the full Harbor trial directory. Harbor treats each run as a
-printed report; a Lab is the ledger those reports are booked into.
+what's missing. And nothing about where a number came from is lost —
+every row's `uri` still points at the full Harbor trial directory. Harbor
+treats each run as a printed report; a Lab is the notebook they are all
+recorded in.
 
 ## The row model
 
 | kind | one row per | key shape | source |
 |---|---|---|---|
 | `episode` | one task run (= one Harbor trial) | `<key>` | the judge's final verdict |
-| `trace` | one submission | `<key>#t<i>` | the judge's ledger |
+| `trace` | one submission | `<key>#t<i>` | the judge's submission log |
 
 `kind` is an open string: a future evaluation regime adds new kinds (with
 their own key shapes) without any schema change.
@@ -69,7 +71,7 @@ columns win over tags, tags over rewards; the losers get a `tag_` /
 
 1. **Append-only.** The one sanctioned delete is `delete_prefix("<key>#")` —
    clearing a retried episode's partial trace before re-running.
-2. **Idempotency is exact.** Changing what "the same episode" means breaks
+2. **The run ID is exact.** Changing what "the same episode" means breaks
    every user's resume behavior.
 3. **Raw scores only.** Normalization lives in `tide/metrics.py`, at query
    time.

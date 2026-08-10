@@ -29,7 +29,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Protocol
 
-from tide.ledger import load_trace
+from tide.submissions import load_trace
 from tide.types import EpisodeResult, EpisodeSpec, TracePoint
 
 
@@ -175,14 +175,14 @@ class LocalExecutor:
         finally:
             judge.kill()
 
-        ledger = final.get("ledger", [])
-        with (workdir / "ledger.jsonl").open("w") as f:
-            for entry in ledger:
+        submissions = final.get("submissions", [])
+        with (workdir / "submissions.jsonl").open("w") as f:
+            for entry in submissions:
                 f.write(json.dumps({"t": entry["t"], "score": entry["score"]}) + "\n")
         return EpisodeResult(
             rewards={"reward": float(final["reward"])},
             uri=f"local://{workdir}",
-            trace=tuple(TracePoint(t=e["t"], score=e["score"]) for e in ledger),
+            trace=tuple(TracePoint(t=e["t"], score=e["score"]) for e in submissions),
             error=error,
         )
 
@@ -215,7 +215,7 @@ class FakeExecutor:
 
     ``score`` maps a spec to rewards; the default scores by a stable hash of
     the task name so demos produce varied but reproducible numbers. ``trace``
-    optionally fabricates a submission ledger per spec.
+    optionally fabricates a submission log per spec.
     """
 
     def __init__(

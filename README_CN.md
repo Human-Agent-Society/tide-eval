@@ -16,7 +16,7 @@ Autoresearch 任务——因 DeepMind 的
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-hero-dark.svg">
-  <img src="docs/assets/readme-hero-light.svg" alt="The agent searches however it likes and submits what is worth scoring, within a submission limit. The judge holds all scoring code and data and scores every submission into a ledger. An optional final judge with hidden tests runs once on the best submission and locks the session. The reward and the ledger land in one table that accumulates across runs." width="100%">
+  <img src="docs/assets/readme-hero-light.svg" alt="The agent searches however it likes and submits what is worth scoring, within a submission limit. The judge holds all scoring code and data and scores every submission into a log. An optional final judge with hidden tests runs once on the best submission and locks the session. The reward and the submission log land in one table that keeps growing across runs." width="100%">
 </picture>
 
 任务是 100% 原生 Harbor 任务(有测试强制保证)。agent 是任何能在容器里工作
@@ -30,13 +30,13 @@ tide 正是把它当库来做这件事。而 autoresearch 在此之上还需要�
 
 | 直接用 Harbor | tide |
 |---|---|
-| 每次 trial 只有一个 reward 数字,过程信息丢了 | 每次提交都由 judge 打分记入账本:anytime 曲线、AUC、到达阈值的时间各是一个查询,而且每个点都可信 |
+| 每次 trial 只有一个 reward 数字,过程信息丢了 | judge 给每次提交打分并记录在案:anytime 曲线、AUC、到达阈值的时间各是一个查询,而且每个点都可信 |
 | 统计只在单个 job 内部(pass@k) | 预算是普通标签,"8 小时比 2 小时多买到多少分"是跨任意 run 集合的一个查询 |
-| sweep 崩了从零重来 | 幂等键让重跑自动跳过已完成的 episode——当一个 episode 要跑几小时,这是刚需 |
-| 每次运行是一个一次性 job 目录 | 一个 append-only 结果库按周累积,`tide report` 直接读 |
+| 一批实验跑到一半崩了,只能从零重来 | 重跑同一个脚本,已完成的 episode 自动跳过——当一个 episode 要跑几小时,这是刚需 |
+| 每次运行是一个一次性 job 目录 | 所有运行都落进同一张持续增长的表,`tide report` 直接读 |
 
-一个诚实的边界:续跑的粒度是 episode。sweep 会从崩溃处继续,但一个跑了一半
-的 12 小时 episode 本身要重来。
+一个诚实的边界:续跑的粒度是 episode。一批实验会从崩溃处继续,但一个跑了
+一半的 12 小时 episode 本身要重来。
 
 完整设计——信任模型、任务约定、数据模型、扩展性:
 **[docs/design.md](docs/design.md)**(英文)。
@@ -91,7 +91,7 @@ row = await lab.run(
 )
 row.rewards  # 可信分数          row.uri → 可审计的 trial 目录
 
-curve = metrics.anytime(lab.df("trace"))  # judge 账本上的分数随时间的变化
+curve = metrics.anytime(lab.df("trace"))  # 每次提交的分数随时间的变化
 metrics.auc(curve)  # anytime 分数
 metrics.scaling(lab.df("episode"), by=["model"])  # 更多预算买到多少分?
 ```

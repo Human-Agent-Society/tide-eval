@@ -39,14 +39,14 @@ the objective is stated in the instruction):
 
 | Request | Who calls it | What happens |
 |---|---|---|
-| `POST /submit` (body = the solution file) | the agent, at will | `score.py` grades it; the result joins the ledger; over budget → 429 |
+| `POST /submit` (body = the solution file) | the agent, at will | `score.py` grades it and records the result; over budget → 429 |
 | `GET /status` | the agent | submissions used / remaining, best so far |
-| `GET /final` | the verifier, once, at the end | the final verdict + the full ledger. **Terminal**: the first call locks the session; later submissions are refused, repeat calls return the cached verdict. An agent that peeks early ends its own run. |
+| `GET /final` | the verifier, once, at the end | the final verdict + the full submission log. **Terminal**: the first call locks the session; later submissions are refused, repeat calls return the cached verdict. An agent that peeks early ends its own run. |
 
 Trust follows from the topology: scoring code and data live only in the
 judge image, the agent's network reaches only the judge
 (`network_mode = "allowlist"`, `allowed_hosts = ["judge"]`), and every
-number in the ledger was computed by the judge — which is why the
+number in the submission log was computed by the judge — which is why the
 score-over-time curve is trusted, not self-reported.
 
 ## The submission budget

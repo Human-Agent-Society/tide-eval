@@ -5,8 +5,8 @@ and, when the Harbor executor is used, the Harbor trial directories
 (``trials/``). Everything a Lab ever does is:
 
 - ``run()``   — execute one episode (a Harbor task under an agent), store the
-  trusted reward plus the episode's untrusted score log, and skip work whose
-  idempotency key already has a result.
+  trusted reward plus the judge's submission log, and skip work that
+  already has a stored result.
 - ``df()``    — everything as a pandas DataFrame; metrics are queries.
 
 Persistence lives in the data: there is no daemon, and re-running a crashed
@@ -60,7 +60,7 @@ class Lab:
     ) -> Row:
         """Run one episode and store its trusted result.
 
-        ``key`` is the idempotency key; when omitted it is derived from
+        ``key`` is the episode's stable ID; when omitted it is derived from
         (task, agent, tags), so identical calls are one episode. If the key
         already has a stored row, that row is returned and nothing runs.
         ``overrides`` pass through to the executor (for Harbor: TrialConfig

@@ -1,7 +1,7 @@
 """Quickstart: the Lab API in 30 seconds, offline.
 
 No Docker and no real agents run here: the FakeExecutor **simulates**
-episode results so you can see the shape of the thing — idempotency, tags,
+episode results so you can see the shape of the thing — resume, tags,
 trace rows, the DataFrame. The agent names below ("strong", "weak") are
 just labels our fake scorer reacts to; they are not defined anywhere else.
 
@@ -20,7 +20,7 @@ from tide import FakeExecutor, Lab, metrics
 from tide.types import TracePoint
 
 # Simulate: "strong" scores 0.6, anyone else 0.3; every episode also
-# carries a two-point submission ledger.
+# carries a two-point submission log.
 fake = FakeExecutor(
     score=lambda spec: {"reward": 0.6 if spec.agent["name"] == "strong" else 0.3},
     trace=lambda spec: [TracePoint(t=10, score=0.2), TracePoint(t=50, score=0.55)],
@@ -39,7 +39,7 @@ async def main():
                 tags={"agent": agent, "attempt": attempt},
             )
 
-    # Idempotency: this exact call already ran, so nothing executes.
+    # Resume: this exact call already ran, so nothing executes.
     await lab.run(
         "demo/circle-packing",
         {"name": "strong"},
@@ -51,7 +51,7 @@ async def main():
     print("\nmean reward by agent:")
     print(episodes.groupby("agent")["reward"].mean())
 
-    # Every episode also carried its submission ledger:
+    # Every episode also carried its submission log:
     trace = lab.df("trace")
     curve = metrics.anytime(trace, by=["agent"])
     print("\nanytime AUC (agent=strong):", metrics.auc(curve[curve.agent == "strong"]))

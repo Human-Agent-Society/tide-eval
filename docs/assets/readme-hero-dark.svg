@@ -68,13 +68,13 @@
   <line x1="686" y1="132" x2="798" y2="132" class="draw-f"/>
   <circle cx="672" cy="154" r="3" fill="#5F777E"/>
   <line x1="686" y1="154" x2="784" y2="154" class="draw-f"/>
-  <text x="818" y="146" class="sm m">ledger rows</text>
+  <text x="818" y="146" class="sm m">every submission</text>
   <text x="666" y="200" class="sm m">accumulates across runs;</text>
   <text x="666" y="218" class="sm m">curves are queries</text>
 
-  <!-- the ledger curve, under the judge -->
+  <!-- the submission log, under the judge -->
   <path d="M 300 246 V 288 H 414" class="draw-f"/>
   <polyline points="306,282 330,282 330,270 356,270 356,262 382,262 382,254 406,254" class="draw-a"/>
   <circle cx="406" cy="254" r="4" fill="#45B2C6"/>
-  <text x="430" y="272" class="sm a">the ledger: score over time, every point judged</text>
+  <text x="430" y="272" class="sm a">score over time — every point judged</text>
 </svg>

@@ -17,7 +17,7 @@ good, by when*. tide evaluates that regime honestly:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-hero-dark.svg">
-  <img src="docs/assets/readme-hero-light.svg" alt="The agent scores itself while it searches, but its own scores are not trusted. Its best solution crosses to an isolated verifier, which re-scores it while ignoring what the agent claimed. The trusted score and the agent's own scores land in one table, with score over time as a curve — the curve self-reported, its endpoint verified." width="100%">
+  <img src="docs/assets/readme-hero-light.svg" alt="The agent searches however it likes and submits what is worth scoring, within a submission limit. The judge holds all scoring code and data and scores every submission into a log. An optional final judge with hidden tests runs once on the best submission and locks the session. The reward and the submission log land in one table that keeps growing across runs." width="100%">
 </picture>
 
 Tasks are 100% stock Harbor tasks (enforced by test). Agents are anything
@@ -31,10 +31,10 @@ Autoresearch needs four things on top, and they are the reason tide exists:
 
 | Plain Harbor | tide |
 |---|---|
-| One reward number per trial; how the agent got there is lost | Every submission is judge-scored into a ledger — the anytime curve, its AUC, and time-to-threshold are one query each, every point trusted |
+| One reward number per trial; how the agent got there is lost | The judge scores and records every submission, so the anytime curve, its AUC, and time-to-threshold are one query each — and every point on them is trusted |
 | Statistics live inside a single job (pass@k) | Budget is an ordinary tag, so "what does 8 h buy over 2 h?" is a query across any set of runs |
-| A crashed sweep restarts from zero | Idempotency keys skip finished episodes on re-run — which matters when one episode costs hours |
-| Each run is a throwaway job directory | One append-only store accretes for weeks, and `tide report` reads it |
+| A batch of runs that crashes halfway restarts from zero | Run the same script again and finished episodes are skipped automatically — which matters when one episode costs hours |
+| Each run is a throwaway job directory | Every run lands in one table that keeps growing, week after week, and `tide report` reads it |
 
 One honest limit: resume works at episode granularity. A sweep picks up
 where it crashed, but a crashed 12-hour episode itself starts over.
@@ -95,7 +95,7 @@ row = await lab.run(
 )
 row.rewards  # trusted score          row.uri → the auditable trial dir
 
-curve = metrics.anytime(lab.df("trace"))  # the judge's ledger over time
+curve = metrics.anytime(lab.df("trace"))  # every submission's score, over time
 metrics.auc(curve)  # the anytime score
 metrics.scaling(lab.df("episode"), by=["model"])  # what does more budget buy?
 ```

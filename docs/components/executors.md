@@ -27,7 +27,7 @@ class Executor(Protocol):
 - **`HarborExecutor(trials_dir)`** — the benchmark run. Builds a
   `TrialConfig` (the agent dict passes to Harbor's `AgentConfig` verbatim;
   `overrides` onto `TrialConfig` fields), runs the trial with the judge as
-  a sidecar, ingests the judge's ledger into `trace`. Harbor is imported
+  a sidecar, ingests the judge's submission log into `trace`. Harbor is imported
   lazily, so the rest of tide works without it installed.
 - **`LocalExecutor(root=…)`** — the development run: starts the task's own
   `judge_server.py` as a local process, runs your `command` with

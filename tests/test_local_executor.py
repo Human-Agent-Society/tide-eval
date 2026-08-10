@@ -32,7 +32,7 @@ async def test_local_run_goes_through_the_real_judge(tmp_path):
     )
     assert row.rewards == {"reward": 0.9}  # best submission, judged for real
     assert row.uri.startswith("local://")  # provenance: not isolation-backed
-    assert lab.df("trace")["score"].tolist() == [0.4, 0.9]  # the judge's ledger
+    assert lab.df("trace")["score"].tolist() == [0.4, 0.9]  # the submission log
 
 
 async def test_local_no_submissions_scores_zero(tmp_path):

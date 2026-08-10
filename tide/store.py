@@ -6,8 +6,8 @@ Design rules (see the top-level README):
   ``df()`` expands tags into columns. Metrics never require a fixed schema —
   each metric function documents the tag names it expects.
 - **Raw scores only.** Normalization happens at query time, never at write time.
-- **The idempotency key is the resume mechanism.** ``get()`` lets callers skip
-  work that already produced a row, so re-running a crashed script resumes it.
+- **Re-running resumes.** Each row's key is a stable ID for the call that
+  produced it; ``get()`` lets callers skip work that already has a row.
 """
 
 from __future__ import annotations

@@ -35,14 +35,14 @@ sequenceDiagram
 
     loop until the time budget or the submission budget runs out
         A->>J: POST /submit (a solution file)
-        J->>J: score.py grades it · ledger += entry
+        J->>J: score.py grades it · appends to the log
         J-->>A: {score, best, remaining}
     end
     Note over A: deadline — a normal ending
     V->>J: GET /final (terminal: locks the session)
     J->>J: final.py on the best submission<br/>(hidden tests, once) — or best session score
-    J-->>V: {reward, reason, ledger}
-    V->>S: 1 trusted episode row + the ledger as trace rows
+    J-->>V: {reward, reason, submission log}
+    V->>S: 1 trusted episode row + the log as trace rows
 ```
 
 Three decisions carry the model:
@@ -55,7 +55,7 @@ Three decisions carry the model:
   trusts that.
 - **The submission budget** (`judge_config.json`) bounds judge compute and
   information leakage — the same dial Kaggle turns with daily submission
-  limits. Refused submissions never enter the ledger.
+  limits. Refused submissions are never recorded.
 - **The final judge is terminal.** `final.py` (optional) holds hidden
   tests — held-out data, stricter checks — and runs exactly once, on the
   best submission, when the verifier calls `GET /final`. That call locks
@@ -74,8 +74,8 @@ known score.
 
 ## The curve is trusted
 
-Because every submission is judge-scored, the ledger — ingested as `trace`
-rows — is a **trusted** score-over-time record. The anytime curve, its
+Because every submission is judge-scored, the submission log — ingested
+as `trace` rows — is a **trusted** score-over-time record. The anytime curve, its
 AUC, time-to-threshold, and improvement counts are queries over real
 measurements, not the agent's claims. This is the payoff of paying one
 judge evaluation per submission, and the submission budget is what keeps
@@ -89,13 +89,14 @@ two kinds:
 | kind | one row per | key shape | source |
 |---|---|---|---|
 | `episode` | one task run (= one Harbor trial) | `<key>` | the judge's final verdict |
-| `trace` | one submission | `<key>#t<i>` | the judge's ledger |
+| `trace` | one submission | `<key>#t<i>` | the judge's submission log |
 
 Three load-bearing decisions:
 
-- **Idempotency keys are the resume story.** Every episode's key is derived
-  from (task, agent, tags, overrides) — or supplied explicitly. A key that
-  already has a row is skipped, so re-running a crashed sweep resumes it.
+- **Re-running resumes.** Every episode gets a stable ID derived from
+  (task, agent, tags, overrides) — or supplied explicitly. An ID that
+  already has a row is skipped, so running the same script again picks up
+  where it crashed.
   There is no daemon and no job state: persistence lives in the data.
   Resume is deliberately episode-granular: a half-finished 12-hour episode
   starts over, because a run stitched together from checkpoints is not the
@@ -109,7 +110,7 @@ Three load-bearing decisions:
   0–100 scale never requires re-running anything.
 
 Every row's `uri` points at the Harbor trial directory that produced it —
-logs, the judge's ledger, the verifier's output — so any number in any
+logs, the judge's submission log, the verifier's output — so any number in any
 table can be audited back to its evidence.
 
 ## Why Harbor, as a library
@@ -121,7 +122,7 @@ a wrapper keeps it. Tasks remain 100% stock Harbor tasks (enforced by
 test): every task here also runs standalone under `harbor trial start`, and
 Harbor registry ids run here unchanged. tide's own surface stays small on
 purpose — roughly: `Lab` (orchestration + store), an `Executor` protocol
-with Harbor and local implementations, ledger ingestion, and pure-pandas
+with Harbor and local implementations, submission-log ingestion, and pure-pandas
 metrics. See [components/](components/) for each module's invariants.
 
 ## Extensibility
@@ -148,7 +149,7 @@ rewrites of it. None of that machinery exists today, deliberately.
 2. **Tasks stay stock Harbor.** No tide-specific fields in `task.toml`, ever.
 3. **The judge owns all scoring.** The agent's side carries no scoring
    machinery; every anti-cheating claim ships with tests that actually cheat.
-4. **Persistence lives in data, not processes.** No daemon; idempotent keys
-   make any crashed script resumable.
+4. **Persistence lives in data, not processes.** No daemon; re-running any
+   crashed script resumes it.
 5. **Abstractions are earned.** A helper enters the library when it has
    repeated in at least two real scripts, not before.

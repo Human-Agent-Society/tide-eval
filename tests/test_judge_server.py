@@ -40,7 +40,7 @@ def test_submissions_are_scored_and_best_tracked(monkeypatch, tmp_path):
     final = judge.final_result()
     assert final["reward"] == 0.5  # no final.py → the best session score
     assert final["best_n"] == 0
-    assert [e["score"] for e in final["ledger"]] == [0.5, 0.3]
+    assert [e["score"] for e in final["submissions"]] == [0.5, 0.3]
 
 
 def test_invalid_submissions_score_zero_not_crash(monkeypatch, tmp_path):
@@ -90,7 +90,7 @@ def test_final_judge_overrides_session_score(monkeypatch, tmp_path):
 def test_no_submissions_means_zero(monkeypatch, tmp_path):
     judge = make_judge(monkeypatch, tmp_path)
     final = judge.final_result()
-    assert final["reward"] == 0.0 and final["ledger"] == []
+    assert final["reward"] == 0.0 and final["submissions"] == []
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="posix paths in template")

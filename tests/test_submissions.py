@@ -1,6 +1,6 @@
-"""Ledger parsing: the judge's submission history becomes trace points."""
+"""Submission-log parsing: the judge's history becomes trace points."""
 
-from tide.ledger import parse_ledger
+from tide.submissions import parse_submissions
 
 
 def test_parse_sorts_and_keeps_extras():
@@ -10,7 +10,7 @@ def test_parse_sorts_and_keeps_extras():
             '{"t": 1.0, "score": 0.2, "n": 0}',
         ]
     )
-    points = parse_ledger(text)
+    points = parse_submissions(text)
     assert [(p.t, p.score) for p in points] == [(1.0, 0.2), (5.0, 0.6)]
     assert points[0].data == {"n": 0}
 
@@ -25,5 +25,5 @@ def test_parse_is_lenient_about_bad_lines():
             "",
         ]
     )
-    points = parse_ledger(text)
+    points = parse_submissions(text)
     assert [(p.t, p.score) for p in points] == [(2.0, 0.4)]

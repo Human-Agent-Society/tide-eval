@@ -108,7 +108,7 @@ def improvements(
     best so far; the first point counts), and their ratio
     ``improvement_rate``.
 
-    The ledger records every submission, so the rate is a real property of
+    The submission log records every submission, so the rate is a real property of
     the method: how often spending a submission actually helped.
     """
     out = df.sort_values((by or []) + [time])

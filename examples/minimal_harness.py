@@ -2,8 +2,8 @@
 
 Pairs with ``minimal_harness_search.py`` (the random-search loop) to show
 the full integration path end to end: put your method in the container,
-point it at the judge, and get back a trusted score plus the judge's
-submission ledger as trace rows. Requires Docker +
+point it at the judge, and get back a trusted score plus its full
+submission log as trace rows. Requires Docker +
 ``pip install tide-eval[harbor]``.
 
     python examples/minimal_harness.py
@@ -58,7 +58,7 @@ async def main():
     trace = lab.df("trace")
     if not trace.empty:
         curve = metrics.anytime(trace)
-        print("\nthe judge's ledger, as ingested:")
+        print("\nthe submission log, as ingested:")
         print(curve[["t", "score", "best_so_far"]].to_string(index=False))
         print("anytime AUC:", round(metrics.auc(curve), 4))
 

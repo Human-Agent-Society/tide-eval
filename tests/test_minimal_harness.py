@@ -22,5 +22,5 @@ async def test_random_search_speaks_the_judge_protocol(tmp_path):
     )
     assert row.rewards["reward"] > 0  # random search finds a valid packing
     trace = lab.df("trace")
-    assert len(trace) > 0  # every submission is in the judge's ledger
+    assert len(trace) > 0  # every submission is in the log
     assert trace["score"].max() == pytest.approx(row.rewards["reward"])
