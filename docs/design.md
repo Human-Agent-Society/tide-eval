@@ -83,6 +83,10 @@ Three load-bearing decisions:
   from (task, agent, tags, overrides) — or supplied explicitly. A key that
   already has a row is skipped, so re-running a crashed sweep resumes it.
   There is no daemon and no job state: persistence lives in the data.
+  Resume is deliberately episode-granular: a half-finished 12-hour episode
+  starts over, because a run stitched together from checkpoints is not the
+  same measurement as one clean budget — and would not be comparable to
+  anyone else's.
 - **Tags are the schema.** Budgets, attempts, models, suites are free-form
   tags; a budget-scaling curve and a model comparison are both pivots over
   `lab.df()`. Metrics declare the columns they expect; nothing fixes a
