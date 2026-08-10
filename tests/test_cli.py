@@ -21,8 +21,8 @@ def test_resolve_category_expands_and_skips_template():
 
 
 def test_resolve_registry_id_passthrough():
-    assert resolve_targets(["terminal-bench/hello-world"], TASKS_ROOT) == [
-        "terminal-bench/hello-world"
+    assert resolve_targets(["algotune/psd_cone_projection"], TASKS_ROOT) == [
+        "algotune/psd_cone_projection"
     ]
 
 

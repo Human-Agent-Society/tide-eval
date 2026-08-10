@@ -3,7 +3,6 @@
     tide list                                           # everything runnable here
     tide run tasks/autoresearch/circle-packing --agent oracle
     tide run autoresearch --agent claude-code --model anthropic/claude-opus-5
-    tide run terminal-bench/hello-world --agent claude-code --model ...
     tide run edgebench/ann_vector_search_qps --agent codex --budget 2
     tide report                                         # summarize the results store
 
@@ -124,9 +123,7 @@ def cmd_list(args: argparse.Namespace) -> int:
         print(f"  {rel}")
     print("\nRun one:      tide run <name-above> --agent oracle")
     print("Run a folder: tide run autoresearch --agent oracle")
-    print(
-        "Registry ids: tide run terminal-bench/hello-world --agent <agent> --model <m>"
-    )
+    print("Registry ids: tide run algotune/<task> --agent <agent> --model <m>")
     return 0
 
 

@@ -6,36 +6,29 @@
 
 **Autoresearch evaluation infrastructure on the [Harbor](https://github.com/laude-institute/harbor) task standard.**
 
-Harbor is very good at one thing: scoring an agent on one task, once, in a
-way you can trust. **Autoresearch** breaks that mold: the agent gets an
-open-ended optimization problem and an hours-long budget, evaluates itself
-hundreds of times, and produces a *continuous* score — not pass/fail. To
-evaluate that, you need everything around the single trusted score: the
-agent's self-eval trajectory, budget-scaling curves, tamper-proof grading,
-and sweeps that survive crashes. That is tide. All of it runs on stock
-Harbor tasks, unmodified.
+**Autoresearch** tasks are open-ended optimization problems with an
+hours-long budget and a *continuous* score: pack circles tighter, make this
+kernel faster, compress this string further. The agent evaluates itself
+hundreds of times along the way; there is no "passed", only "how good, by
+when". Evaluating that regime honestly needs machinery a pass/fail harness
+doesn't have — a tamper-proof wall between the agent's claims and the real
+score, budget semantics where being killed at the deadline still grades,
+the self-eval trajectory as data, and sweeps that survive crashes.
 
-## Two ideas
+tide is that machinery. Tasks are 100% stock Harbor tasks; agents are
+anything that can work inside a container — including your own harness.
 
-**An episode is one trusted measurement.** You give an agent a Harbor task,
-it works until the budget runs out, and an isolated verifier produces a
-score you can trust. How often the agent evaluated *itself* along the way
-doesn't matter — those numbers are recorded, but never believed.
+## What's in the box
 
-**Everything else is tags and queries.** There is no fixed result schema:
-budgets, attempts, models, and suites are free-form tags on an append-only
-store, and every metric — anytime score, AUC, budget scaling — is a pandas
-query over one table.
-
-## What tide adds on top of Harbor
-
-| | Harbor | tide |
-|---|---|---|
-| One trusted score per task | ✅ | + untrusted **score trajectories** (the agent's self-eval curve, queryable) |
-| Programmatic trials | per trial | **`Lab`**: idempotent keys (crash = resume), tagged append-only store accreting for weeks |
-| Batch stats (pass@k) | job-scoped | **cross-run metrics**: anytime/AUC, budget scaling — all queries |
-| Container-scored tasks | ✅ | **budget semantics**: timeout = budget spent, a normal ending that still grades |
-| — | — | **task catalog**: 77 runnable tasks in-repo + one-command CLI (`tide run`) |
+| You get | Concretely |
+|---|---|
+| **A trusted score per episode** | verifier recomputes it in a separate container from declared artifacts only; agent claims are ignored (cheat vectors are tested in CI) |
+| **The self-eval trajectory** | every `score_log.jsonl` line the agent wrote, as queryable `trace` rows next to the trusted score |
+| **Budget semantics** | timeout = budget spent, a normal ending: the verifier grades the best-so-far artifact the budget bought |
+| **Resumable sweeps** | every episode has an idempotency key; re-running a crashed sweep skips finished episodes |
+| **Metrics as queries** | anytime curve, AUC, budget-scaling — pandas functions over one results table, no pipeline |
+| **A task catalog** | 6 first-party tasks (oracle- and cheat-verified in CI) + EdgeBench (51) + FrontierCS 2.0 (20, incl. 4 GPU kernel tasks) committed in-repo, AlgoTune (154) via the Harbor registry, and a template that makes your own task a five-minute copy-paste |
+| **Full provenance** | every stored number's `uri` points at the Harbor trial directory that produced it: logs, artifacts, verifier output |
 
 ## Quick start
 
@@ -44,65 +37,73 @@ pip install tide-eval            # core: no containers, no heavy deps
 pip install "tide-eval[harbor]"  # + the real Harbor executor (needs Docker)
 ```
 
-One command runs anything — a task, a whole category, or a Harbor registry id:
+One command runs a task, a whole category, or a registry benchmark:
 
 ```bash
 tide list                                                    # what's runnable
 tide run autoresearch --agent oracle                         # all 6 first-party tasks (Docker)
 tide run tasks/autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5
-tide run terminal-bench/hello-world --agent claude-code --model ...   # registry id
 tide run edgebench/ann_vector_search_qps --agent codex --budget 2     # budget in hours
+tide run algotune/psd_cone_projection --agent claude-code --model ... # Harbor registry id
 tide report                                                  # summarize the store
 tide run autoresearch --agent oracle --fake                  # no Docker: offline smoke
 ```
 
-Every run lands in the same tagged, idempotent results store — re-running a
-crashed sweep resumes it, and `tide report` is a query, not a pipeline.
-
-For protocols the CLI can't express (custom schedules, control arms), the
-same store is one class away:
-
-```python
-from tide import Lab
-
-lab = Lab("runs/exp1")  # a Lab is a directory
-
-row = await lab.run(  # one episode = one trusted score
-    task="tasks/autoresearch/circle-packing",  # any Harbor task dir or registry id
-    agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"},
-    tags={"budget": 2, "attempt": 0},  # free-form labels, your dimensions
-)
-print(row.rewards)  # {'reward': 0.83}
-
-df = lab.df()  # everything as pandas; metrics are queries
-```
-
-Three properties hold from day one:
-
-1. **Re-running resumes.** Every episode has an idempotency key (auto-derived,
-   or yours via `key=`). If a script crashes halfway, run it again — finished
-   episodes are skipped, unfinished ones run. That is the entire resume story.
-2. **Tags are the schema.** There is no fixed result format. A budget-scaling
-   curve and a model comparison are both pivots over `lab.df()`.
-3. **Every number is auditable.** Each row's `uri` points back to the Harbor
-   trial directory that produced it, with full logs and artifacts.
-
-Try it without Docker (fake executor, 30 seconds), then for real:
+Try the API shape without Docker (30 seconds), then the real thing:
 
 ```bash
-python examples/quickstart.py           # the API shape, offline
-python examples/run_circle_packing.py   # the real thing (Docker): oracle proves the pipeline
+python examples/quickstart.py           # offline, fake executor
+python examples/run_circle_packing.py   # real containers: oracle proves the pipeline
 ```
 
----
+## Bring your agent
+
+An "agent" is anything Harbor can run against the task container. Three
+integration levels, cheapest first — in every case the task, the wall, the
+budget, and the results store are identical, so numbers stay comparable
+across methods:
+
+**1 · A supported harness (zero code).** Harbor ships adapters for the
+mainstream agent CLIs — `claude-code`, `codex`, `aider`, `cursor-cli`,
+`terminus-2`, and more — plus `oracle` (runs the task's own solution) and
+`nop` (does nothing). Name it, pick a model, go:
+
+```bash
+tide run autoresearch --agent claude-code --model anthropic/claude-opus-5
+```
+
+**2 · Your own harness (one class).** Implement Harbor's `BaseAgent` —
+`setup()` installs whatever your harness needs into the container, `run()`
+drives your loop (your models, your tools, your orchestration) against the
+environment. Reference it by import path; the dict passes verbatim to
+Harbor's `AgentConfig`:
+
+```python
+row = await lab.run(
+    "tasks/autoresearch/circle-packing",
+    agent={"import_path": "my_pkg.my_agent:MyAgent", "model_name": "..."},
+)
+```
+
+**3 · Your method isn't an "agent" at all.** An evolutionary search, a
+solver portfolio, a bare sampling loop — anything qualifies. The task
+contract is deliberately tiny: *keep your best solution written to the
+declared artifact path, and (optionally) append self-scores to
+`score_log.jsonl`*. A `BaseAgent.run()` that installs and launches your
+optimizer inside the container is a complete integration; the public scorer
+baked into every task image gives your method its inner-loop feedback
+signal for free.
+
+The only thing you can never bring: your own grader. Trusted scores come
+from the task's verifier, in its own container, or they don't exist.
 
 ## How an episode runs
 
 The design splits evaluation into an untrusted inner world and a trusted
 outer one. Inside its container, the agent can self-evaluate freely — and
 tamper with anything it likes, because nothing in there is believed. The
-trusted score is computed afterwards, in a fresh container that receives only
-the artifact files the task declared.
+trusted score is computed afterwards, in a fresh container that receives
+only the artifact files the task declared.
 
 ```mermaid
 sequenceDiagram
@@ -124,20 +125,61 @@ sequenceDiagram
     L->>S: 1 episode row (trusted)<br/>+ N trace rows (the agent's claimed curve)
 ```
 
-Being killed at the deadline is fine: the task convention requires the agent
-to keep its best solution written to a fixed path at all times, so the
-verifier grades whatever the budget bought. The cheat-proofing is tested —
-`tests/test_task_suite.py` feeds every grader its task's cheat vectors
-(overlapping circles, float-epsilon violations, forged score claims) and
-expects zero for each.
+Four task conventions carry this design, all visible in the reference task
+[`tasks/autoresearch/circle-packing`](tasks/autoresearch/circle-packing):
 
-The four task conventions behind this — public scorer in the image, the
-declared-artifacts wall, atomic best-so-far writes, `score_log.jsonl` — are
-specified in [docs/components/tasks.md](docs/components/tasks.md), with
-[`tasks/autoresearch/circle-packing`](tasks/autoresearch/circle-packing) as
-the reference implementation.
+1. **Public scorer in the image** — the agent self-evaluates freely;
+   deliberately unisolated, because nothing it produces is believed.
+2. **The wall** — `environment_mode = "separate"` + declared artifacts:
+   grading runs in a fresh container that receives only those files and
+   recomputes everything (exact rational arithmetic in the exemplar; a
+   5e-9 overlap scores zero).
+3. **Timeout = budget** — the agent keeps its best solution atomically
+   written at all times, so a deadline kill still grades.
+4. **Score log** — one JSON line per self-evaluation; ingested as the
+   untrusted progress curve.
 
----
+The cheat-proofing is a standing test, not a claim:
+`tests/test_task_suite.py` feeds every grader its task's cheat vectors —
+overlapping circles, float-epsilon violations, forged score claims — and
+requires exactly zero for each. CI also runs the oracle agent through real
+containers and requires each task's exact known score end-to-end.
+
+## What you get after a run
+
+Everything lands in one append-only store; `lab.df()` is the whole export
+story. Two kinds of rows:
+
+| kind | one row per | columns (via tags) | trust |
+|---|---|---|---|
+| `episode` | task × agent × attempt | `task, reward, budget, attempt, …, uri` | verifier-backed ✅ |
+| `trace` | self-evaluation inside an episode | `task, t, score, …` | agent-claimed ⚠️ |
+
+And the questions they answer are one query each:
+
+```python
+from tide import Lab, metrics
+
+lab = Lab("runs/exp1")
+
+ep = lab.df("episode")  # final trusted scores
+ep.groupby("task")["reward"].agg(["mean", "max", "count"])
+
+curve = metrics.anytime(lab.df("trace"), by=["task"])  # best-so-far over time
+metrics.auc(curve[curve.task == "circle-packing"])  # the anytime score
+
+metrics.scaling(ep, by=["model"])  # score vs budget (2h vs 8h buys what?)
+```
+
+- **"How good did it get?"** → `episode.reward` (trusted).
+- **"How fast did it get there?"** → the anytime curve and its AUC (from
+  trace rows — the agent's claimed trajectory, labeled as such).
+- **"What does more budget buy?"** → `metrics.scaling` over episodes tagged
+  with different budgets.
+- **"Can I audit this number?"** → `row.uri` is the Harbor trial directory:
+  full logs, the artifacts that were graded, the verifier's output.
+- **"My sweep crashed at 60%."** → run the same script again; finished
+  episodes are skipped. That's the whole story.
 
 ## GPU tasks (kernels, CUDA, ML workloads)
 
@@ -175,18 +217,48 @@ The same compose-overlay mechanism covers judge sidecars — see the vendored
 [FrontierCS GPU kernel tasks](tasks/frontier-cs) (kmeans / knn / ivf-pq /
 dbscan), which ship a separate judge container wired exactly this way.
 Because tasks stay stock Harbor, a GPU task runs identically under
-`harbor trial start`, `tide run`, and any cloud backend.
+`harbor trial start`, `tide run`, and any cloud backend. Full guide,
+including trustworthy kernel timing: [docs/components/tasks.md](docs/components/tasks.md).
 
----
+## The task catalog
+
+**Browsable at [`tasks/`](tasks/)** — one folder per benchmark; every task
+runs standalone under `harbor trial start` too (enforced by a test).
+
+| Benchmark | What it tests | Run it with |
+|---|---|---|
+| [`tasks/autoresearch/`](tasks/autoresearch) · 6 first-party | the full protocol: dual scorer, anti-hack wall, budget semantics, score trajectory | `tide run autoresearch --agent <a>` |
+| [EdgeBench](https://github.com/ByteDance-Seed/EdgeBench) · 51 tasks, 2–12 h budgets | capability vs interaction time | **all 51 committed** (specs CC-BY-4.0, converted verbatim); `tide run edgebench/<task> --budget <h>`; needs their prebuilt images |
+| [FrontierCS 2.0](https://github.com/FrontierCS/Frontier-CS) · 20 tasks, incl. 4 GPU kernel | open-ended CS problems with expert evaluators | **all 20 committed**, generated by their official adapter; `python examples/run_frontiercs.py` |
+| [AlgoTune](https://github.com/oripress/AlgoTune) · 154 tasks | speed up code vs a reference | `tide run algotune/<task> --agent <a>` via its [Harbor adapter](https://github.com/laude-institute/harbor/tree/main/adapters/algotune) |
+
+The six first-party tasks each teach one hard part of the category:
+exact-arithmetic grading (circle-packing), deceptive landscapes
+(function-minimization), combinatorial search (tsp-tour), exact constraint
+checking (bin-packing), **the anti-overfitting wall** — graded on held-out
+points (symbolic-regression), and **safely grading agent-shipped code** —
+sandboxed subprocess, reference deleted first (string-compression).
+
+## Authoring your own task
+
+```bash
+cp -r tasks/_template tasks/autoresearch/my-task
+```
+
+Work through the `TODO(task)` markers (six files), then run
+`pytest tests/test_task_suite.py` — your task is picked up automatically:
+oracle score, cheat suite, stock-Harbor validation, zero test code to write.
+Keep three agents in rotation while developing: **oracle** (runs
+`solution/`, proves the pipeline), **nop** (does nothing, catches leakage),
+and a **cheater** (tampers with scorers, must not move the trusted score).
+Full guide: [docs/components/tasks.md](docs/components/tasks.md).
 
 ## If you already know Harbor
 
 tide imports Harbor as a library and never touches its CLI. We deliberately
-did not fork: a fork loses the upstream task ecosystem and its fixes, while a
-library keeps both and adds a layer Harbor doesn't have. Tasks remain 100%
-stock Harbor tasks — every task in this repo runs standalone under
-`harbor trial start`, and the ~80 registry datasets work here unchanged.
-(That promise is enforced by a test.)
+did not fork: a fork loses the upstream task ecosystem and its fixes, while
+a library keeps both and adds a layer Harbor doesn't have. Tasks remain
+100% stock Harbor tasks, and registry ids work unchanged.
 
 | Harbor gives | tide adds |
 |---|---|
@@ -194,13 +266,6 @@ stock Harbor tasks — every task in this repo runs standalone under
 | `Trial.create/run` for one trial | `Lab`: idempotent keys, bounded concurrency, an append-only **tagged results store** that accretes across scripts and weeks |
 | One trusted score per trial | **score trajectories** — the agent's self-reported curve (`score_log.jsonl`), ingested as queryable `trace` rows next to the trusted score |
 | pass@k within a job | **cross-run metrics**: anytime/AUC, budget scaling |
-
-If you take away three ideas, take these: the trusted score sits at the
-episode boundary, not where the agent stops working; self-evaluation is free
-*because* it is untrusted, while trusted scores are walled off; and every
-metric is a query over one table, not a pipeline.
-
----
 
 ## Components
 
@@ -221,57 +286,6 @@ Three dependency rules keep it decoupled, and violating any of them is a
 design bug: converters see only the task format, never tide internals;
 metrics import pandas and nothing from tide; the store holds raw scores and
 all normalization happens at query time.
-
----
-
-## Supported benchmarks
-
-**The browsable catalog is [`tasks/`](tasks/)** — one folder per benchmark:
-six first-party autoresearch tasks ship in-repo (oracle-verified in real
-containers by CI), external benchmarks come with vendored tasks plus a
-`fetch.py`, and [`tasks/_template/`](tasks/_template) turns making your own
-into a five-minute copy-paste.
-
-**Autoresearch** — open-ended tasks, continuous scores, budgets:
-
-| Benchmark | What it tests | Run it in tide with |
-|---|---|---|
-| [`tasks/autoresearch/`](tasks/autoresearch) · 6 first-party tasks | dual scorer, anti-hack wall, budget semantics, score trajectory — the reference for the whole category | `tide run autoresearch --agent <a>`; `python examples/run_circle_packing.py` is the E2E gate |
-| [AlgoTune](https://github.com/oripress/AlgoTune) · 154 tasks | speed up code vs a reference | `lab.run("algotune/<task>", agent)` via its [Harbor adapter](https://github.com/laude-institute/harbor/tree/main/adapters/algotune) |
-| [FrontierCS](https://github.com/FrontierCS/Frontier-CS) · 240 open problems | open-ended CS with expert evaluators; includes 4 GPU kernel tasks | **all 20 tasks of the 2.0 track committed** in [tasks/frontier-cs/](tasks/frontier-cs); `python examples/run_frontiercs.py` |
-| [EdgeBench](https://github.com/ByteDance-Seed/EdgeBench) · 51 tasks, 2–12 h budgets | capability vs interaction time | **all 51 tasks committed** in [tasks/edgebench/](tasks/edgebench) (specs CC-BY-4.0, converted verbatim); `tide run edgebench/<task> --agent <a> --budget <h>`; running needs their prebuilt images |
-
-**Episodic / agentic** — the Harbor ecosystem, unchanged, by registry id:
-
-| Benchmark | Run it in tide with |
-|---|---|
-| [terminal-bench 2](https://github.com/laude-institute/terminal-bench) | `lab.run("terminal-bench/hello-world", agent)` — Harbor downloads the task by id |
-| [SWE-bench family + ~80 registry datasets](https://github.com/laude-institute/harbor/tree/main/adapters) | same: any Harbor registry id (`"swebench-verified/..."`, `"algotune/..."`, …) |
-
----
-
-## Authoring your own
-
-The five-minute version — the full guide is
-[docs/components/tasks.md](docs/components/tasks.md):
-
-- **A plain task** is a Harbor task
-  (`task.toml · instruction.md · environment/ · tests/ · solution/`).
-  Verify it standalone with `harbor trial start -p <dir>`; then it's an
-  episode.
-- **An autoresearch task** adds four conventions, all visible in
-  [circle-packing](tasks/autoresearch/circle-packing): a public scorer
-  baked into the image; `environment_mode = "separate"` plus declared
-  artifacts (the wall); atomic best-so-far writes so timeout = budget; and a
-  `score_log.jsonl` the agent appends to.
-- **A benchmark converter** is a script that emits task folders. It depends
-  only on the task format, so it cannot break anything.
-
-Keep three agents in rotation while developing any task: **oracle** (runs
-`solution/`, proves the pipeline), **nop** (does nothing, catches leakage),
-and a **cheater** (tampers with scorers, must not move the trusted score).
-
----
 
 ## Design rules
 
