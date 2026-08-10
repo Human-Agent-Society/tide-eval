@@ -8,10 +8,12 @@
 
 **English** | [中文](README_CN.md)
 
-Autoresearch tasks — the AlphaEvolve / OpenEvolve style of workload — are
-open-ended optimization problems: hours of budget, a continuous score, and
-an agent iterating toward a better solution the whole way. There is no
-"passed" — only *how good, by when*. tide evaluates that regime honestly:
+Autoresearch tasks — the workload made famous by DeepMind's
+[AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/)
+and [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) — are open-ended optimization
+problems: hours of budget, a continuous score, and an agent iterating
+toward a better solution the whole way. There is no "passed" — only *how
+good, by when*. tide evaluates that regime honestly:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-hero-dark.svg">

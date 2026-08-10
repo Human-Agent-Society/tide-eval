@@ -8,7 +8,9 @@
 
 [English](README.md) | **中文**
 
-Autoresearch 任务——AlphaEvolve / OpenEvolve 那一类工作负载——是开放式优化
+Autoresearch 任务——因 DeepMind 的
+[AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/)
+和 [Karpathy 的 autoresearch](https://github.com/karpathy/autoresearch) 而闻名的那类工作负载——是开放式优化
 问题:数小时的预算、连续的分数、一个持续迭代逼近更优解的 agent。这里没有
 "通过/不通过",只有*多好、多快*。tide 把这种形态的评测做扎实:
 
