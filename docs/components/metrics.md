@@ -16,6 +16,7 @@ metric, state its required columns in the docstring first.
 | `anytime(df, by=…)` | `t`, `score` (+groups) | best-so-far progress curve |
 | `auc(curve)` | `t`, `best_so_far` | the anytime score (left-Riemann, span-normalized) |
 | `scaling(df)` | `budget`, `reward` | score vs interaction budget (EdgeBench 2–12 h) |
+| `improvements(df, by=…)` | `t`, `score` (+groups) | evals vs strict improvements, and their ratio |
 | `rescale_linear` / `rescale_anchored` | a Series | 0–100 normalization; anchored stretches >100 past the best known result |
 
 ## Rules

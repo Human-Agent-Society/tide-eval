@@ -37,6 +37,33 @@ def test_scaling_groups_by_budget():
     assert out.set_index("budget")["reward"].to_dict() == {2: 0.2, 4: 0.6}
 
 
+def test_improvements_counts_and_rate():
+    df = pd.DataFrame(
+        {
+            "t": [1, 2, 3, 4, 5],
+            "score": [0.2, 0.1, 0.5, 0.5, 0.6],  # first, 0.5, 0.6 improve
+        }
+    )
+    out = metrics.improvements(df)
+    assert out.iloc[0]["evals"] == 5
+    assert out.iloc[0]["improvements"] == 3
+    assert out.iloc[0]["improvement_rate"] == pytest.approx(0.6)
+
+
+def test_improvements_grouped():
+    df = pd.DataFrame(
+        {
+            "task": ["a", "a", "b", "b", "b"],
+            "t": [1, 2, 1, 2, 3],
+            "score": [0.3, 0.4, 0.5, 0.2, 0.5],  # a: 2/2 · b: 1/3 (0.5 ties, not >)
+        }
+    )
+    out = metrics.improvements(df, by=["task"]).set_index("task")
+    assert out.loc["a", "improvement_rate"] == pytest.approx(1.0)
+    assert out.loc["b", "improvements"] == 1
+    assert out.loc["b", "improvement_rate"] == pytest.approx(1 / 3)
+
+
 def test_rescale_linear_and_anchored():
     s = pd.Series([0.0, 5.0, 10.0, 15.0])
     lin = metrics.rescale_linear(s, lo=0, hi=10)

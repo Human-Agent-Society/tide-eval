@@ -1,33 +1,37 @@
-"""Quickstart: the whole tide API in 30 seconds, no Docker required.
+"""Quickstart: the Lab API in 30 seconds, offline.
 
-Runs episodes through the FakeExecutor so you can see the shape of the thing
-— idempotency, tags, the DataFrame — before touching real containers.
+No Docker and no real agents run here: the FakeExecutor **simulates**
+episode results so you can see the shape of the thing — idempotency, tags,
+trace rows, the DataFrame. The agent names below ("strong", "weak") are
+just labels our fake scorer reacts to; they are not defined anywhere else.
+
+Real runs replace the FakeExecutor with the default HarborExecutor and a
+real agent:
+
+    tide run autoresearch --agent claude-code --model ...   # supported harness
+    python examples/minimal_harness.py                      # your own harness
 
     python examples/quickstart.py
 """
 
 import asyncio
 
-from tide import FakeExecutor, Lab
+from tide import FakeExecutor, Lab, metrics
 from tide.types import TracePoint
+
+# Simulate: "strong" scores 0.6, anyone else 0.3; every episode also
+# claims a two-point self-eval trajectory.
+fake = FakeExecutor(
+    score=lambda spec: {"reward": 0.6 if spec.agent["name"] == "strong" else 0.3},
+    trace=lambda spec: [TracePoint(t=10, score=0.2), TracePoint(t=50, score=0.55)],
+)
 
 
 async def main():
-    lab = Lab(
-        "runs/quickstart",
-        executor=FakeExecutor(  # swap for the default HarborExecutor in real runs
-            score=lambda spec: {
-                "reward": 0.6 if spec.agent["name"] == "smart" else 0.3
-            },
-            trace=lambda spec: [
-                TracePoint(t=10, score=0.2),
-                TracePoint(t=50, score=0.55),
-            ],
-        ),
-    )
+    lab = Lab("runs/quickstart", executor=fake)
 
     # Episodes: one call = one trusted measurement. Tags are your dimensions.
-    for agent in ("smart", "basic"):
+    for agent in ("strong", "weak"):
         for attempt in range(3):
             await lab.run(
                 "demo/circle-packing",
@@ -37,7 +41,9 @@ async def main():
 
     # Idempotency: this exact call already ran, so nothing executes.
     await lab.run(
-        "demo/circle-packing", {"name": "smart"}, tags={"agent": "smart", "attempt": 0}
+        "demo/circle-packing",
+        {"name": "strong"},
+        tags={"agent": "strong", "attempt": 0},
     )
 
     episodes = lab.df("episode")
@@ -46,11 +52,9 @@ async def main():
     print(episodes.groupby("agent")["reward"].mean())
 
     # Every episode also carried an (untrusted) score trajectory:
-    from tide import metrics
-
     trace = lab.df("trace")
     curve = metrics.anytime(trace, by=["agent"])
-    print("\nanytime AUC (agent=smart):", metrics.auc(curve[curve.agent == "smart"]))
+    print("\nanytime AUC (agent=strong):", metrics.auc(curve[curve.agent == "strong"]))
 
 
 if __name__ == "__main__":

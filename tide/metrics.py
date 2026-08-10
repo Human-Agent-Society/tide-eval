@@ -71,6 +71,42 @@ def scaling(
     )
 
 
+def improvements(
+    df: pd.DataFrame,
+    *,
+    time: str = "t",
+    score: str = "score",
+    by: list[str] | None = None,
+) -> pd.DataFrame:
+    """How often self-evaluation actually raised the score.
+
+    Expects columns: *time*, *score* (+ *by* groups). Per group:
+    ``evals`` (total points), ``improvements`` (points strictly above the
+    best so far; the first point counts), and their ratio
+    ``improvement_rate``.
+
+    Meaningful when the score log records *every* evaluation. Under the
+    improvements-only log convention the rate is 1.0 by construction — then
+    ``improvements`` (the count) is the informative column.
+    """
+    out = df.sort_values((by or []) + [time])
+    if by:
+        cummax = out.groupby(by)[score].cummax()
+        prev_best = cummax.groupby([out[k] for k in by]).shift()
+    else:
+        prev_best = out[score].cummax().shift()
+    out = out.assign(_improved=prev_best.isna() | (out[score] > prev_best))
+    if not by:
+        n = len(out)
+        k = int(out["_improved"].sum())
+        return pd.DataFrame(
+            [{"evals": n, "improvements": k, "improvement_rate": k / n if n else 0.0}]
+        )
+    agg = out.groupby(by).agg(evals=(score, "size"), improvements=("_improved", "sum"))
+    agg["improvement_rate"] = agg["improvements"] / agg["evals"]
+    return agg.reset_index()
+
+
 # -------------------------------------------------------------- normalizers
 
 
