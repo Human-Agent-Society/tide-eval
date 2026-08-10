@@ -1,14 +1,13 @@
 # tasks/ — the benchmark catalog
 
-> **Where this sits**: the framework is `tide/` (Lab, executors, converters,
-> metrics — the interface everything runs through). This folder is the
-> *content layer* that flows through it: first-party exemplar tasks and the
-> adapted surface of external benchmarks (vendored tasks for browsability +
-> `fetch.py` as the real distribution channel).
+> **Where this sits**: the framework is `tide/`; this folder is the tasks
+> it runs — six first-party tasks plus external benchmarks converted to
+> Harbor task folders (committed so you can browse them; each `fetch.py`
+> regenerates them from the published sources).
 
-Every folder here is either a runnable Harbor task or an external
-benchmark's home (vendored tasks + a `fetch.py` for the rest).
-Anything that is a task runs two ways, always:
+Throughout this catalog, `oracle` is Harbor's built-in agent that runs a
+task's reference `solution/` — the standard way to prove a task's pipeline
+works. Every task runs two ways, always:
 
 ```python
 await lab.run("tasks/autoresearch/tsp-tour", {"name": "oracle"})  # through tide
@@ -33,7 +32,7 @@ oracle score, cheat suite, stock-Harbor validation, zero test code to write.
 First-party, offline, oracle-verified in CI (real containers). Each README
 states the oracle baseline and what the task teaches.
 
-| Task | One line | Oracle → optimum | Teaches |
+| Task | One line | Oracle score → best known | Teaches |
 |---|---|---|---|
 | [`circle-packing`](autoresearch/circle-packing) | pack 3 circles, maximize Σ radii | 0.75 → 1.0076 | the full protocol, exact-arithmetic grading |
 | [`function-minimization`](autoresearch/function-minimization) | minimize deceptive Levi N.13 | 0.333 → 1.0 | exploration vs local search |

@@ -45,7 +45,7 @@ Full design — trust model, task conventions, data model, extensibility:
 pip install "tide-eval[harbor]"          # needs Docker; plain tide-eval = core only
 
 tide list                                # what's runnable
-tide run autoresearch --agent oracle     # all 6 first-party tasks
+tide run autoresearch --agent oracle     # oracle = built-in agent that runs each task's reference solution
 tide run edgebench/ann_vector_search_qps --agent codex --budget 2   # hours
 tide report                              # summarize the results store
 ```

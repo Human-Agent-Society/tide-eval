@@ -63,7 +63,8 @@ Four task conventions carry the model (reference implementation:
 Trust is tested, not asserted. `tests/test_task_suite.py` feeds every
 grader its task's cheat cases — overlapping circles, float-epsilon
 violations, forged score claims — and requires exactly zero for each. The
-E2E workflow additionally runs the oracle agent through real containers on
+E2E workflow additionally runs the oracle agent (Harbor's built-in agent
+that executes a task's reference solution) through real containers on
 every first-party task and requires its exact known score.
 
 ## The data model
