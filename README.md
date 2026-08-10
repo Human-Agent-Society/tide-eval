@@ -51,9 +51,12 @@ tide report                              # summarize the results store
 ```
 
 No Docker? `tide run autoresearch --agent oracle --fake` and
-`python examples/quickstart.py` run offline in seconds;
-`python examples/run_circle_packing.py` then proves the real pipeline
-(the oracle must score exactly 0.75).
+`python examples/quickstart.py` run offline in seconds. Then, for real:
+`python examples/run_circle_packing.py` proves the pipeline (the oracle
+must score exactly 0.75), and `python examples/minimal_harness.py` runs
+the **smallest complete harness** — a ~30-line adapter + a random-search
+loop, no LLM, no keys — through the full loop: containerized search,
+trusted verifier score, claimed trajectory back as data.
 
 ## Use the API
 
@@ -86,7 +89,7 @@ Same tasks, same wall, same store — numbers stay comparable across methods:
 | You have | Integration |
 |---|---|
 | a mainstream harness (`claude-code`, `codex`, `aider`, …) | `--agent <name> --model <m>` — zero code |
-| your own harness | one `BaseAgent` subclass, referenced via `import_path` |
+| your own harness | one `BaseAgent` subclass, referenced via `import_path` — runnable template: [`examples/minimal_harness.py`](examples/minimal_harness.py) |
 | a method that isn't an "agent" (OpenEvolve-style search, a solver) | keep your best solution at the artifact path; optionally log self-scores |
 
 The container contract is identical across all six first-party tasks, so

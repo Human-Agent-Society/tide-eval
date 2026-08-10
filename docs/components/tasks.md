@@ -1,9 +1,10 @@
 # Authoring tasks & benchmarks
 
-Tasks are **100% stock Harbor tasks** — that promise is enforced by a test
-(`test_exemplar_task_is_valid_stock_harbor`). tide adds conventions *around*
-the format, never fields inside it. Scaffold with `harbor task init`, verify
-standalone with `harbor trial start -p <dir>`, then run it under tide.
+Tasks are **100% stock Harbor tasks** — every committed task is validated
+against Harbor's `TaskConfig` schema by `tests/test_task_suite.py`. tide
+adds conventions *around* the format, never fields inside it. Start from
+[`tasks/_template`](../../tasks/_template) (recommended), verify standalone
+with `harbor trial start -p <dir>`, then run it under tide.
 
 ## A plain episodic task
 
@@ -42,10 +43,70 @@ Reference implementation: [`tasks/autoresearch/circle-packing`](../../tasks/auto
    `score_log.jsonl` in the artifact dir. tide ingests it as `trace` rows —
    the untrusted progress curve — and `metrics.anytime` does the rest.
 
-Keep the three test agents in rotation: **oracle** (must score its known
-value — pipeline proof), **nop** (must score 0 — leakage baseline), and a
-**cheater** (tampered scorer + forged log — must not move the trusted score;
-the exemplar's grader test does exactly this).
+## The grader contract
+
+`tests/test.sh` runs `tests/grade.py` in the verifier container:
+
+```python
+def grade(artifact: Path | None) -> dict:
+    # {"reward": float, "reason": str}; artifact None → reward 0.0
+```
+
+Three rules ([template](../../tasks/_template/tests/grade.py)): recompute
+everything from the artifact, **never read agent-claimed scores**; validate
+conservatively (exact arithmetic where floats can be gamed; reject, don't
+round); missing/malformed artifact → `0.0` with a reason, never an
+exception. The script writes `reward.json` (numbers only) and `reason.txt`
+to `/logs/verifier/`.
+
+## Testing your task: `tests/vectors.json`
+
+A **cheat vector** is a handcrafted artifact embodying one way to fake the
+score — a constraint violation, a float-epsilon exploit, a forged
+self-reported score. Each must grade **exactly 0.0, with a reason**; the
+suite re-checks them on every CI run. The exemplar's real file:
+[circle-packing/tests/vectors.json](../../tasks/autoresearch/circle-packing/tests/vectors.json).
+
+```jsonc
+{
+  "oracle": {
+    "artifact": { "circles": [[0.25, 0.25, 0.25], ...] },  // known-good solution
+    "reward": 0.75          // exact (± "tolerance"); or "reward_min"/"reward_max";
+  },                        // "live_min"/"live_max" for the containerized E2E gate
+  "cheats": [
+    { "name": "overlap",      "artifact": { "circles": [...] } },
+    { "name": "forged_claim", "artifact": { "circles": [...], "claimed_score": 999.0 } }
+  ]
+}
+```
+
+Any task folder with a `vectors.json` is picked up by
+`pytest tests/test_task_suite.py` automatically: oracle scores its declared
+reward, every cheat scores 0.0, missing artifact scores 0.0, `task.toml`
+validates under Harbor's schema. Then `--agent oracle` in real containers
+must reproduce the score (the E2E gate), and `--agent nop` must score 0 —
+if it doesn't, the environment is leaking the answer.
+
+## Network policy
+
+Harbor's network policy is per-phase, set in `task.toml`:
+
+```toml
+[environment]
+network_mode = "no-network"        # baseline: "public" | "no-network" | "allowlist"
+
+[agent]                            # optional phase override, same fields
+network_mode = "allowlist"
+allowed_hosts = ["api.openai.com", "api.anthropic.com"]
+
+[verifier]                         # keep the verifier offline — always
+network_mode = "no-network"
+```
+
+Guidance: default the environment to `no-network` (an offline task can't
+look up known solutions); when agents need an LLM API *from inside* the
+container, open an `allowlist` on the `[agent]` phase rather than making
+the whole environment public; never give the verifier network access.
 
 ## A GPU task (kernels, CUDA, ML workloads)
 
