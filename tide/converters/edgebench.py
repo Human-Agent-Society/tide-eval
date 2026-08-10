@@ -25,7 +25,9 @@ structured JSON object with a ``score`` field (this mirrors EdgeBench's own
 ``extract_score`` / ``structured_json`` extraction). The generated
 ``parse_score.py`` handles both and writes Harbor's ``reward.json``.
 ``submit_exclude`` filtering is not yet applied (declared artifacts are
-copied whole).
+copied whole), and upstream's live judge loop (an auto-eval thread
+submitting to a judge server during the session) is not reproduced — see
+tasks/edgebench/README.md for what that changes.
 
 Spec files: ``https://huggingface.co/datasets/ByteDance-Seed/EdgeBench``
 (one ``<task_id>.json`` per task + ``BENCHMARK.yaml``). Prebuilt images are
