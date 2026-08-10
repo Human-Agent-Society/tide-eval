@@ -8,9 +8,9 @@
 
 **English** | [中文](README_CN.md)
 
-Autoresearch tasks — the workload made famous by DeepMind's
+Autoresearch tasks — the kind of work DeepMind's
 [AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/)
-and [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) — are open-ended optimization
+and [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) do — are open-ended optimization
 problems: hours of budget, a continuous score, and an agent iterating
 toward a better solution the whole way. There is no "passed" — only *how
 good, by when*. tide evaluates that regime honestly:
