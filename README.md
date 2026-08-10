@@ -6,104 +6,31 @@
 
 **Autoresearch evaluation infrastructure on the [Harbor](https://github.com/laude-institute/harbor) task standard.**
 
-**Autoresearch** tasks are open-ended optimization problems with an
-hours-long budget and a *continuous* score: pack circles tighter, make this
-kernel faster, compress this string further. The agent evaluates itself
-hundreds of times along the way; there is no "passed", only "how good, by
-when". Evaluating that regime honestly needs machinery a pass/fail harness
-doesn't have — a tamper-proof wall between the agent's claims and the real
-score, budget semantics where being killed at the deadline still grades,
-the self-eval trajectory as data, and sweeps that survive crashes.
+Autoresearch tasks are open-ended optimization problems with an hours-long
+budget and a *continuous* score: pack circles tighter, make this kernel
+faster, compress this string further. There is no "passed" — only *how
+good, by when*. Evaluating that regime honestly needs machinery a
+pass/fail harness doesn't have, and tide provides exactly that machinery:
 
-tide is that machinery. Tasks are 100% stock Harbor tasks; agents are
-anything that can work inside a container — including your own harness.
+- **a trusted score per episode** — recomputed by a verifier in a separate
+  container from declared artifacts only; agent claims are ignored, and the
+  cheat-proofing is itself tested in CI;
+- **the self-eval trajectory as data** — every score the agent claimed
+  along the way, stored as untrusted `trace` rows next to the trusted one;
+- **budget semantics** — timeout is a normal ending: the verifier grades
+  the best-so-far artifact the budget bought;
+- **resumable sweeps** — idempotency keys mean a crashed sweep re-run
+  skips finished episodes; no daemon, no job state;
+- **metrics as queries** — anytime curve, AUC, budget scaling: pandas
+  functions over one results table, with full provenance (`uri` → the
+  Harbor trial directory behind every number).
 
-## What's in the box
+Tasks are 100% stock Harbor tasks (enforced by test). Agents are anything
+that can work inside a container — including your own harness or a method
+that isn't an "agent" at all.
 
-| You get | Concretely |
-|---|---|
-| **A trusted score per episode** | verifier recomputes it in a separate container from declared artifacts only; agent claims are ignored (cheat vectors are tested in CI) |
-| **The self-eval trajectory** | every `score_log.jsonl` line the agent wrote, as queryable `trace` rows next to the trusted score |
-| **Budget semantics** | timeout = budget spent, a normal ending: the verifier grades the best-so-far artifact the budget bought |
-| **Resumable sweeps** | every episode has an idempotency key; re-running a crashed sweep skips finished episodes |
-| **Metrics as queries** | anytime curve, AUC, budget-scaling — pandas functions over one results table, no pipeline |
-| **A task catalog** | 6 first-party tasks (oracle- and cheat-verified in CI) + EdgeBench (51) + FrontierCS 2.0 (20, incl. 4 GPU kernel tasks) committed in-repo, AlgoTune (154) via the Harbor registry, and a template that makes your own task a five-minute copy-paste |
-| **Full provenance** | every stored number's `uri` points at the Harbor trial directory that produced it: logs, artifacts, verifier output |
-
-## Quick start
-
-```bash
-pip install tide-eval            # core: no containers, no heavy deps
-pip install "tide-eval[harbor]"  # + the real Harbor executor (needs Docker)
-```
-
-One command runs a task, a whole category, or a registry benchmark:
-
-```bash
-tide list                                                    # what's runnable
-tide run autoresearch --agent oracle                         # all 6 first-party tasks (Docker)
-tide run tasks/autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5
-tide run edgebench/ann_vector_search_qps --agent codex --budget 2     # budget in hours
-tide run algotune/psd_cone_projection --agent claude-code --model ... # Harbor registry id
-tide report                                                  # summarize the store
-tide run autoresearch --agent oracle --fake                  # no Docker: offline smoke
-```
-
-Try the API shape without Docker (30 seconds), then the real thing:
-
-```bash
-python examples/quickstart.py           # offline, fake executor
-python examples/run_circle_packing.py   # real containers: oracle proves the pipeline
-```
-
-## Bring your agent
-
-An "agent" is anything Harbor can run against the task container. Three
-integration levels, cheapest first — in every case the task, the wall, the
-budget, and the results store are identical, so numbers stay comparable
-across methods:
-
-**1 · A supported harness (zero code).** Harbor ships adapters for the
-mainstream agent CLIs — `claude-code`, `codex`, `aider`, `cursor-cli`,
-`terminus-2`, and more — plus `oracle` (runs the task's own solution) and
-`nop` (does nothing). Name it, pick a model, go:
-
-```bash
-tide run autoresearch --agent claude-code --model anthropic/claude-opus-5
-```
-
-**2 · Your own harness (one class).** Implement Harbor's `BaseAgent` —
-`setup()` installs whatever your harness needs into the container, `run()`
-drives your loop (your models, your tools, your orchestration) against the
-environment. Reference it by import path; the dict passes verbatim to
-Harbor's `AgentConfig`:
-
-```python
-row = await lab.run(
-    "tasks/autoresearch/circle-packing",
-    agent={"import_path": "my_pkg.my_agent:MyAgent", "model_name": "..."},
-)
-```
-
-**3 · Your method isn't an "agent" at all.** An evolutionary search, a
-solver portfolio, a bare sampling loop — anything qualifies. The task
-contract is deliberately tiny: *keep your best solution written to the
-declared artifact path, and (optionally) append self-scores to
-`score_log.jsonl`*. A `BaseAgent.run()` that installs and launches your
-optimizer inside the container is a complete integration; the public scorer
-baked into every task image gives your method its inner-loop feedback
-signal for free.
-
-The only thing you can never bring: your own grader. Trusted scores come
-from the task's verifier, in its own container, or they don't exist.
-
-## How an episode runs
-
-The design splits evaluation into an untrusted inner world and a trusted
-outer one. Inside its container, the agent can self-evaluate freely — and
-tamper with anything it likes, because nothing in there is believed. The
-trusted score is computed afterwards, in a fresh container that receives
-only the artifact files the task declared.
+**How it works, in one picture** — the agent's world is untrusted by
+design; the score is computed behind a wall:
 
 ```mermaid
 sequenceDiagram
@@ -120,212 +47,153 @@ sequenceDiagram
     Note over A: timeout = budget spent<br/>(a normal ending, not a failure)
     A-->>L: collect DECLARED artifacts only
     L->>V: fresh container + artifacts + tests
-    V->>V: recompute score from artifacts<br/>exact arithmetic · agent claims ignored
+    V->>V: recompute score from artifacts<br/>agent claims ignored
     V-->>L: reward.json
-    L->>S: 1 episode row (trusted)<br/>+ N trace rows (the agent's claimed curve)
+    L->>S: 1 episode row (trusted)<br/>+ N trace rows (the claimed curve)
 ```
 
-Four task conventions carry this design, all visible in the reference task
-[`tasks/autoresearch/circle-packing`](tasks/autoresearch/circle-packing):
+The full design — trust model, the four task conventions, the data model,
+extensibility — is in **[docs/design.md](docs/design.md)**.
 
-1. **Public scorer in the image** — the agent self-evaluates freely;
-   deliberately unisolated, because nothing it produces is believed.
-2. **The wall** — `environment_mode = "separate"` + declared artifacts:
-   grading runs in a fresh container that receives only those files and
-   recomputes everything (exact rational arithmetic in the exemplar; a
-   5e-9 overlap scores zero).
-3. **Timeout = budget** — the agent keeps its best solution atomically
-   written at all times, so a deadline kill still grades.
-4. **Score log** — one JSON line per self-evaluation; ingested as the
-   untrusted progress curve.
+## Install & run
 
-The cheat-proofing is a standing test, not a claim:
-`tests/test_task_suite.py` feeds every grader its task's cheat vectors —
-overlapping circles, float-epsilon violations, forged score claims — and
-requires exactly zero for each. CI also runs the oracle agent through real
-containers and requires each task's exact known score end-to-end.
+```bash
+pip install tide-eval            # core: no containers, no heavy deps
+pip install "tide-eval[harbor]"  # + the real Harbor executor (needs Docker)
+```
 
-## What you get after a run
+```bash
+tide list                                                    # what's runnable
+tide run autoresearch --agent oracle                         # all 6 first-party tasks (Docker)
+tide run tasks/autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5
+tide run edgebench/ann_vector_search_qps --agent codex --budget 2     # budget in hours
+tide run algotune/psd_cone_projection --agent claude-code --model ... # Harbor registry id
+tide report                                                  # summarize the store
+tide run autoresearch --agent oracle --fake                  # no Docker: offline smoke
+```
 
-Everything lands in one append-only store; `lab.df()` is the whole export
-story. Two kinds of rows:
+No Docker yet? `python examples/quickstart.py` shows the full API shape
+offline in 30 seconds; `python examples/run_circle_packing.py` then proves
+the real pipeline (the oracle must score exactly 0.75).
 
-| kind | one row per | columns (via tags) | trust |
-|---|---|---|---|
-| `episode` | task × agent × attempt | `task, reward, budget, attempt, …, uri` | verifier-backed ✅ |
-| `trace` | self-evaluation inside an episode | `task, t, score, …` | agent-claimed ⚠️ |
+## Use the API
 
-And the questions they answer are one query each:
+The CLI is a thin caller of one class. A `Lab` is a directory; `run` is
+one episode; `df` is the whole export story:
 
 ```python
 from tide import Lab, metrics
 
 lab = Lab("runs/exp1")
 
-ep = lab.df("episode")  # final trusted scores
-ep.groupby("task")["reward"].agg(["mean", "max", "count"])
+row = await lab.run(
+    "tasks/autoresearch/circle-packing",  # any Harbor task dir or registry id
+    agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"},
+    tags={"budget": 2, "attempt": 0},  # free-form tags = your schema
+)
+row.rewards  # {'reward': ...}  — trusted
+row.uri  # the auditable trial directory
 
-curve = metrics.anytime(lab.df("trace"), by=["task"])  # best-so-far over time
-metrics.auc(curve[curve.task == "circle-packing"])  # the anytime score
-
-metrics.scaling(ep, by=["model"])  # score vs budget (2h vs 8h buys what?)
+ep = lab.df("episode")  # trusted scores, one row each
+curve = metrics.anytime(lab.df("trace"))  # the agent's claimed progress
+metrics.auc(curve)  # the anytime score
+metrics.scaling(ep, by=["model"])  # what does more budget buy?
 ```
 
-- **"How good did it get?"** → `episode.reward` (trusted).
-- **"How fast did it get there?"** → the anytime curve and its AUC (from
-  trace rows — the agent's claimed trajectory, labeled as such).
-- **"What does more budget buy?"** → `metrics.scaling` over episodes tagged
-  with different budgets.
-- **"Can I audit this number?"** → `row.uri` is the Harbor trial directory:
-  full logs, the artifacts that were graded, the verifier's output.
-- **"My sweep crashed at 60%."** → run the same script again; finished
-  episodes are skipped. That's the whole story.
+Re-running any script resumes it: finished episodes are skipped by
+idempotency key. Details and invariants:
+[docs/components/lab.md](docs/components/lab.md) ·
+[metrics.md](docs/components/metrics.md) ·
+[executors.md](docs/components/executors.md).
 
-## GPU tasks (kernels, CUDA, ML workloads)
+## Evaluate *your* agent
 
-Kernel-optimization and other GPU-bound tasks are plain Harbor tasks with two
-extra lines of configuration. tide adds no machinery — the point is that it
-doesn't need to:
+Three integration levels — same tasks, same wall, same store, so numbers
+stay comparable across methods:
 
-1. **Declare the requirement** in `task.toml` — validated by Harbor's schema,
-   honored natively by Harbor's cloud backends (Modal, Beam, GKE, SkyPilot,
-   Daytona, …):
-
-   ```toml
-   [environment]
-   gpus = 1
-   ```
-
-2. **On local Docker**, Harbor merges a task-authored
-   `environment/docker-compose.yaml` over its generated one, so GPU access is
-   a standard compose device reservation on the `main` service (requires the
-   NVIDIA Container Toolkit):
-
-   ```yaml
-   services:
-     main:
-       deploy:
-         resources:
-           reservations:
-             devices:
-               - driver: nvidia
-                 count: all
-                 capabilities: [gpu]
-   ```
-
-The same compose-overlay mechanism covers judge sidecars — see the vendored
-[FrontierCS GPU kernel tasks](tasks/frontier-cs) (kmeans / knn / ivf-pq /
-dbscan), which ship a separate judge container wired exactly this way.
-Because tasks stay stock Harbor, a GPU task runs identically under
-`harbor trial start`, `tide run`, and any cloud backend. Full guide,
-including trustworthy kernel timing: [docs/components/tasks.md](docs/components/tasks.md).
-
-## The task catalog
-
-**Browsable at [`tasks/`](tasks/)** — one folder per benchmark; every task
-runs standalone under `harbor trial start` too (enforced by a test).
-
-| Benchmark | What it tests | Run it with |
+| Level | You have | Integration |
 |---|---|---|
-| [`tasks/autoresearch/`](tasks/autoresearch) · 6 first-party | the full protocol: dual scorer, anti-hack wall, budget semantics, score trajectory | `tide run autoresearch --agent <a>` |
-| [EdgeBench](https://github.com/ByteDance-Seed/EdgeBench) · 51 tasks, 2–12 h budgets | capability vs interaction time | **all 51 committed** (specs CC-BY-4.0, converted verbatim); `tide run edgebench/<task> --budget <h>`; needs their prebuilt images |
-| [FrontierCS 2.0](https://github.com/FrontierCS/Frontier-CS) · 20 tasks, incl. 4 GPU kernel | open-ended CS problems with expert evaluators | **all 20 committed**, generated by their official adapter; `python examples/run_frontiercs.py` |
-| [AlgoTune](https://github.com/oripress/AlgoTune) · 154 tasks | speed up code vs a reference | `tide run algotune/<task> --agent <a>` via its [Harbor adapter](https://github.com/laude-institute/harbor/tree/main/adapters/algotune) |
+| 1 | a mainstream harness (`claude-code`, `codex`, `aider`, `cursor-cli`, `terminus-2`, …) | `--agent <name> --model <m>` — zero code |
+| 2 | your own harness (own loop, tools, orchestration) | one `BaseAgent` subclass, referenced via `import_path` |
+| 3 | a method that isn't an "agent" (OpenEvolve-style evolutionary search, a solver, a sampling loop) | satisfy the task contract: keep your best solution at the declared artifact path, optionally append self-scores to `score_log.jsonl` |
 
-The six first-party tasks each teach one hard part of the category:
-exact-arithmetic grading (circle-packing), deceptive landscapes
-(function-minimization), combinatorial search (tsp-tour), exact constraint
-checking (bin-packing), **the anti-overfitting wall** — graded on held-out
-points (symbolic-regression), and **safely grading agent-shipped code** —
-sandboxed subprocess, reference deleted first (string-compression).
+The container-side contract is identical across all six first-party tasks
+(one scorer path, one artifact path), so one integration covers the whole
+suite. The one thing you cannot bring is your own grader — trusted scores
+come from the task's verifier or they don't exist. Full guide with the
+`BaseAgent` skeleton, the contract table, and a **worked OpenEvolve
+example**: **[docs/integration.md](docs/integration.md)**.
 
-## Authoring your own task
+## Define a new task
 
 ```bash
 cp -r tasks/_template tasks/autoresearch/my-task
 ```
 
-Work through the `TODO(task)` markers (six files), then run
+Work through the `TODO(task)` markers (six files: config, instruction,
+public scorer, trusted grader, cheat vectors, oracle solution), then run
 `pytest tests/test_task_suite.py` — your task is picked up automatically:
-oracle score, cheat suite, stock-Harbor validation, zero test code to write.
-Keep three agents in rotation while developing: **oracle** (runs
-`solution/`, proves the pipeline), **nop** (does nothing, catches leakage),
-and a **cheater** (tampers with scorers, must not move the trusted score).
-Full guide: [docs/components/tasks.md](docs/components/tasks.md).
+oracle score, cheat suite, stock-Harbor validation, zero test code to
+write. GPU tasks (kernels, CUDA) add two lines of configuration — see the
+guide. Full authoring reference:
+**[docs/components/tasks.md](docs/components/tasks.md)** ·
+template walkthrough: [`tasks/_template`](tasks/_template).
 
-## If you already know Harbor
+## The task catalog
 
-tide imports Harbor as a library and never touches its CLI. We deliberately
-did not fork: a fork loses the upstream task ecosystem and its fixes, while
-a library keeps both and adds a layer Harbor doesn't have. Tasks remain
-100% stock Harbor tasks, and registry ids work unchanged.
+Browsable at [`tasks/`](tasks/) — every task also runs standalone under
+`harbor trial start` (enforced by test):
 
-| Harbor gives | tide adds |
-|---|---|
-| Task format, env backends, verifier isolation, regrade, oracle/nop agents | used as-is, pinned |
-| `Trial.create/run` for one trial | `Lab`: idempotent keys, bounded concurrency, an append-only **tagged results store** that accretes across scripts and weeks |
-| One trusted score per trial | **score trajectories** — the agent's self-reported curve (`score_log.jsonl`), ingested as queryable `trace` rows next to the trusted score |
-| pass@k within a job | **cross-run metrics**: anytime/AUC, budget scaling |
+| Benchmark | Tasks | What it tests | Run |
+|---|---|---|---|
+| [first-party](tasks/autoresearch) | 6 | the full protocol — each task teaches one hard part of the category | `tide run autoresearch --agent <a>` |
+| [EdgeBench](tasks/edgebench) | 51 · 2–12 h | capability vs interaction time | `tide run edgebench/<task> --budget <h>` (needs their prebuilt images) |
+| [FrontierCS 2.0](tasks/frontier-cs) | 20 · incl. 4 GPU kernel | open-ended CS problems, expert evaluators | `python examples/run_frontiercs.py` |
+| [AlgoTune](https://github.com/oripress/AlgoTune) | 154 | speed up code vs a reference | `tide run algotune/<task> --agent <a>` (Harbor registry) |
 
-## Components
+The six first-party tasks, individually — oracle-verified in real
+containers and cheat-vector-tested on every CI run:
 
-One surface is frozen — `Lab.run`'s signature and the store schema (columns
-may be added, never changed). Small modules sit around it, each with a doc
-that says how to modify it and which invariants your change must not break:
+| Task | One line | Teaches |
+|---|---|---|
+| [`circle-packing`](tasks/autoresearch/circle-packing) | pack 3 circles, maximize Σ radii | the full protocol; exact-arithmetic grading |
+| [`function-minimization`](tasks/autoresearch/function-minimization) | minimize deceptive Levi N.13 | exploration vs local search |
+| [`tsp-tour`](tasks/autoresearch/tsp-tour) | shorten a 40-city tour | combinatorial search, continuous signal |
+| [`bin-packing`](tasks/autoresearch/bin-packing) | beat first-fit on 60 items | exact constraint checking |
+| [`symbolic-regression`](tasks/autoresearch/symbolic-regression) | recover a hidden formula | the anti-overfitting wall: graded on held-out points |
+| [`string-compression`](tasks/autoresearch/string-compression) | ship decompressor + payload | safely grading agent-shipped code |
 
-| Component | Code | What it does | Change it when you need… | Doc |
-|---|---|---|---|---|
-| **CLI** | `tide/cli.py` | `tide run/list/report/fetch` — the one-command surface; a thin caller of `Lab` | new commands, target resolution | `tide --help` |
-| **Lab & store** | `tide/lab.py` · `tide/store.py` | episodes in, DataFrame out | new row kinds, key semantics | [lab.md](docs/components/lab.md) |
-| **Executors** | `tide/executors.py` | `EpisodeSpec → EpisodeResult` | a new backend (SSH, cloud, simulator) | [executors.md](docs/components/executors.md) |
-| **Trajectory** | `tide/trajectory.py` | `score_log.jsonl` → trace rows | a different score-log convention | (docstring) |
-| **Metrics** | `tide/metrics.py` | pure DataFrame functions | a new metric (add one function) | [metrics.md](docs/components/metrics.md) |
-| **Tasks** | `tasks/` | the benchmark catalog: vendored + fetchable Harbor tasks | to author tasks or benchmarks | [tasks/README.md](tasks/README.md) · [tasks.md](docs/components/tasks.md) |
+## Project layout
 
-Three dependency rules keep it decoupled, and violating any of them is a
-design bug: converters see only the task format, never tide internals;
-metrics import pandas and nothing from tide; the store holds raw scores and
-all normalization happens at query time.
+| | Code | Doc |
+|---|---|---|
+| Design & trust model | — | [docs/design.md](docs/design.md) |
+| Agent/harness integration | — | [docs/integration.md](docs/integration.md) |
+| Lab & results store | [`tide/lab.py`](tide/lab.py) · [`tide/store.py`](tide/store.py) | [components/lab.md](docs/components/lab.md) |
+| Executors (Harbor, fake) | [`tide/executors.py`](tide/executors.py) | [components/executors.md](docs/components/executors.md) |
+| Score-trajectory ingestion | [`tide/trajectory.py`](tide/trajectory.py) | (docstring) |
+| Metrics | [`tide/metrics.py`](tide/metrics.py) | [components/metrics.md](docs/components/metrics.md) |
+| Task authoring & GPU guide | [`tasks/_template`](tasks/_template) | [components/tasks.md](docs/components/tasks.md) |
+| Contributing & design rules | — | [CONTRIBUTING.md](CONTRIBUTING.md) |
 
-## Design rules
-
-1. **One frozen surface.** `Lab.run`'s signature and the store schema.
-   Everything else stays cheap to revisit.
-2. **Tasks stay stock Harbor.** No tide-specific fields in `task.toml`, ever.
-3. **Trust is walled, never assumed.** Self-evaluation is free because it is
-   untrusted; trusted scores come only from separate verifiers.
-4. **Persistence lives in data, not processes.** No daemon. Idempotent keys
-   make any crashed script resumable.
-5. **Abstractions are earned.** A helper enters the library when it has
-   repeated in at least two real scripts, not before.
-
-These rules are also the extension mechanism. `Row.kind` is an open string,
-executors are a two-line protocol, and metrics are standalone functions — so
-future evaluation regimes (task streams with carried state, live
-infinite-horizon tasks) slot in as new row kinds, new executors, and new
-metric functions without touching the frozen surface. That's the roadmap,
-not the present: today tide does one thing well.
+The frozen surface is `Lab.run`'s signature and the store schema;
+everything else is small modules with documented invariants. Future
+regimes (continual-learning streams, live infinite-horizon tasks) are
+designed to land as extensions — new row kinds, new executors, new metric
+functions — not rewrites; see the
+[extensibility section](docs/design.md#extensibility).
 
 ## Roadmap
 
-Where this sits today, honestly: the core is small, tested, and the
-autoresearch pipeline is proven end-to-end in CI (the E2E workflow runs the
-oracle through real containers and requires exact scores — it caught two
-real bugs on its first runs).
-
-- [ ] **PyPI release** — publish `tide-eval` (the name is reserved in
-  pyproject; not yet released)
-- [ ] **A GPU exemplar task in CI** — a first-party kernel task with the
-  compose-overlay GPU wiring, oracle-gated on a GPU runner
-- [ ] **Harbor pin upgrades** — golden-file workflow for bumping the pinned
-  version safely
-- [ ] **More converters** — the autoresearch corner of the ecosystem is
-  bigger than our catalog
+- [ ] **PyPI release** — publish `tide-eval` (name reserved; not yet released)
+- [ ] **A GPU exemplar task in CI** — first-party kernel task, oracle-gated
+  on a GPU runner
+- [ ] **Harbor pin upgrades** — golden-file workflow for bumping the pin safely
+- [ ] **More converters** — the autoresearch ecosystem is bigger than our catalog
 - [ ] **A hosted results viewer** — `lab.df()` is enough for research use;
-  a shared leaderboard view is not built
-- [ ] **Beyond autoresearch** — continual-learning task streams and live
-  infinite-horizon tasks, designed to land as extensions (new row kinds +
-  executors), not rewrites
+  a shared leaderboard is not built
+- [ ] **Beyond autoresearch** — continual-learning streams and live tasks,
+  as extensions, when this regime is served extremely well
 
 ## Development
 
@@ -337,5 +205,5 @@ uv pip install -e path/to/harbor         # optional: enables the integration tes
 .venv/bin/ruff check . && .venv/bin/ruff format --check .
 ```
 
-Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the design
-rules PRs are reviewed against. Licensed [Apache-2.0](LICENSE).
+Contributions are reviewed against the design rules in
+[CONTRIBUTING.md](CONTRIBUTING.md). Licensed [Apache-2.0](LICENSE).
