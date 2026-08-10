@@ -1,7 +1,8 @@
-"""Score-trajectory ingestion: the one piece of real autoresearch machinery.
+"""Score-log ingestion: the one piece of real autoresearch machinery.
 
-The task convention: an agent that self-evaluates appends one JSON line per
-evaluation to ``score_log.jsonl`` inside the episode's artifact directory::
+The task convention: the agent appends one JSON line to ``score_log.jsonl``
+inside the episode's artifact directory — on every improvement at minimum,
+on every self-evaluation ideally::
 
     {"t": 12.5, "score": 0.31}
     {"t": 90.2, "score": 0.47, "snapshot": "best_003.json"}

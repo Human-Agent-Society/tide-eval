@@ -1,9 +1,9 @@
 name: E2E
 
 # The real thing: build every first-party task's containers, run the oracle
-# agent through Harbor, and require each score to match its vectors.json
-# expectation. Heavier than CI (installs Harbor, builds images), so it runs
-# on main pushes that touch the pipeline, and on demand.
+# agent through Harbor, and require each score to match solve_sh_scores in
+# its grader_tests.json. Heavier than CI (installs Harbor, builds images),
+# so it runs on main pushes that touch the pipeline, and on demand.
 
 on:
   workflow_dispatch:

@@ -7,7 +7,7 @@ anything else later.
 
 - :class:`HarborExecutor` — the real one: builds a Harbor ``TrialConfig``,
   runs ``Trial``, returns the verifier's rewards plus the ingested score
-  trajectory. Harbor is imported lazily so the rest of tide works without it.
+  log. Harbor is imported lazily so the rest of tide works without it.
 - :class:`FakeExecutor` — deterministic, instant, dependency-free. Used by the
   test suite and the quickstart demo.
 """
@@ -18,7 +18,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Protocol
 
-from tide.trajectory import load_trace
+from tide.score_log import load_trace
 from tide.types import EpisodeResult, EpisodeSpec
 
 
@@ -80,7 +80,7 @@ class FakeExecutor:
 
     ``score`` maps a spec to rewards; the default scores by a stable hash of
     the task name so demos produce varied but reproducible numbers. ``trace``
-    optionally fabricates a score trajectory per spec.
+    optionally fabricates a score log per spec.
     """
 
     def __init__(

@@ -5,7 +5,7 @@ and, when the Harbor executor is used, the Harbor trial directories
 (``trials/``). Everything a Lab ever does is:
 
 - ``run()``   — execute one episode (a Harbor task under an agent), store the
-  trusted reward plus any untrusted score trajectory, and skip work whose
+  trusted reward plus the episode's untrusted score log, and skip work whose
   idempotency key already has a result.
 - ``df()``    — everything as a pandas DataFrame; metrics are queries.
 

@@ -2,10 +2,10 @@
 
 One primitive:
 
-- an **episode** is one trusted measurement: a Harbor task run under an
-  agent, scored by an isolated verifier. Everything the agent claims about
-  itself along the way (its self-evaluation curve) is recorded as untrusted
-  ``trace`` rows next to the trusted score.
+- an **episode** (= one Harbor trial) is one trusted measurement: a Harbor
+  task run under an agent, scored by an isolated verifier. The scores the
+  agent gave itself along the way (its score log) are recorded as untrusted
+  ``trace`` rows next to the trusted one.
 
 The public surface is deliberately small: :class:`Lab` runs episodes into an
 append-only results store; :mod:`tide.metrics` turns the store into curves.

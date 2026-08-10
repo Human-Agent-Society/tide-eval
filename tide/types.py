@@ -55,7 +55,7 @@ class EpisodeResult:
     """What an executor returns for one episode.
 
     ``rewards`` is the trusted verdict (from Harbor's verifier, or a fake in
-    tests). ``trace`` is the untrusted score trajectory recovered from the
+    tests). ``trace`` is the untrusted score log recovered from the
     episode's artifacts. ``uri`` points at the provenance (the Harbor trial
     directory) so every stored number stays auditable.
     """

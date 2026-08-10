@@ -85,7 +85,7 @@ The contract is identical across all six first-party tasks:
 | problem statement | `instruction.md` → your agent's `instruction` |
 | public scorer | `python /app/scorer.py /app/best/solution.json` → prints a float |
 | gradeable artifact | `/app/best/solution.json` |
-| self-eval log | `/app/best/score_log.jsonl` |
+| score log | `/app/best/score_log.jsonl` |
 | verifier sees | **only** the `artifacts` declared in `task.toml` |
 
 ### Worked example: OpenEvolve

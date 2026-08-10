@@ -1,4 +1,4 @@
-from tide.trajectory import find_score_log, load_trace, parse_score_log
+from tide.score_log import find_score_log, load_trace, parse_score_log
 
 
 def test_parse_valid_and_sorted():

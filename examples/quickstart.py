@@ -20,7 +20,7 @@ from tide import FakeExecutor, Lab, metrics
 from tide.types import TracePoint
 
 # Simulate: "strong" scores 0.6, anyone else 0.3; every episode also
-# claims a two-point self-eval trajectory.
+# claims a two-point score log.
 fake = FakeExecutor(
     score=lambda spec: {"reward": 0.6 if spec.agent["name"] == "strong" else 0.3},
     trace=lambda spec: [TracePoint(t=10, score=0.2), TracePoint(t=50, score=0.55)],
@@ -51,7 +51,7 @@ async def main():
     print("\nmean reward by agent:")
     print(episodes.groupby("agent")["reward"].mean())
 
-    # Every episode also carried an (untrusted) score trajectory:
+    # Every episode also carried an (untrusted) score log:
     trace = lab.df("trace")
     curve = metrics.anytime(trace, by=["agent"])
     print("\nanytime AUC (agent=strong):", metrics.auc(curve[curve.agent == "strong"]))

@@ -116,10 +116,6 @@ class Store:
         rewards.columns = [f"reward_{c}" if c in taken else c for c in rewards.columns]
         return pd.concat([base, tags, rewards], axis=1)
 
-    def close(self) -> None:
-        with self._lock:
-            self._conn.close()
-
     @staticmethod
     def _to_row(hit: tuple) -> Row:
         key, kind, task, tags, rewards, uri, created_at = hit

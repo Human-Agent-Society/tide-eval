@@ -9,7 +9,7 @@ Recover a hidden formula from samples; reward = 1/(1+RMSE) on HELD-OUT points.
 | **Run it** | `await lab.run("tasks/autoresearch/symbolic-regression", {"name": "oracle"})` |
 | **Verify standalone** | `harbor trial start -p tasks/autoresearch/symbolic-regression` |
 
-**What this task teaches:** The anti-overfitting wall: the agent optimizes against training points, the grader scores generalization. Expressions run through an AST whitelist, never eval().
+**What this task teaches:** Held-out grading against overfitting: the agent optimizes against training points, the grader scores points the agent never saw. Expressions run through an AST whitelist, never eval().
 
 Files: `instruction.md` (what the agent sees) · `environment/` (its world,
 scorer included) · `tests/` (the separate-verifier grader + `grader_tests.json`
