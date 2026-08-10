@@ -32,6 +32,24 @@ Three things to know about `run`:
 - **`**overrides` reach the executor** — for Harbor, these are
   `TrialConfig` fields (e.g. `verifier={...}`).
 
+## Results accumulate
+
+Every `run` — from any script, any day, the CLI or the API — appends a row
+to the same `results.sqlite`, tagged with whatever dimensions you chose.
+Monday's claude-code sweep, Thursday's prompt tweak, and next week's codex
+run are not three job directories; they are rows in one table that differ
+only in their tags. Comparing them is a query, not archaeology:
+
+```python
+lab.df("episode").groupby(["model", "task"])["reward"].mean()
+```
+
+Accumulation and resume are the same mechanism: a re-run of Thursday's
+crashed sweep finds most of its keys already in the table and only runs
+what's missing. And it costs no provenance — every row's `uri` still
+points at the full Harbor trial directory. Harbor treats each run as a
+printed report; a Lab is the ledger those reports are booked into.
+
 ## The row model
 
 | kind | one row per | key shape | trusted |
