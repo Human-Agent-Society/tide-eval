@@ -55,7 +55,7 @@ pip install -e ".[harbor]"               # container runs; plain -e . covers --l
 
 tide list                                # what's runnable
 tide run autoresearch --agent oracle     # oracle = built-in agent that runs each task's reference solution
-tide run edgebench/ann_vector_search_qps --agent codex --budget 2   # hours
+tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2   # hours
 tide report                              # summarize the results store
 ```
 
@@ -71,9 +71,12 @@ tide run autoresearch/circle-packing --local \
 
 Your command reads `$JUDGE_URL` and `$BUDGET_SEC`, POSTs solutions to
 `$JUDGE_URL/submit`, and the judge's verdict is the result — the same
-judge code that runs as a sidecar in containers. Local rows carry a
-`local://` uri because the judge ran on a machine the agent also controls:
-develop locally, report container numbers. (`python examples/quickstart.py`
+judge code that runs as a sidecar in containers. Note that local mode has
+no protection at all: everything, including any hidden tests, is readable
+on your own machine, which is fine because you would only be cheating
+yourself. The container run is where the judge is actually out of reach,
+so local rows carry a `local://` uri — develop locally, report container
+numbers. (`python examples/quickstart.py`
 and `--fake` still work with zero setup, but their scores are simulated.)
 
 When you have Docker, `python examples/run_circle_packing.py` proves the
@@ -97,7 +100,8 @@ row = await lab.run(
     agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"},
     tags={"budget": 2},  # free-form tags = your schema
 )
-row.rewards  # trusted score          row.uri → the auditable trial dir
+row.rewards  # the judge's final verdict
+row.uri  # the trial directory, for auditing
 
 curve = metrics.anytime(lab.df("trace"))  # every submission's score, over time
 metrics.auc(curve)  # the anytime score
@@ -165,7 +169,9 @@ config. Guide: **[docs/components/tasks.md](docs/components/tasks.md)**.
 - [ ] PyPI release (`tide-eval` — name reserved, not yet published)
 - [ ] GPU exemplar task, oracle-gated in CI
 - [ ] Harbor pin-upgrade workflow
-- [ ] More autoresearch converters
+- [ ] [Frontier-Eng](https://arxiv.org/abs/2604.12290) converter — 47 engineering tasks whose
+  interaction-budget loop maps directly onto the submission budget —
+  and more autoresearch converters
 - [ ] Hosted results viewer
 - [ ] Beyond autoresearch: continual-learning streams and live tasks — as
   [extensions](docs/design.md#extensibility), not rewrites

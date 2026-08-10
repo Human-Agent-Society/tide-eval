@@ -52,7 +52,7 @@ pip install -e ".[harbor]"               # 容器模式需要;仅 --local 和 AP
 
 tide list                                # 有哪些任务可跑
 tide run autoresearch --agent oracle     # oracle = 内置 agent,运行每个任务的参考解
-tide run edgebench/ann_vector_search_qps --agent codex --budget 2   # 小时
+tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2   # 小时
 tide report                              # 汇总结果库
 ```
 
@@ -68,8 +68,10 @@ tide run autoresearch/circle-packing --local \
 
 你的命令读 `$JUDGE_URL` 和 `$BUDGET_SEC`,把解 POST 到
 `$JUDGE_URL/submit`,judge 的裁决就是结果——和容器里作为 sidecar 运行的是
-同一份 judge 代码。本地行的 uri 标记为 `local://`,因为 judge 跑在 agent 也
-能控制的机器上:本地开发,报容器数字。(`python examples/quickstart.py` 和
+同一份 judge 代码。注意本地模式没有任何防护:包括 hidden tests 在内的一切
+在你自己机器上都是可读的——这没关系,因为你只可能骗到你自己。judge 真正
+够不着的是容器运行,所以本地行的 uri 标记为 `local://`:本地开发,报容器
+数字。(`python examples/quickstart.py` 和
 `--fake` 依然零依赖可用,但它们的分数是模拟的。)
 
 有 Docker 之后,`python examples/run_circle_packing.py` 端到端验证真实流水线
@@ -91,7 +93,8 @@ row = await lab.run(
     agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"},
     tags={"budget": 2},  # 自由标签 = 你的结果格式
 )
-row.rewards  # 可信分数          row.uri → 可审计的 trial 目录
+row.rewards  # judge 的最终裁决
+row.uri  # trial 目录,用于审计
 
 curve = metrics.anytime(lab.df("trace"))  # 每次提交的分数随时间的变化
 metrics.auc(curve)  # anytime 分数
@@ -156,7 +159,8 @@ pytest tests/test_task_suite.py          # 自动被识别——而且直接是�
 - [ ] 发布 PyPI(`tide-eval`,名字已预留,尚未发布)
 - [ ] GPU 示例任务,在 CI 中以 oracle 把关
 - [ ] Harbor 版本升级的安全流程
-- [ ] 更多 autoresearch 转换器
+- [ ] [Frontier-Eng](https://arxiv.org/abs/2604.12290) 转换器——47 个工程任务,其 interaction budget
+  循环与提交额度直接对应——以及更多 autoresearch 转换器
 - [ ] 托管的结果查看器
 - [ ] autoresearch 之外:持续学习任务流与在线任务——以
   [扩展](docs/design.md#extensibility)的形式落地,而不是重写
