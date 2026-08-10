@@ -1,2 +1,2 @@
 *.jsonl
-.specs/
+!sample.jsonl

@@ -30,14 +30,17 @@ metrics.anytime(
 )  # learning curves
 ```
 
-**2. Run their harness** to produce new results (Docker + model keys):
+**2. Run it through tide** (their harness underneath; Docker + model keys;
+one-time setup: `cd repo && uv sync --all-extras && clbench setup --all`):
 
 ```bash
-cd tasks/continual-learning-bench/repo
-uv sync --all-extras && clbench setup --all
-clbench run exploitable_poker --schedule quick_test --system icl
+python tasks/continual-learning-bench/run.py exploitable_poker \
+    --system icl --schedule quick_test --lab runs/clbench
+tide report --lab runs/clbench --kind external
 ```
 
-Their run outputs load with the same `load_clbench_results` call. For an
+The wrapper runs `clbench run` and ingests every instance outcome into the
+tide store (kind `external`, tagged system/model/task/instance), so their
+results and your tide runs live in one queryable place. For an
 offline, first-party instance of the same protocol shape, see
 [`tasks/streams/hidden-rules/`](../streams/hidden-rules).
