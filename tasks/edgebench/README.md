@@ -41,5 +41,5 @@ shape (a judge sidecar scoring limited submissions, peak counted). This
 conversion, however, still maps their judge onto a run-once separate
 verifier: converted tasks give the agent only the work environment's own
 feedback, and keeping the best submission in place is the agent's job.
-Regenerating the conversion onto tide's judge-sidecar layout would close
-that gap; it is not built.
+Regenerating the conversion onto the judge protocol is on the
+[roadmap](../../README.md#roadmap).

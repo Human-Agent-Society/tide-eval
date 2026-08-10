@@ -140,8 +140,9 @@ points are structural rather than speculative:
   function plus a docstring declaring its expected columns.
 
 This is how continual-learning task streams and live infinite-horizon
-tasks are planned to land: as additions around the same store, not
-rewrites of it. None of that machinery exists today, deliberately.
+tasks would land: as additions around the same store, not rewrites of
+it. What is actually on deck lives in the
+[README's roadmap](../README.md#roadmap).
 
 ## Design rules
 

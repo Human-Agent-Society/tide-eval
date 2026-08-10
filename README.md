@@ -172,6 +172,8 @@ config. Guide: **[docs/components/tasks.md](docs/components/tasks.md)**.
 - [ ] [Frontier-Eng](https://arxiv.org/abs/2604.12290) converter — 47 engineering tasks whose
   interaction-budget loop maps directly onto the submission budget —
   and more autoresearch converters
+- [ ] Regenerate the EdgeBench conversion onto the judge protocol (the
+  AlgoTune converter is the precedent)
 - [ ] Hosted results viewer
 - [ ] Beyond autoresearch: continual-learning streams and live tasks — as
   [extensions](docs/design.md#extensibility), not rewrites

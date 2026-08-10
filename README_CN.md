@@ -161,6 +161,7 @@ pytest tests/test_task_suite.py          # 自动被识别——而且直接是�
 - [ ] Harbor 版本升级的安全流程
 - [ ] [Frontier-Eng](https://arxiv.org/abs/2604.12290) 转换器——47 个工程任务,其 interaction budget
   循环与提交额度直接对应——以及更多 autoresearch 转换器
+- [ ] 把 EdgeBench 转换重新生成到 judge 协议上(AlgoTune 转换器是先例)
 - [ ] 托管的结果查看器
 - [ ] autoresearch 之外:持续学习任务流与在线任务——以
   [扩展](docs/design.md#extensibility)的形式落地,而不是重写
