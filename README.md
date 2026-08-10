@@ -15,7 +15,7 @@ evaluates that regime honestly:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-hero-dark.svg">
-  <img src="docs/assets/readme-hero-light.svg" alt="The agent scores itself while it searches, but its own scores are not trusted. Its best solution crosses to an isolated verifier, which re-scores it while ignoring what the agent claimed. The trusted score and the agent's own scores land in one table, where how good and how fast are one query away." width="100%">
+  <img src="docs/assets/readme-hero-light.svg" alt="The agent scores itself while it searches, but its own scores are not trusted. Its best solution crosses to an isolated verifier, which re-scores it while ignoring what the agent claimed. The trusted score and the agent's own scores land in one table, with score over time as a curve." width="100%">
 </picture>
 
 Tasks are 100% stock Harbor tasks (enforced by test). Agents are anything
