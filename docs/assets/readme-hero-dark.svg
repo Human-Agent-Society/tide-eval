@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 280" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 290" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
   <style>
     text { font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; fill: #DCE9EC; }
     .m { fill: #8AA2AA; } .a { fill: #45B2C6; } .c { fill: #E57560; }
@@ -21,60 +21,71 @@
     </marker>
   </defs>
 
-  <!-- agent: a self-scoring loop and its climbing score log -->
-  <path d="M 88 52 A 22 22 0 1 1 66 30" class="draw-c" marker-end="url(#m-cor)"/>
-  <text x="104" y="50" class="lab">agent</text>
-  <text x="104" y="70" class="sm m">scores itself, freely</text>
+  <!-- ============ agent: self-scoring loop, climbing score log ============ -->
+  <path d="M 66 54 A 20 20 0 1 1 46 34" class="draw-c" marker-end="url(#m-cor)"/>
+  <text x="80" y="52" class="lab">agent</text>
+  <text x="80" y="72" class="sm m">scores itself, freely</text>
 
-  <polyline points="42,208 76,208 76,188 112,188 112,192 146,192 146,164 188,164 188,168 220,168 220,142 256,142"
+  <polyline points="36,206 66,206 66,186 98,186 98,190 128,190 128,162 164,162 164,166 194,166 194,140 226,140"
             class="draw-c"/>
-  <circle cx="76" cy="188" r="3.5" fill="#E57560"/>
-  <circle cx="146" cy="164" r="3.5" fill="#E57560"/>
-  <circle cx="220" cy="142" r="3.5" fill="#E57560"/>
-  <circle cx="256" cy="142" r="4.5" fill="#E57560"/>
-  <text x="42" y="236" class="sm c">score log</text>
+  <circle cx="66" cy="186" r="3.5" fill="#E57560"/>
+  <circle cx="128" cy="162" r="3.5" fill="#E57560"/>
+  <circle cx="194" cy="140" r="3.5" fill="#E57560"/>
+  <circle cx="226" cy="140" r="4.5" fill="#E57560"/>
+  <text x="36" y="234" class="sm c">score log</text>
 
-  <!-- the isolation line -->
-  <line x1="330" y1="36" x2="330" y2="244" class="draw-f dash"/>
-  <text x="330" y="268" text-anchor="middle" class="sm m">isolation</text>
+  <!-- ============ the isolation line ============ -->
+  <line x1="352" y1="34" x2="352" y2="248" class="draw-f dash"/>
+  <text x="352" y="274" text-anchor="middle" class="sm m">isolation</text>
 
-  <!-- only declared artifacts cross -->
-  <path d="M 272 116 H 302" class="draw"/>
-  <rect x="312" y="96" width="34" height="42" rx="5" class="draw"/>
-  <line x1="320" y1="110" x2="338" y2="110" class="draw-f"/>
-  <line x1="320" y1="120" x2="338" y2="120" class="draw-f"/>
-  <line x1="320" y1="130" x2="332" y2="130" class="draw-f"/>
-  <path d="M 356 116 H 388" class="draw" marker-end="url(#m-ink)"/>
-  <text x="330" y="84" text-anchor="middle" class="sm">artifacts</text>
+  <!-- lane 1: the solution crosses -->
+  <text x="352" y="84" text-anchor="middle" class="sm">the solution crosses</text>
+  <path d="M 268 118 H 320" class="draw"/>
+  <rect x="332" y="98" width="34" height="42" rx="5" class="draw"/>
+  <line x1="340" y1="112" x2="358" y2="112" class="draw-f"/>
+  <line x1="340" y1="122" x2="358" y2="122" class="draw-f"/>
+  <line x1="340" y1="132" x2="352" y2="132" class="draw-f"/>
+  <path d="M 372 118 H 412" class="draw" marker-end="url(#m-ink)"/>
 
-  <!-- the claimed score bounces off -->
-  <text x="316" y="198" text-anchor="end" class="sm c" text-decoration="line-through">score: 9.99</text>
-  <path d="M 318 208 q 10 8 -4 16" class="draw-c" marker-end="url(#m-cor)"/>
+  <!-- lane 2: the claimed score does not -->
+  <g>
+    <rect x="252" y="180" width="64" height="30" rx="15" class="draw-c"/>
+    <path d="M 262 208 l -6 12 l 16 -10" class="draw-c"/>
+    <text x="284" y="200" text-anchor="middle" class="sm c" font-weight="600">9.99</text>
+  </g>
+  <path d="M 322 195 H 340" class="draw-c" marker-end="url(#m-cor)"/>
+  <line x1="345" y1="188" x2="359" y2="202" class="draw-c" stroke-width="3"/>
+  <line x1="359" y1="188" x2="345" y2="202" class="draw-c" stroke-width="3"/>
+  <text x="352" y="236" text-anchor="middle" class="sm c">the claimed score doesn't</text>
 
-  <!-- verifier -->
-  <circle cx="448" cy="116" r="34" class="draw-a"/>
-  <path d="M 432 116 l 11 12 l 22 -26" class="draw-a"/>
-  <text x="448" y="176" text-anchor="middle" class="lab">verifier</text>
-  <text x="448" y="196" text-anchor="middle" class="sm m">recomputes</text>
+  <!-- ============ verifier ============ -->
+  <circle cx="472" cy="118" r="34" class="draw-a"/>
+  <path d="M 456 118 l 11 12 l 22 -26" class="draw-a"/>
+  <text x="472" y="178" text-anchor="middle" class="lab">verifier</text>
+  <text x="472" y="198" text-anchor="middle" class="sm m">re-scores the solution</text>
+  <text x="472" y="216" text-anchor="middle" class="sm m">from scratch</text>
 
-  <path d="M 492 116 H 552" class="draw-a" marker-end="url(#m-acc)"/>
-  <text x="522" y="102" text-anchor="middle" class="sm a">trusted</text>
+  <path d="M 516 118 H 576" class="draw-a" marker-end="url(#m-acc)"/>
+  <text x="546" y="104" text-anchor="middle" class="sm a">trusted</text>
 
-  <!-- one table, accumulating -->
-  <text x="576" y="56" class="lab">one table</text>
-  <circle cx="582" cy="82" r="3.5" fill="#45B2C6"/>
-  <line x1="596" y1="82" x2="716" y2="82" class="draw-a" stroke-width="3"/>
-  <circle cx="582" cy="104" r="3" fill="#5F777E"/>
-  <line x1="596" y1="104" x2="700" y2="104" class="draw-f"/>
-  <circle cx="582" cy="124" r="3" fill="#5F777E"/>
-  <line x1="596" y1="124" x2="708" y2="124" class="draw-f"/>
-  <circle cx="582" cy="144" r="3" fill="#5F777E"/>
-  <line x1="596" y1="144" x2="694" y2="144" class="draw-f"/>
+  <!-- ============ one table, curves are queries ============ -->
+  <text x="600" y="56" class="lab">one table</text>
+  <text x="700" y="56" class="sm m">— accumulates, resumes</text>
+  <circle cx="606" cy="82" r="3.5" fill="#45B2C6"/>
+  <line x1="620" y1="82" x2="740" y2="82" class="draw-a" stroke-width="3"/>
+  <text x="752" y="86" class="sm a">trusted score</text>
+  <circle cx="606" cy="104" r="3" fill="#5F777E"/>
+  <line x1="620" y1="104" x2="724" y2="104" class="draw-f"/>
+  <circle cx="606" cy="124" r="3" fill="#5F777E"/>
+  <line x1="620" y1="124" x2="732" y2="124" class="draw-f"/>
+  <circle cx="606" cy="144" r="3" fill="#5F777E"/>
+  <line x1="620" y1="144" x2="718" y2="144" class="draw-f"/>
+  <text x="752" y="118" class="sm m">score log rows</text>
 
-  <!-- curves are queries -->
-  <path d="M 580 176 V 240 H 700" class="draw-f"/>
-  <polyline points="586,232 610,232 610,216 636,216 636,204 662,204 662,190 692,190" class="draw-a"/>
-  <circle cx="692" cy="190" r="4" fill="#45B2C6"/>
-  <text x="732" y="212" class="sm m">curves are</text>
-  <text x="732" y="230" class="sm m">queries</text>
+  <!-- curves -->
+  <path d="M 604 178 V 244 H 724" class="draw-f"/>
+  <polyline points="610,236 634,236 634,220 660,220 660,208 686,208 686,194 716,194" class="draw-a"/>
+  <circle cx="716" cy="194" r="4" fill="#45B2C6"/>
+  <text x="736" y="206" class="sm m">how good, how fast:</text>
+  <text x="736" y="224" class="sm m">curves are queries</text>
 </svg>
