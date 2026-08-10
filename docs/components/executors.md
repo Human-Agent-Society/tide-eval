@@ -16,8 +16,8 @@ class Executor(Protocol):
 
 1. **Return, don't raise, on task-level failure.** A timeout or agent crash
    is a *result* (`error=…`, possibly empty rewards) — the episode row must
-   still be written so the sweep continues. Raise only for infrastructure
-   bugs.
+   still be written so the remaining episodes keep running. Raise only for
+   infrastructure bugs.
 2. **`rewards` must be trusted** by the backend's own standard (Harbor: the
    isolated verifier). Untrusted numbers belong in `trace`.
 3. **`uri` must make the result auditable** — point it at logs/artifacts.

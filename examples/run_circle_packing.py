@@ -26,7 +26,7 @@ async def main(agent: str, model: str | None):
     lab = Lab("runs/circle-packing")
 
     oracle = await lab.run(TASK, {"name": "oracle"}, tags={"arm": "oracle"})
-    print("oracle:", oracle.rewards)  # expect {"reward": 0.75, ...}
+    print("oracle:", oracle.rewards)  # expect {"reward": 0.75}
 
     if agent != "oracle":
         agent_cfg = {"name": agent, **({"model_name": model} if model else {})}

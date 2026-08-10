@@ -25,9 +25,10 @@ that can work inside a container — including your own harness or method.
 
 ## Why not plain Harbor?
 
-Harbor is very good at one thing — scoring an agent on one task, once, in
-a way you can trust — and tide uses it as a library for exactly that.
-Autoresearch needs four things on top, and they are the reason tide exists:
+Harbor solves the hard infrastructure — the task format, running agents
+against containers, the ecosystem of agent adapters — and tide uses it as
+a library for exactly that. Autoresearch needs four things on top, and
+they are the reason tide exists:
 
 | Plain Harbor | tide |
 |---|---|
@@ -36,8 +37,9 @@ Autoresearch needs four things on top, and they are the reason tide exists:
 | One task, one run — and covering the suite, repeating for variance, or scanning budgets multiplies that into days of compute, which a crash throws away | Run the same script again and finished episodes are skipped automatically, so only the unfinished work re-runs |
 | Each run is a throwaway job directory | Every run lands in one table that keeps growing, week after week, and `tide report` reads it |
 
-One honest limit: resume works at episode granularity. A sweep picks up
-where it crashed, but a crashed 12-hour episode itself starts over.
+One honest limit: resume works at episode granularity. A batch of runs
+picks up where it crashed, but a crashed 12-hour episode itself starts
+over.
 
 Full design — trust model, task conventions, data model, extensibility:
 **[docs/design.md](docs/design.md)**.
@@ -97,7 +99,7 @@ row.rewards  # trusted score          row.uri → the auditable trial dir
 
 curve = metrics.anytime(lab.df("trace"))  # every submission's score, over time
 metrics.auc(curve)  # the anytime score
-metrics.scaling(lab.df("episode"), by=["model"])  # what does more budget buy?
+metrics.scaling(lab.df("episode"))  # what does more budget buy?
 ```
 
 Re-running any script resumes it. Reference:

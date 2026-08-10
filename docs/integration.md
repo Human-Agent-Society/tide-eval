@@ -108,6 +108,6 @@ from the instruction) and spend submissions on survivors.
   scores are judge-computed, so the curve comparison is as trustworthy as
   the endpoint comparison. `oracle` and `nop` bracket the plausible range.
 - **Sanity-check cheaply**: `--agent oracle` proves the task, `--agent nop`
-  proves no leakage, `--fake` exercises your sweep script with no
+  proves no leakage, `--fake` exercises your run script with no
   containers — and `--local --command "..."` runs your method against the
   task's real judge with no Docker at all (see the README).

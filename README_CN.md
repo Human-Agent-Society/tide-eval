@@ -24,9 +24,9 @@ Autoresearch 任务——因 DeepMind 的
 
 ## 为什么不直接用 Harbor?
 
-Harbor 把一件事做得非常好——在一个任务上、以可信的方式给 agent 打一次分——
-tide 正是把它当库来做这件事。而 autoresearch 在此之上还需要四样东西,它们就
-是 tide 存在的理由:
+Harbor 解决的是最难的基础设施——任务格式、让 agent 对着容器运行、现成的
+agent 适配器生态——tide 正是把它当库来用。而 autoresearch 在此之上还需要四
+样东西,它们就是 tide 存在的理由:
 
 | 直接用 Harbor | tide |
 |---|---|
@@ -93,7 +93,7 @@ row.rewards  # 可信分数          row.uri → 可审计的 trial 目录
 
 curve = metrics.anytime(lab.df("trace"))  # 每次提交的分数随时间的变化
 metrics.auc(curve)  # anytime 分数
-metrics.scaling(lab.df("episode"), by=["model"])  # 更多预算买到多少分?
+metrics.scaling(lab.df("episode"))  # 更多预算买到多少分?
 ```
 
 重跑任何脚本都会自动续跑。参考:
