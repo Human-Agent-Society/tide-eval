@@ -13,13 +13,10 @@ open-ended optimization problems: hours of budget, a continuous score, and
 an agent that evaluates itself hundreds of times along the way. There is no "passed" — only *how good, by when*. tide
 evaluates that regime honestly:
 
-| | |
-|---|---|
-| **Trusted scores** | Every score is recomputed by a verifier in a separate container, from declared artifacts only. The agent's own claims are never read, and the cheat cases proving that are re-tested in CI. |
-| **The score log** | Every score the agent gave itself along the way is stored as `trace` rows next to the trusted one, so you can see not just how good it got, but how fast. |
-| **Budget semantics** | Hitting the timeout is a normal ending, not a failure: the verifier grades the best solution the budget bought. |
-| **Resumable sweeps** | Every episode has an idempotency key, so re-running a crashed sweep simply skips whatever already finished. |
-| **Metrics as queries** | The anytime curve, its AUC, time-to-threshold, and budget-scaling curves are all pandas queries over one results table, and every number traces back to the trial directory that produced it. |
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-hero-dark.svg">
+  <img src="docs/assets/readme-hero-light.svg" alt="The agent scores itself freely and its score log climbs; only declared artifacts cross the isolation line (a claimed score bounces off); the verifier recomputes one trusted score; everything lands in one table where curves are queries." width="100%">
+</picture>
 
 Tasks are 100% stock Harbor tasks (enforced by test). Agents are anything
 that can work inside a container — including your own harness or method.
@@ -39,20 +36,6 @@ Autoresearch needs four things on top, and they are the reason tide exists:
 
 One honest limit: resume works at episode granularity. A sweep picks up
 where it crashed, but a crashed 12-hour episode itself starts over.
-
-```mermaid
-flowchart LR
-    A["`**agent container** — untrusted
-    self-evaluates freely
-    until the budget ends`"]
-    V["`**verifier** — trusted, separate
-    recomputes the score from
-    declared artifacts only`"]
-    S[("`**results store**
-    1 trusted episode row
-    N untrusted trace rows`")]
-    A -- "declared artifacts" --> V --> S
-```
 
 Full design — trust model, task conventions, data model, extensibility:
 **[docs/design.md](docs/design.md)**.

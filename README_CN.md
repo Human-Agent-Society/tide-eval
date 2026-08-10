@@ -12,13 +12,10 @@ Autoresearch 任务——AlphaEvolve / OpenEvolve 那一类工作负载——是
 问题:数小时的预算、连续的分数、一个在过程中给自己打几百次分的 agent。这里没有"通过/不通过",只有*多好、多快*。tide 把这
 种形态的评测做扎实:
 
-| | |
-|---|---|
-| **可信分数** | 每个分数都由独立容器里的 verifier 仅从声明的产物中重新计算。agent 自己报的数字从来不被读取,证明这一点的作弊用例在 CI 中持续复测。 |
-| **Score log** | agent 过程中给自己打的每一个分都以 `trace` 行存放在可信分数旁边,你不仅能看到它最终多好,还能看到它多快到达。 |
-| **预算语义** | 到达超时是正常结束而不是失败:verifier 给预算内买到的最优解打分。 |
-| **可续跑的批量实验** | 每个 episode 都有幂等键,崩溃后重跑会自动跳过已完成的部分。 |
-| **指标即查询** | anytime 曲线、AUC、到达阈值的时间、预算-分数曲线都是对同一张结果表的 pandas 查询,每个数字都能回溯到产生它的 trial 目录。 |
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-hero-dark.svg">
+  <img src="docs/assets/readme-hero-light.svg" alt="The agent scores itself freely and its score log climbs; only declared artifacts cross the isolation line (a claimed score bounces off); the verifier recomputes one trusted score; everything lands in one table where curves are queries." width="100%">
+</picture>
 
 任务是 100% 原生 Harbor 任务(有测试强制保证)。agent 是任何能在容器里工作
 的东西——包括你自己的 harness 或方法。
@@ -38,20 +35,6 @@ tide 正是把它当库来做这件事。而 autoresearch 在此之上还需要�
 
 一个诚实的边界:续跑的粒度是 episode。sweep 会从崩溃处继续,但一个跑了一半
 的 12 小时 episode 本身要重来。
-
-```mermaid
-flowchart LR
-    A["`**agent 容器** — 不可信
-    在预算耗尽前
-    自由地给自己打分`"]
-    V["`**verifier** — 可信、独立
-    仅从声明的产物
-    重新计算分数`"]
-    S[("`**结果库**
-    1 行可信 episode
-    N 行不可信 trace`")]
-    A -- "声明的产物" --> V --> S
-```
 
 完整设计——信任模型、任务约定、数据模型、扩展性:
 **[docs/design.md](docs/design.md)**(英文)。
