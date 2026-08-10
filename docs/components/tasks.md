@@ -3,8 +3,10 @@
 Tasks are **100% stock Harbor tasks** — every committed task is validated
 against Harbor's `TaskConfig` schema by `tests/test_task_suite.py`. tide
 adds conventions *around* the format, never fields inside it. Start from
-[`tasks/_template`](../../tasks/_template) (recommended), verify standalone
-with `harbor trial start -p <dir>`, then run it under tide.
+[`tasks/_template`](../../tasks/_template) — it ships as a complete working
+placeholder task (maximize `x` in `[0, 1]`), so the suite passes before you
+change anything. Verify standalone with `harbor trial start -p <dir>`, then
+run it under tide.
 
 ## Anatomy of a task
 
@@ -41,9 +43,15 @@ leaderboard: the score you can query freely is not the score that counts.
 Setup: declaring `environment_mode = "separate"` under `[verifier]` plus an
 `artifacts = [...]` list in `task.toml` is what creates the isolation —
 Harbor builds `tests/` as its own image, collects only the declared files
-from the finished agent container, and grades them in a fresh one. The two
-scripts usually share their math (the exemplar duplicates it deliberately,
-with the private side at stricter tolerance).
+from the finished agent container, and grades them in a fresh one.
+
+**You write the scoring twice, on purpose.** The two files live in
+different build contexts and cannot import each other, and the private
+side should usually be stricter anyway (exact arithmetic, held-out data,
+conservative rejection). If they drift apart, scores stay correct — the
+public side only misleads the agent's own search. The
+[template](../../tasks/_template) demonstrates the pattern and documents
+the single-source alternative.
 
 ## An autoresearch task (the four conventions)
 

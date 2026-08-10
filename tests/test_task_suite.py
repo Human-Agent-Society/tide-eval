@@ -20,9 +20,11 @@ from pathlib import Path
 import pytest
 
 TASKS_ROOT = Path(__file__).parent.parent / "tasks"
+# The template ships as a complete working task and is held to the same
+# contract, so copying it always starts from green.
 VECTOR_TASKS = sorted(
     p.parent.parent for p in TASKS_ROOT.glob("*/*/tests/vectors.json")
-)
+) + [TASKS_ROOT / "_template"]
 ALL_TASKS = sorted(
     p.parent
     for p in TASKS_ROOT.glob("*/*/task.toml")

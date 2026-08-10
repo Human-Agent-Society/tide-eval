@@ -21,7 +21,8 @@ TASKS_ROOT = Path(__file__).parent.parent / "tasks"
 
 def discover(names: list[str]) -> list[Path]:
     tasks = sorted(
-        {p.parent.parent for p in TASKS_ROOT.glob("*/*/tests/vectors.json")},
+        {p.parent.parent for p in TASKS_ROOT.glob("*/*/tests/vectors.json")}
+        | {TASKS_ROOT / "_template"},  # the template is a working task; keep it working
         key=lambda p: p.name,
     )
     return [t for t in tasks if t.name in names] if names else tasks

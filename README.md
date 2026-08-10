@@ -101,13 +101,13 @@ OpenEvolve example: **[docs/integration.md](docs/integration.md)**.
 
 ```bash
 cp -r tasks/_template tasks/autoresearch/my-task
-pytest tests/test_task_suite.py          # picked up automatically
+pytest tests/test_task_suite.py          # picked up automatically — and already green
 ```
 
-Six `TODO(task)` files (config, instruction, public scorer, trusted
-grader, cheat cases, oracle solution); the suite checks oracle score,
-cheats, and Harbor validity with zero test code. GPU tasks add two lines
-of config. Guide: **[docs/components/tasks.md](docs/components/tasks.md)**.
+The template ships as a complete working task, so you start from green and
+replace one `TODO(task)` piece at a time (config, instruction, public
+scorer, private grader, cheat cases, oracle solution). GPU tasks add two
+lines of config. Guide: **[docs/components/tasks.md](docs/components/tasks.md)**.
 
 ## Tasks
 

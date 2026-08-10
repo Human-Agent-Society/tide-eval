@@ -5,7 +5,7 @@ artifacts = ["/app/best/solution.json", "/app/best/score_log.jsonl"]
 
 [task]
 name = "tide/my-task"                        # TODO(task): name it
-description = "TODO(task): one line — what is optimized, what is the reward"
+description = "Placeholder: maximize x in [0, 1]; reward = x. TODO(task): describe yours"
 
 [metadata]
 category = "autoresearch"

@@ -1,6 +1,9 @@
 {
-  "oracle": {"artifact": {"TODO": "the oracle's solution"}, "reward": 1.0, "tolerance": 1e-9},
+  "oracle": {"artifact": {"x": 0.5}, "reward": 0.5},
   "cheats": [
-    {"name": "TODO_every_cheat_you_can_think_of", "artifact": {"TODO": "..."}}
+    {"name": "out_of_bounds", "artifact": {"x": 1.5}},
+    {"name": "epsilon_over", "artifact": {"x": 1.0000000001}},
+    {"name": "forged_claim", "artifact": {"x": 0.0, "claimed_score": 999.0}},
+    {"name": "malformed", "artifact": {"nonsense": true}}
   ]
 }
