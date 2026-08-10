@@ -41,7 +41,9 @@ agent 适配器生态——tide 正是把它当库来用。而 autoresearch 在�
 完整设计——信任模型、任务约定、数据模型、扩展性:
 **[docs/design.md](docs/design.md)**(英文)。
 
-## 跑起来
+## 使用 tide
+
+### 跑起来
 
 ```bash
 # PyPI 发布前(见 Roadmap),先从源码安装:
@@ -54,7 +56,7 @@ tide run edgebench/ann_vector_search_qps --agent codex --budget 2   # 小时
 tide report                              # 汇总结果库
 ```
 
-### 没有 Docker?本地开发,容器验证
+#### 没有 Docker?本地开发,容器验证
 
 `--local` 在本机把任务**自己的 judge**作为进程启动,让你的命令直接对着它
 运行,完全不涉及容器:
@@ -74,7 +76,7 @@ tide run autoresearch/circle-packing --local \
 ——oracle 必须恰好得 0.75 分——而 `python examples/minimal_harness.py` 是最小
 的完整容器 harness:二十五行左右的适配器,包着同一个随机搜索循环。
 
-## 用 API
+### Python API
 
 `Lab` 是一个目录。每次 `run` 调用是一个 episode(即一次 Harbor trial),
 `df` 把已记录的一切以 pandas DataFrame 返回:
@@ -100,7 +102,7 @@ metrics.scaling(lab.df("episode"))  # 更多预算买到多少分?
 [lab](docs/components/lab.md) · [metrics](docs/components/metrics.md) ·
 [executors](docs/components/executors.md)。
 
-## 接入*你的* agent
+### 接入你自己的 agent
 
 每个任务都给你的 agent 一个 `$JUDGE_URL` 和一份提交额度;无论用哪种方式
 接入,任务、judge、结果库都完全相同——所以不同方法的数字可以直接比较:
@@ -114,19 +116,6 @@ metrics.scaling(lab.df("episode"))  # 更多预算买到多少分?
 所有任务的协议完全一致,一次接入覆盖全套。唯一不能自带的是 judge。完整
 指南(`BaseAgent` 骨架 + OpenEvolve 接法):
 **[docs/integration.md](docs/integration.md)**。
-
-## 定义新任务
-
-```bash
-cp -r tasks/_template tasks/autoresearch/my-task
-pytest tests/test_task_suite.py          # 自动被识别——而且直接是绿的
-```
-
-模板本身就是一个完整可跑的任务,所以你从全绿开始,一次替换一个
-`TODO(task)` 标记的部分:题面、judge 对每次提交运行的那一份 `score.py`、
-提交额度、作弊用例、参考解——可选地再加一个 `final.py`(hidden tests,只
-在最优提交上跑一次)。GPU 任务只多两行配置。指南:
-**[docs/components/tasks.md](docs/components/tasks.md)**。
 
 ## 任务目录
 
@@ -149,6 +138,19 @@ pytest tests/test_task_suite.py          # 自动被识别——而且直接是�
 | [`symbolic-regression`](tasks/autoresearch/symbolic-regression) | final judge:session 用训练点,最终分用 agent 没见过的点 |
 | [`string-compression`](tasks/autoresearch/string-compression) | 安全地给 agent 提交的代码判分 |
 
+### 定义新任务
+
+```bash
+cp -r tasks/_template tasks/autoresearch/my-task
+pytest tests/test_task_suite.py          # 自动被识别——而且直接是绿的
+```
+
+模板本身就是一个完整可跑的任务,所以你从全绿开始,一次替换一个
+`TODO(task)` 标记的部分:题面、judge 对每次提交运行的那一份 `score.py`、
+提交额度、作弊用例、参考解——可选地再加一个 `final.py`(hidden tests,只
+在最优提交上跑一次)。GPU 任务只多两行配置。指南:
+**[docs/components/tasks.md](docs/components/tasks.md)**。
+
 ## Roadmap
 
 - [ ] 发布 PyPI(`tide-eval`,名字已预留,尚未发布)
@@ -159,7 +161,7 @@ pytest tests/test_task_suite.py          # 自动被识别——而且直接是�
 - [ ] autoresearch 之外:持续学习任务流与在线任务——以
   [扩展](docs/design.md#extensibility)的形式落地,而不是重写
 
-## 开发
+## 开发与贡献
 
 ```bash
 git clone https://github.com/Human-Agent-Society/tide-eval && cd tide-eval
@@ -168,5 +170,5 @@ uv venv --python 3.12 && uv pip install -e . pytest pytest-asyncio ruff
 .venv/bin/ruff check . && .venv/bin/ruff format --check .
 ```
 
-PR 遵循的设计规则:[CONTRIBUTING.md](CONTRIBUTING.md) ·
-许可证:[Apache-2.0](LICENSE)
+欢迎贡献——尤其欢迎新任务。PR 遵循的设计规则见
+[CONTRIBUTING.md](CONTRIBUTING.md)。许可证:[Apache-2.0](LICENSE)

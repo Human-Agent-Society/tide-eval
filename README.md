@@ -44,7 +44,9 @@ over.
 Full design — trust model, task conventions, data model, extensibility:
 **[docs/design.md](docs/design.md)**.
 
-## Run
+## Using tide
+
+### Run
 
 ```bash
 # from source, until the PyPI release lands (see Roadmap):
@@ -57,7 +59,7 @@ tide run edgebench/ann_vector_search_qps --agent codex --budget 2   # hours
 tide report                              # summarize the results store
 ```
 
-### No Docker? Develop locally, verify in containers
+#### No Docker? Develop locally, verify in containers
 
 `--local` starts the task's **own judge** as a local process and runs
 your command against it, with no containers involved:
@@ -80,7 +82,7 @@ real pipeline end to end — the oracle must score exactly 0.75 — and
 harness: about twenty-five lines of adapter around the same random-search
 loop.
 
-## Use the API
+### The Python API
 
 A `Lab` is a directory. Each `run` call is one episode (one Harbor
 trial), and `df` returns everything recorded so far as a pandas DataFrame:
@@ -106,7 +108,7 @@ Re-running any script resumes it. Reference:
 [lab](docs/components/lab.md) · [metrics](docs/components/metrics.md) ·
 [executors](docs/components/executors.md).
 
-## Evaluate *your* agent
+### Evaluate your own agent
 
 Every task hands your agent `$JUDGE_URL` and a submission budget;
 whichever way you integrate, the task, the judge, and the results store
@@ -122,20 +124,6 @@ The protocol is identical across every task, so one integration covers
 the suite. The only thing you cannot bring is your own judge. Full guide
 with the `BaseAgent` skeleton and the OpenEvolve pattern:
 **[docs/integration.md](docs/integration.md)**.
-
-## Define a new task
-
-```bash
-cp -r tasks/_template tasks/autoresearch/my-task
-pytest tests/test_task_suite.py          # picked up automatically — and already green
-```
-
-The template ships as a complete working task, so you start from green
-and replace one `TODO(task)` piece at a time: the instruction, one
-`score.py` the judge runs on every submission, the submission budget, the
-cheat cases, the reference solution — and optionally a `final.py` with
-hidden tests, run once on the best submission. GPU tasks add two lines of
-config. Guide: **[docs/components/tasks.md](docs/components/tasks.md)**.
 
 ## Tasks
 
@@ -158,6 +146,20 @@ Each first-party task teaches one hard part of the category
 | [`symbolic-regression`](tasks/autoresearch/symbolic-regression) | the final judge: session on training points, the grade on held-out points |
 | [`string-compression`](tasks/autoresearch/string-compression) | safely grading agent-shipped code |
 
+### Define a new task
+
+```bash
+cp -r tasks/_template tasks/autoresearch/my-task
+pytest tests/test_task_suite.py          # picked up automatically — and already green
+```
+
+The template ships as a complete working task, so you start from green
+and replace one `TODO(task)` piece at a time: the instruction, one
+`score.py` the judge runs on every submission, the submission budget, the
+cheat cases, the reference solution — and optionally a `final.py` with
+hidden tests, run once on the best submission. GPU tasks add two lines of
+config. Guide: **[docs/components/tasks.md](docs/components/tasks.md)**.
+
 ## Roadmap
 
 - [ ] PyPI release (`tide-eval` — name reserved, not yet published)
@@ -168,7 +170,7 @@ Each first-party task teaches one hard part of the category
 - [ ] Beyond autoresearch: continual-learning streams and live tasks — as
   [extensions](docs/design.md#extensibility), not rewrites
 
-## Development
+## Development & contributing
 
 ```bash
 git clone https://github.com/Human-Agent-Society/tide-eval && cd tide-eval
@@ -177,5 +179,6 @@ uv venv --python 3.12 && uv pip install -e . pytest pytest-asyncio ruff
 .venv/bin/ruff check . && .venv/bin/ruff format --check .
 ```
 
-Design rules for PRs: [CONTRIBUTING.md](CONTRIBUTING.md) ·
+Contributions are welcome — new tasks especially. The design rules PRs
+are reviewed against are in [CONTRIBUTING.md](CONTRIBUTING.md).
 License: [Apache-2.0](LICENSE)
