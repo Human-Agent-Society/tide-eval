@@ -26,6 +26,7 @@ Usage:
 Converted tasks are written next to this script, one folder per task.
 """
 
+import json
 import shutil
 import sys
 import tomllib
@@ -189,7 +190,7 @@ def convert(src: Path, out_root: Path = HERE) -> Path:
     config = tomllib.loads((src / "task.toml").read_text())
     size = config.get("metadata", {}).get("algotune_problem_size", 100)
     (dst / "environment" / "params.json").write_text(
-        '{"problem_size": %d}\n' % int(size)
+        json.dumps({"problem_size": int(size)}) + "\n"
     )
 
     # --- images: agent keeps their full stack; judge gets it too ---
