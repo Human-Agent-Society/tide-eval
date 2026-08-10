@@ -37,6 +37,25 @@ def test_scaling_groups_by_budget():
     assert out.set_index("budget")["reward"].to_dict() == {2: 0.2, 4: 0.6}
 
 
+def test_time_to_threshold():
+    df = pd.DataFrame({"t": [1, 2, 3], "score": [0.2, 0.5, 0.9]})
+    assert metrics.time_to(df, 0.5).iloc[0]["time_to"] == 2
+    assert pd.isna(metrics.time_to(df, 0.95).iloc[0]["time_to"])
+
+
+def test_time_to_grouped_includes_never_reached():
+    df = pd.DataFrame(
+        {
+            "task": ["a", "a", "b", "b"],
+            "t": [1, 2, 1, 2],
+            "score": [0.3, 0.8, 0.1, 0.2],  # b never reaches 0.5
+        }
+    )
+    out = metrics.time_to(df, 0.5, by=["task"]).set_index("task")
+    assert out.loc["a", "time_to"] == 2
+    assert pd.isna(out.loc["b", "time_to"])
+
+
 def test_improvements_counts_and_rate():
     df = pd.DataFrame(
         {

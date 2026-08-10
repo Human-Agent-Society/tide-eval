@@ -23,6 +23,7 @@ metrics.improvements(trace, by=["task"])  # how often self-eval improved
 | `anytime(df, by=…)` | `t`, `score` | the best-so-far progress curve |
 | `auc(curve)` | `t`, `best_so_far` | the anytime score: area under the best-so-far curve ÷ time span |
 | `scaling(df, by=…)` | `budget`, `reward` | score vs interaction budget (EdgeBench 2–12 h) |
+| `time_to(df, threshold, by=…)` | `t`, `score` | how long until the score first reached a threshold (NaN if never) |
 | `improvements(df, by=…)` | `t`, `score` | evals vs strict improvements, and their ratio |
 | `rescale_linear` / `rescale_anchored` | a Series | 0–100 normalization; anchored stretches past 100 beyond the best known result |
 

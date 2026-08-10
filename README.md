@@ -19,10 +19,26 @@ evaluates that regime honestly:
 | **The score log** | Every score the agent gave itself along the way is stored as `trace` rows next to the trusted one, so you can see not just how good it got, but how fast. |
 | **Budget semantics** | Hitting the timeout is a normal ending, not a failure: the verifier grades the best solution the budget bought. |
 | **Resumable sweeps** | Every episode has an idempotency key, so re-running a crashed sweep simply skips whatever already finished. |
-| **Metrics as queries** | The anytime curve, its AUC, and budget-scaling curves are all pandas queries over one results table, and every number traces back to the trial directory that produced it. |
+| **Metrics as queries** | The anytime curve, its AUC, time-to-threshold, and budget-scaling curves are all pandas queries over one results table, and every number traces back to the trial directory that produced it. |
 
 Tasks are 100% stock Harbor tasks (enforced by test). Agents are anything
 that can work inside a container — including your own harness or method.
+
+## Why not plain Harbor?
+
+Harbor is very good at one thing — scoring an agent on one task, once, in
+a way you can trust — and tide uses it as a library for exactly that.
+Autoresearch needs four things on top, and they are the reason tide exists:
+
+| Plain Harbor | tide |
+|---|---|
+| One reward number per trial; the agent's self-eval curve is lost | The score log becomes `trace` rows, so the anytime curve, its AUC, and time-to-threshold are one query each |
+| Statistics live inside a single job (pass@k) | Budget is an ordinary tag, so "what does 8 h buy over 2 h?" is a query across any set of runs |
+| A crashed sweep restarts from zero | Idempotency keys skip finished episodes on re-run — which matters when one episode costs hours |
+| Each run is a throwaway job directory | One append-only store accretes for weeks, and `tide report` reads it |
+
+One honest limit: resume works at episode granularity. A sweep picks up
+where it crashed, but a crashed 12-hour episode itself starts over.
 
 ```mermaid
 flowchart LR

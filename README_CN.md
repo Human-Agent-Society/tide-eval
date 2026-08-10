@@ -18,10 +18,26 @@ Autoresearch 任务是开放式优化问题:数小时的预算、连续的分数
 | **Score log** | agent 过程中给自己打的每一个分都以 `trace` 行存放在可信分数旁边,你不仅能看到它最终多好,还能看到它多快到达。 |
 | **预算语义** | 到达超时是正常结束而不是失败:verifier 给预算内买到的最优解打分。 |
 | **可续跑的批量实验** | 每个 episode 都有幂等键,崩溃后重跑会自动跳过已完成的部分。 |
-| **指标即查询** | anytime 曲线、AUC、预算-分数曲线都是对同一张结果表的 pandas 查询,每个数字都能回溯到产生它的 trial 目录。 |
+| **指标即查询** | anytime 曲线、AUC、到达阈值的时间、预算-分数曲线都是对同一张结果表的 pandas 查询,每个数字都能回溯到产生它的 trial 目录。 |
 
 任务是 100% 原生 Harbor 任务(有测试强制保证)。agent 是任何能在容器里工作
 的东西——包括你自己的 harness 或方法。
+
+## 为什么不直接用 Harbor?
+
+Harbor 把一件事做得非常好——在一个任务上、以可信的方式给 agent 打一次分——
+tide 正是把它当库来做这件事。而 autoresearch 在此之上还需要四样东西,它们就
+是 tide 存在的理由:
+
+| 直接用 Harbor | tide |
+|---|---|
+| 每次 trial 只有一个 reward 数字,agent 的自评曲线丢了 | score log 变成 `trace` 行:anytime 曲线、AUC、到达阈值的时间各是一个查询 |
+| 统计只在单个 job 内部(pass@k) | 预算是普通标签,"8 小时比 2 小时多买到多少分"是跨任意 run 集合的一个查询 |
+| sweep 崩了从零重来 | 幂等键让重跑自动跳过已完成的 episode——当一个 episode 要跑几小时,这是刚需 |
+| 每次运行是一个一次性 job 目录 | 一个 append-only 结果库按周累积,`tide report` 直接读 |
+
+一个诚实的边界:续跑的粒度是 episode。sweep 会从崩溃处继续,但一个跑了一半
+的 12 小时 episode 本身要重来。
 
 ```mermaid
 flowchart LR

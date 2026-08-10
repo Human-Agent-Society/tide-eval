@@ -71,6 +71,29 @@ def scaling(
     )
 
 
+def time_to(
+    df: pd.DataFrame,
+    threshold: float,
+    *,
+    time: str = "t",
+    score: str = "score",
+    by: list[str] | None = None,
+) -> pd.DataFrame:
+    """When did the score first reach *threshold*?
+
+    Expects columns *time*, *score* (+ *by* groups). Returns one row per
+    group with ``time_to`` — the earliest *time* whose score meets the
+    threshold, or NaN if the group never reached it.
+    """
+    hits = df[df[score] >= threshold]
+    if not by:
+        value = hits[time].min() if len(hits) else float("nan")
+        return pd.DataFrame([{"time_to": value}])
+    reached = hits.groupby(by)[time].min().rename("time_to").reset_index()
+    every_group = df[by].drop_duplicates()
+    return every_group.merge(reached, on=by, how="left")
+
+
 def improvements(
     df: pd.DataFrame,
     *,
