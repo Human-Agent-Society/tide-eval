@@ -12,8 +12,8 @@ demonstrate the compose-overlay wiring from
 [docs/components/tasks.md](../../docs/components/tasks.md). Run the demo:
 
 ```bash
-python examples/run_frontiercs.py                      # oracle
-python examples/run_frontiercs.py --agent claude-code --model anthropic/claude-opus-5
+tide run frontier-cs/frontier-cs-2-0-erdos-demo --agent oracle
+tide run frontier-cs/frontier-cs-2-0-erdos-demo --agent claude-code --model anthropic/claude-opus-5
 ```
 
 Generate any of the other problems into this folder:

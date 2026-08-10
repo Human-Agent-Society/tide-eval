@@ -126,8 +126,8 @@ metrics.scaling(lab.df("episode"))  # 更多预算买到多少分?
 |---|---|---|
 | [第一方任务](tasks/autoresearch) ↓ | 6 | `tide run autoresearch --agent <a>` |
 | [EdgeBench](tasks/edgebench) | 51 · 2–12 小时预算 | `tide run edgebench/<task> --budget <h>` |
-| [FrontierCS 2.0](tasks/frontier-cs) | 20 · 含 4 个 GPU kernel | `python examples/run_frontiercs.py` |
-| [AlgoTune](https://github.com/oripress/AlgoTune) | 154 · 走 Harbor registry | `tide run algotune/<task> --agent <a>` |
+| [FrontierCS 2.0](tasks/frontier-cs) | 20 · 含 4 个 GPU kernel | `tide run frontier-cs/<task> --agent <a>` |
+| [AlgoTune](tasks/algotune) | 154 · 走 Harbor registry | `tide run algotune/<task> --agent <a>` |
 
 每个第一方任务教会这个类别里的一个难点(oracle 在真容器中验证过,作弊用例
 在 CI 中持续复测):
