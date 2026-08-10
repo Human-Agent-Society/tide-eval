@@ -9,10 +9,10 @@ the benchmark's own tooling. Anything that needs the benchmark's repo to run
 Currently shipped:
 
 - :func:`load_rubric_probes` — any JSONL corpus of chat messages + rubric
-  lists, which is exactly the published format of Tencent's CL-bench and
-  CL-bench Life (1,899 + 405 tasks). Download the JSONL from HuggingFace
-  (``tencent/CL-bench``, ``tencent/CL-bench-Life``) and every line becomes a
-  :class:`tide.Probe`.
+  lists (each line becomes a :class:`tide.Probe`); the in-repo stream
+  benchmarks under ``tasks/streams/`` ship probes in this format.
+- :func:`load_clbench_results` — Continual-Learning-Bench run results into a
+  metrics-ready DataFrame.
 
 For the ingest-then-probe continual-learning conversion, pair this with
 :func:`strip_context`: probe once with the full messages (the ``in_context``
@@ -36,7 +36,7 @@ def load_rubric_probes(
     id_prefix: str | None = None,
     limit: int | None = None,
 ) -> list[Probe]:
-    """Load a messages+rubrics JSONL corpus (Tencent CL-bench format).
+    """Load a messages+rubrics JSONL corpus into probes.
 
     Each line must be an object with ``messages`` (OpenAI chat format) and
     ``rubrics`` (a list of strings, or of objects carrying
@@ -90,8 +90,7 @@ def reveal_phases(
     performance improves as information arrives.
 
     Chunking: when the context spans at least *n* messages, split by message;
-    a single long context message is split by paragraphs instead (CL-bench
-    instances typically carry one big context block).
+    a single long context message is split by paragraphs instead.
 
     Returned probes are ids ``<id>@r0 .. <id>@r{n-1}`` with rubrics and data
     unchanged. Pair with ``strip_context`` + a learner ingesting each newly

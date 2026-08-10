@@ -4,26 +4,41 @@
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
 
-**Continual evaluation infrastructure on the [Harbor](https://github.com/laude-institute/harbor) task standard** —
-the home for benchmarks that measure how LLM systems *improve with
-experience*: open-ended tasks they iterate on (autoresearch), ordered streams
-that test what their memory retains (continual learning), and metrics that
-separate learning from raw capability.
+**Continual evaluation infrastructure on the [Harbor](https://github.com/laude-institute/harbor) task standard.**
 
-Harbor answers "how do I score an agent on one task, once, trustworthily?"
-tide answers what comes after: agents that self-evaluate hundreds of times
-inside one budget, learners whose memory or weights evolve across a task
-sequence, and tasks that never finish. Every task here is a stock Harbor
-task; every score lands in one tagged, idempotent results store.
+Harbor is very good at one thing: scoring an agent on one task, once, in a way
+you can trust. tide is for everything that happens *after* that stops being
+enough — agents that self-evaluate hundreds of times inside a single budget
+(**autoresearch**), learners whose memory or weights evolve across an ordered
+sequence of tasks (**continual learning with task streams**), and tasks that
+simply never end (**live, infinite-horizon tasks** such as trading). All of it
+runs on Harbor tasks, unmodified.
 
-## What's in the box
+## Two primitives
 
-| | |
-|---|---|
-| **A task catalog** ([`tasks/`](tasks/)) | first-party autoresearch tasks + stream benchmarks, oracle-verified in real containers by CI; external benchmarks (EdgeBench, FrontierCS, CL-bench) converted in-place |
-| **One-command evaluation** | `tide run <task \| folder \| registry-id> --agent <name>` — containerized, anti-cheat isolated, resumable |
-| **A measurement library** | `Lab` (episodes/probes → tagged store) + `metrics` (gain, forgetting, anytime, scaling — all queries) |
-| **Authoring & adaptation** | `tasks/_template/` (a task in five minutes) · `tide/converters/` + `tide/loaders.py` (published formats → tasks/probes) |
+Every benchmark tide supports reduces to two ideas:
+
+**An episode is one trusted measurement.** You give an agent a Harbor task, it
+works, and a verifier produces a score you can trust. How often the agent
+evaluated *itself* along the way doesn't matter — an episode boundary exists
+wherever the *harness* needs a number it can rely on, and nowhere else.
+
+**A stream is an ordered sequence of episodes with one crossing channel.**
+Between episodes, exactly one thing survives: a state folder (or, for model
+weights, a version reference). The folder is git-versioned, so you can always
+see what the learner carried forward — and streams are allowed to be infinite:
+a live trading account is a stream whose settlement windows never stop.
+
+## What tide adds on top of Harbor
+
+| | Harbor | tide |
+|---|---|---|
+| One trusted score per task | ✅ | + untrusted **score trajectories** (the agent's self-eval curve, queryable) |
+| Programmatic trials | per trial | **`Lab`**: idempotent keys (crash = resume), tagged append-only store accreting for weeks |
+| Batch stats (pass@k) | job-scoped | **cross-run metrics**: gain, forgetting, anytime/AUC, budget scaling — all queries |
+| Stateless trials | by design | **streams**: git-versioned state folder as the single crossing channel, frozen probes, fresh-control arms |
+| Container-scored tasks | ✅ | + a **probe executor** (direct inference + rubric judge, no container) for dense capability tracking |
+| — | — | **task catalog**: 77 runnable tasks in-repo + one-command CLI (`tide run`) |
 
 ## Quick start
 
@@ -274,7 +289,6 @@ in tide yet** (tracked in the [roadmap](#roadmap)).
 
 | Benchmark | What it tests | Status | Run it in tide with |
 |---|---|---|---|
-| [CL-bench / CL-bench Life (Tencent)](https://github.com/Tencent-Hunyuan/CL-bench) · 1,899 + 405 rubric-judged tasks | ingest-then-probe conversion: context moves into learner state, probes run without it | ✅ | `python tasks/clbench-tencent/fetch.py`, then `python examples/clbench_probes.py tasks/clbench-tencent/CL-bench.jsonl`; arms via `loaders.load_rubric_probes` / `strip_context`, judged by `openai_rubric_judge` |
 | [Continual Learning Bench](https://github.com/pgasawa/continual-learning-bench) ([arXiv 2606.05661](https://arxiv.org/abs/2606.05661)) · 6 stateful task families | does experience improve performance? | ✅ | `loaders.load_clbench_results` loads their published leaderboard runs (16,904 outcomes, 6 systems) straight into tide metrics; their harness runs via [tasks/continual-learning-bench/](tasks/continual-learning-bench). In-repo protocol instance: [tasks/streams/hidden-rules](tasks/streams/hidden-rules) |
 | [AgentStream](https://arxiv.org/abs/2608.00155) | any static benchmark, streamed by progressive reveal | ✅ | `loaders.reveal_phases(probe, n)` turns any rubric probe into an n-phase reveal stream; probe every phase for the checkpoint curve |
 | [SkillLearnBench](https://github.com/cxcscmu/SkillLearnBench) | continual skill generation | 🗺️ | nothing yet — maps onto the skills-channel `StateDir` |
@@ -396,8 +410,6 @@ mostly breadth, and it's tracked here:
   needs their prebuilt work/judge images (or `setup_cmds`-built bases)
 - [x] **AgentStream-style reveal** — `loaders.reveal_phases` turns any
   rubric probe into a progressive-reveal stream
-- [x] **Tencent CL-bench loader** — `loaders.load_rubric_probes` +
-  `strip_context`; format verified against the real HF data
 - [x] **FrontierCS verified** — an erdos task generated by their official
   adapter is vendored in tasks/frontier-cs/ and validated as stock Harbor
 - [x] **Continual-Learning-Bench integration** — results loader over their

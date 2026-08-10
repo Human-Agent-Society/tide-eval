@@ -7,10 +7,22 @@ codebase adaptation, database exploration, cohort studies, blind spectrum
 monitoring — where episodes share a learnable latent structure and a gain
 metric isolates learning from capability.
 
-Their tasks are **interactive Python simulations** (e.g. per-hand poker
-against opponent policies), run by their own harness — not convertible to
-static task dirs, and carrying a training-corpora canary, so nothing is
-vendored here. Two supported workflows:
+Their tasks are **interactive Python simulations** (per-hand poker against
+opponent policies, and five more families). tide brings them in without
+copying a line of their code: the container pip-installs their package at a
+pinned commit and drives their own task classes. Three workflows:
+
+**0. Run a CLB task as a Harbor task** — [`exploitable-poker/`](exploitable-poker)
+is fully converted: the agent plays their unmodified 120-hand default schedule
+through a file bridge, and grading **replays the action log** against the same
+deterministic task in a clean container (locally proven: check/call oracle
+scores exactly -0.15; forged logs change nothing):
+
+```bash
+tide run tasks/continual-learning-bench/exploitable-poker --agent claude-code --model ...
+```
+
+The same bridge pattern extends to the other five families (roadmap).
 
 **1. Analyze their runs with tide** (works immediately — their repo ships
 the full leaderboard results):
