@@ -8,8 +8,8 @@
 
 [English](README.md) | **中文**
 
-Autoresearch 任务是开放式优化问题:数小时的预算、连续的分数、一个在过程中给
-自己打几百次分的 agent。这里没有"通过/不通过",只有*多好、多快*。tide 把这
+Autoresearch 任务——AlphaEvolve / OpenEvolve 那一类工作负载——是开放式优化
+问题:数小时的预算、连续的分数、一个在过程中给自己打几百次分的 agent。这里没有"通过/不通过",只有*多好、多快*。tide 把这
 种形态的评测做扎实:
 
 | | |
@@ -59,7 +59,9 @@ flowchart LR
 ## 跑起来
 
 ```bash
-pip install "tide-eval[harbor]"          # 容器模式需要;仅 --local 和 API 的话装 tide-eval 即可
+# PyPI 发布前(见 Roadmap),先从源码安装:
+git clone https://github.com/Human-Agent-Society/tide-eval && cd tide-eval
+pip install -e ".[harbor]"               # 容器模式需要;仅 --local 和 API 的话 -e . 即可
 
 tide list                                # 有哪些任务可跑
 tide run autoresearch --agent oracle     # oracle = 内置 agent,运行每个任务的参考解
@@ -93,6 +95,7 @@ tide run autoresearch/circle-packing --local \
 `df` 把已记录的一切以 pandas DataFrame 返回:
 
 ```python
+# Lab 基于 asyncio:这段要放在 async 函数或 notebook 里运行。
 from tide import Lab, metrics
 
 lab = Lab("runs/exp1")

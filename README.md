@@ -8,9 +8,9 @@
 
 **English** | [中文](README_CN.md)
 
-Autoresearch tasks are open-ended optimization problems: hours of budget,
-a continuous score, and an agent that evaluates itself hundreds of times
-along the way. There is no "passed" — only *how good, by when*. tide
+Autoresearch tasks — the AlphaEvolve / OpenEvolve style of workload — are
+open-ended optimization problems: hours of budget, a continuous score, and
+an agent that evaluates itself hundreds of times along the way. There is no "passed" — only *how good, by when*. tide
 evaluates that regime honestly:
 
 | | |
@@ -60,7 +60,9 @@ Full design — trust model, task conventions, data model, extensibility:
 ## Run
 
 ```bash
-pip install "tide-eval[harbor]"          # container runs; plain tide-eval covers --local and the API
+# from source, until the PyPI release lands (see Roadmap):
+git clone https://github.com/Human-Agent-Society/tide-eval && cd tide-eval
+pip install -e ".[harbor]"               # container runs; plain -e . covers --local and the API
 
 tide list                                # what's runnable
 tide run autoresearch --agent oracle     # oracle = built-in agent that runs each task's reference solution
@@ -97,6 +99,7 @@ A `Lab` is a directory. Each `run` call is one episode (one Harbor
 trial), and `df` returns everything recorded so far as a pandas DataFrame:
 
 ```python
+# Lab is asyncio-based: run this inside an async function or a notebook.
 from tide import Lab, metrics
 
 lab = Lab("runs/exp1")
