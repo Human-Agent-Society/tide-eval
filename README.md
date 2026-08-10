@@ -35,7 +35,7 @@ they are the reason tide exists:
 | One reward number per trial; how the agent got there is lost | The judge scores and records every submission, so the anytime curve, its AUC, and time-to-threshold are one query each — and every point on them is trusted |
 | Statistics live inside a single job (pass@k) | Budget is an ordinary tag, so "what does 8 h buy over 2 h?" is a query across any set of runs |
 | One task, one run — and covering the suite, repeating for variance, or scanning budgets multiplies that into days of compute, which a crash throws away | Run the same script again and finished episodes are skipped automatically, so only the unfinished work re-runs |
-| Each run is a throwaway job directory | Every run lands in one table that keeps growing, week after week, and `tide report` reads it |
+| Each run is a throwaway job directory | Every run lands in the same table, so comparing agents across runs is a single query — `tide report` reads it |
 
 One honest limit: resume works at episode granularity. A batch of runs
 picks up where it crashed, but a crashed 12-hour episode itself starts
