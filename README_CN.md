@@ -126,7 +126,7 @@ metrics.scaling(lab.df("episode"))  # 更多预算买到多少分?
 |---|---|---|---|
 | [第一方任务](tasks/autoresearch) ↓ | 6 | 本仓库 | `tide run autoresearch --agent <a>` |
 | [EdgeBench](tasks/edgebench) | 51 · 2–12 小时预算 | [ByteDance-Seed/EdgeBench](https://github.com/ByteDance-Seed/EdgeBench) | `tide run edgebench/<task> --budget <h>` |
-| [FrontierCS 2.0](tasks/frontier-cs) | 20 · 含 4 个 GPU kernel | [FrontierCS/Frontier-CS](https://github.com/FrontierCS/Frontier-CS) | `tide run frontier-cs/<task> --agent <a>` |
+| [FrontierCS](tasks/frontier-cs) | 172 算法赛道 + 20 研究赛道 · 含 4 个 GPU kernel | [FrontierCS/Frontier-CS](https://github.com/FrontierCS/Frontier-CS) | `tide run frontier-cs/<task> --agent <a>` |
 
 下一批转换目标(已按 autoresearch 契合度筛过)见 [Roadmap](#roadmap)。
 
@@ -162,8 +162,6 @@ pytest tests/test_task_suite.py          # 自动被识别——而且直接是�
 - [ ] Harbor 版本升级的安全流程
 - [ ] [Frontier-Eng](https://arxiv.org/abs/2604.12290) 转换器——47 个工程任务,其 interaction budget
   循环与提交额度直接对应
-- [ ] [FrontierCS 1.0](https://frontier-cs.org/blog/feb-release/) 转换器——240 个专家出题的开放式任务(最优解
-  未知、可客观打部分分);其 2.0 轨我们已经在跑
 - [ ] [SOL-ExecBench](https://github.com/nvidia/sol-execbench) 转换器——235 个真实 CUDA kernel,对照硬件
   Speed-of-Light 理论极限打分(固定靶标,计时不再依赖相对基线);需要
   NVIDIA Blackwell GPU

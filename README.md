@@ -135,7 +135,7 @@ with the `BaseAgent` skeleton and the OpenEvolve pattern:
 |---|---|---|---|
 | [first-party](tasks/autoresearch) ↓ | 6 | this repo | `tide run autoresearch --agent <a>` |
 | [EdgeBench](tasks/edgebench) | 51 · 2–12 h budgets | [ByteDance-Seed/EdgeBench](https://github.com/ByteDance-Seed/EdgeBench) | `tide run edgebench/<task> --budget <h>` |
-| [FrontierCS 2.0](tasks/frontier-cs) | 20 · incl. 4 GPU kernel | [FrontierCS/Frontier-CS](https://github.com/FrontierCS/Frontier-CS) | `tide run frontier-cs/<task> --agent <a>` |
+| [FrontierCS](tasks/frontier-cs) | 172 algorithmic + 20 research · incl. 4 GPU kernel | [FrontierCS/Frontier-CS](https://github.com/FrontierCS/Frontier-CS) | `tide run frontier-cs/<task> --agent <a>` |
 
 The next converters, vetted for autoresearch fit, are on the
 [roadmap](#roadmap).
@@ -173,9 +173,6 @@ config. Guide: **[docs/components/tasks.md](docs/components/tasks.md)**.
 - [ ] Harbor pin-upgrade workflow
 - [ ] [Frontier-Eng](https://arxiv.org/abs/2604.12290) converter — 47 engineering tasks whose
   interaction-budget loop maps directly onto the submission budget
-- [ ] [FrontierCS 1.0](https://frontier-cs.org/blog/feb-release/) converter — 240 expert-curated open-ended
-  tasks (unknown optimum, objective partial scoring); we already run its
-  2.0 track
 - [ ] [SOL-ExecBench](https://github.com/nvidia/sol-execbench) converter — 235 real CUDA kernels scored
   against Speed-of-Light hardware bounds (fixed targets, so timing stops
   being hardware-relative); needs NVIDIA Blackwell GPUs
