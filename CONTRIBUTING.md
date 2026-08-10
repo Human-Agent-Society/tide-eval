@@ -21,8 +21,9 @@ reviewed against a short list of design rules more than against style.
    anti-cheating measure needs a test that actually cheats and fails — see
    the cheat cases in `tests/test_task_suite.py` for the pattern.
 6. **Loud beats lenient** for measurement code: a missing metric column, a
-   duplicate store key, or a corrupt benchmark line raises; only
-   agent-written data (score logs) is parsed leniently.
+   duplicate store key, or a corrupt benchmark line raises. Only submitted
+   solutions are handled leniently — they score 0 with a reason instead of
+   raising.
 7. **The two READMEs move together.** A PR that changes `README.md` updates
    `README_CN.md` in the same commit.
 8. **Unbuilt work lives in the roadmap.** Docs state what exists; where a
