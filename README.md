@@ -131,12 +131,12 @@ with the `BaseAgent` skeleton and the OpenEvolve pattern:
 
 ## Tasks
 
-| Benchmark | Tasks | Run |
-|---|---|---|
-| [first-party](tasks/autoresearch) ↓ | 6 | `tide run autoresearch --agent <a>` |
-| [EdgeBench](tasks/edgebench) | 51 · 2–12 h budgets | `tide run edgebench/<task> --budget <h>` |
-| [FrontierCS 2.0](tasks/frontier-cs) | 20 · incl. 4 GPU kernel | `tide run frontier-cs/<task> --agent <a>` |
-| [AlgoTune](tasks/algotune) | 154 · via Harbor registry | `tide run algotune/<task> --agent <a>` |
+| Benchmark | Tasks | Upstream | Run |
+|---|---|---|---|
+| [first-party](tasks/autoresearch) ↓ | 6 | this repo | `tide run autoresearch --agent <a>` |
+| [EdgeBench](tasks/edgebench) | 51 · 2–12 h budgets | [ByteDance-Seed/EdgeBench](https://github.com/ByteDance-Seed/EdgeBench) | `tide run edgebench/<task> --budget <h>` |
+| [FrontierCS 2.0](tasks/frontier-cs) | 20 · incl. 4 GPU kernel | [FrontierCS/Frontier-CS](https://github.com/FrontierCS/Frontier-CS) | `tide run frontier-cs/<task> --agent <a>` |
+| [AlgoTune](tasks/algotune) | 154 · via Harbor registry | [oripress/AlgoTune](https://github.com/oripress/AlgoTune) | `tide run algotune/<task> --agent <a>` |
 
 Each first-party task teaches one hard part of the category
 (oracle-verified in real containers, cheat cases re-tested in CI):
