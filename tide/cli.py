@@ -112,9 +112,14 @@ def _parse_tags(pairs: list[str] | None) -> dict:
 
 
 def _make_lab(args: argparse.Namespace):
-    from tide import FakeExecutor, Lab
+    from tide import FakeExecutor, Lab, LocalExecutor
 
-    executor = FakeExecutor() if getattr(args, "fake", False) else None
+    if getattr(args, "fake", False):
+        executor = FakeExecutor()
+    elif getattr(args, "local", False):
+        executor = LocalExecutor()
+    else:
+        executor = None  # the default HarborExecutor (containers)
     return Lab(args.lab, executor=executor, concurrency=args.concurrent)
 
 
@@ -138,9 +143,22 @@ def cmd_list(args: argparse.Namespace) -> int:
 
 
 def cmd_run(args: argparse.Namespace) -> int:
+    if args.local and not args.command:
+        raise SystemExit(
+            "--local runs your own command: add --command '<shell command>'"
+        )
+    if args.command and not args.local:
+        raise SystemExit("--command only works with --local")
+    if args.local:
+        args.agent = args.agent or "local-command"
+    elif not args.agent:
+        raise SystemExit("--agent is required (or use --local with --command)")
+
     tasks_root = _find_tasks_root(args.tasks_dir)
     targets = resolve_targets(args.targets, tasks_root)
     agent = _build_agent(args)
+    if args.command:
+        agent["command"] = args.command
     base_tags = _parse_tags(args.tag)
     if args.budget is not None:
         base_tags.setdefault("budget", args.budget)
@@ -229,7 +247,9 @@ def main(argv: list[str] | None = None) -> int:
     p_run = sub.add_parser("run", help="run tasks/folders/registry ids")
     p_run.add_argument("targets", nargs="+")
     p_run.add_argument(
-        "--agent", required=True, help="Harbor agent name (e.g. oracle, claude-code)"
+        "--agent",
+        default=None,
+        help="Harbor agent name (e.g. oracle, claude-code)",
     )
     p_run.add_argument("--model", default=None, help="model name for the agent")
     p_run.add_argument(
@@ -254,6 +274,18 @@ def main(argv: list[str] | None = None) -> int:
         "--fake",
         action="store_true",
         help="use the offline fake executor (no Docker; smoke tests)",
+    )
+    p_run.add_argument(
+        "--local",
+        action="store_true",
+        help="run --command on this machine against the real scorer and grader"
+        " (no Docker; scores are not isolation-backed)",
+    )
+    p_run.add_argument(
+        "--command",
+        default=None,
+        metavar="CMD",
+        help="the shell command --local runs; it reads $APP and $BUDGET_SEC",
     )
     p_run.set_defaults(func=cmd_run)
 

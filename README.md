@@ -6,6 +6,8 @@
 
 **Autoresearch evaluation on the [Harbor](https://github.com/laude-institute/harbor) task standard.**
 
+**English** | [中文](README_CN.md)
+
 Autoresearch tasks are open-ended optimization problems: hours of budget,
 a continuous score, and an agent that evaluates itself hundreds of times
 along the way. There is no "passed" — only *how good, by when*. tide
@@ -42,7 +44,7 @@ Full design — trust model, task conventions, data model, extensibility:
 ## Run
 
 ```bash
-pip install "tide-eval[harbor]"          # needs Docker; plain tide-eval = core only
+pip install "tide-eval[harbor]"          # container runs; plain tide-eval covers --local and the API
 
 tide list                                # what's runnable
 tide run autoresearch --agent oracle     # oracle = built-in agent that runs each task's reference solution
@@ -50,14 +52,28 @@ tide run edgebench/ann_vector_search_qps --agent codex --budget 2   # hours
 tide report                              # summarize the results store
 ```
 
-No Docker yet? `tide run autoresearch --agent oracle --fake` and
-`python examples/quickstart.py` run offline in seconds. When you have
-Docker, `python examples/run_circle_packing.py` proves the real pipeline
-end to end — the oracle must score exactly 0.75. And
-`python examples/minimal_harness.py` is the smallest complete harness:
-about thirty lines of adapter around a random-search loop, with no LLM
-and no API keys, that searches inside the container, gets a trusted score
-from the verifier, and brings its own score log back as data.
+### No Docker? Develop locally, verify in containers
+
+`--local` runs your own method against the task's **real scorer and real
+grader** on your machine, with no containers involved:
+
+```bash
+tide run autoresearch/circle-packing --local \
+  --command "python examples/minimal_harness_search.py" --budget 0.01
+```
+
+Your command reads two environment variables — `$APP`, the working
+directory where `scorer.py` and `best/` live, and `$BUDGET_SEC` — and when
+it finishes (or the budget kills it), the task's real `grade.py` scores
+whatever it left behind. Local rows carry a `local://` uri because nothing
+is isolated: they are for developing your method, and the number you
+report should come from a container run. (`python examples/quickstart.py`
+and `--fake` still work with zero setup, but their scores are simulated.)
+
+When you have Docker, `python examples/run_circle_packing.py` proves the
+real pipeline end to end — the oracle must score exactly 0.75 — and
+`python examples/minimal_harness.py` is the smallest complete container
+harness: about thirty lines of adapter around the same random-search loop.
 
 ## Use the API
 

@@ -157,4 +157,6 @@ class OpenEvolveAgent(BaseAgent):
   `reward` — the claimed anytime/AUC numbers come second, clearly labeled
   as the agent's own. `oracle` and `nop` bracket the plausible range.
 - **Sanity-check cheaply**: `--agent oracle` proves the task, `--agent nop`
-  proves no leakage, `--fake` exercises your sweep script with no containers.
+  proves no leakage, `--fake` exercises your sweep script with no
+  containers — and `--local --command "..."` runs your method against the
+  real scorer and grader with no Docker at all (see the README).

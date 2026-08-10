@@ -13,7 +13,7 @@ See the README for the full tour.
 """
 
 from tide import metrics
-from tide.executors import FakeExecutor, HarborExecutor
+from tide.executors import FakeExecutor, HarborExecutor, LocalExecutor
 from tide.lab import Lab
 from tide.types import EpisodeResult, EpisodeSpec, Row, TracePoint
 
@@ -22,6 +22,7 @@ __version__ = "0.1.0"
 __all__ = [
     "Lab",
     "HarborExecutor",
+    "LocalExecutor",
     "FakeExecutor",
     "EpisodeSpec",
     "EpisodeResult",

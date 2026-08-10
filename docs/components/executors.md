@@ -29,6 +29,11 @@ class Executor(Protocol):
   onto `TrialConfig` fields), runs the trial, ingests `score_log.jsonl`
   into `trace`. Harbor is imported lazily, so the rest of tide works
   without it installed.
+- **`LocalExecutor(root=…)`** — the development run: executes your
+  `command` on this machine with `$APP` and `$BUDGET_SEC` set, then imports
+  the task's `grade.py` and scores the artifact directly. Real numbers, no
+  containers, no isolation — rows carry a `local://` uri so they can never
+  be mistaken for benchmark results.
 - **`FakeExecutor(score=…, trace=…)`** — deterministic and instant; powers
   the test suite, `--fake`, and the offline examples. Records `calls` for
   assertions.
