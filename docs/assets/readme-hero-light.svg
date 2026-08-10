@@ -21,55 +21,60 @@
     </marker>
   </defs>
 
-  <!-- agent -->
-  <path d="M 74 84 A 20 20 0 1 1 54 64" class="draw-c" marker-end="url(#m-cor)"/>
-  <text x="92" y="82" class="lab">agent</text>
-  <text x="46" y="124" class="sm m">searches however it likes,</text>
-  <text x="46" y="142" class="sm m">submits what's worth scoring</text>
+  <!-- ============ everything on one axis: y = 110 ============ -->
 
-  <!-- submissions out, scores back -->
-  <path d="M 236 74 H 306" class="draw-c" marker-end="url(#m-cor)"/>
-  <text x="272" y="60" text-anchor="middle" class="sm c">submit — limited</text>
-  <path d="M 306 170 H 250" class="draw-f dash" marker-end="url(#m-ink)"/>
-  <text x="282" y="192" text-anchor="middle" class="sm m">score</text>
+  <!-- agent -->
+  <path d="M 130 110 A 20 20 0 1 1 110 90" class="draw-c" marker-end="url(#m-cor)"/>
+  <text x="110" y="178" text-anchor="middle" class="lab">agent</text>
+  <text x="110" y="200" text-anchor="middle" class="sm m">searches however it likes,</text>
+  <text x="110" y="218" text-anchor="middle" class="sm m">submits what's worth scoring</text>
+
+  <!-- submissions out (above axis), scores back (below axis) -->
+  <path d="M 152 98 H 304" class="draw-c" marker-end="url(#m-cor)"/>
+  <text x="228" y="84" text-anchor="middle" class="sm c">submit — limited</text>
+  <path d="M 304 122 H 152" class="draw-f dash" marker-end="url(#m-ink)"/>
+  <text x="228" y="144" text-anchor="middle" class="sm m">score</text>
 
   <!-- judge -->
-  <circle cx="366" cy="120" r="38" class="draw-a"/>
-  <path d="M 348 120 l 13 14 l 24 -30" class="draw-a"/>
-  <text x="366" y="184" text-anchor="middle" class="lab">judge</text>
-  <text x="366" y="206" text-anchor="middle" class="sm m">all scoring lives here;</text>
-  <text x="366" y="224" text-anchor="middle" class="sm m">it scores every submission</text>
+  <circle cx="356" cy="110" r="38" class="draw-a"/>
+  <path d="M 338 110 l 13 14 l 24 -30" class="draw-a"/>
+  <text x="356" y="178" text-anchor="middle" class="lab">judge</text>
+  <text x="356" y="200" text-anchor="middle" class="sm m">all scoring lives here;</text>
+  <text x="356" y="218" text-anchor="middle" class="sm m">it scores every submission</text>
 
-  <!-- ledger -->
-  <path d="M 306 250 V 288 H 420" class="draw-f"/>
-  <polyline points="312,282 336,282 336,270 362,270 362,262 388,262 388,254 412,254" class="draw-a"/>
-  <circle cx="412" cy="254" r="4" fill="#0E7490"/>
-  <text x="434" y="272" class="sm a">the ledger: score over time, every point judged</text>
+  <!-- judge -> final judge -->
+  <path d="M 398 110 H 510" class="draw-a" marker-end="url(#m-acc)"/>
+  <text x="454" y="96" text-anchor="middle" class="sm m">best, once</text>
 
   <!-- final judge -->
-  <path d="M 408 104 H 500" class="draw-a" marker-end="url(#m-acc)"/>
-  <text x="454" y="90" text-anchor="middle" class="sm m">best, once</text>
-  <circle cx="542" cy="104" r="28" class="draw-a"/>
-  <path d="M 534 98 h 16 v 12 h -16 z M 537 98 v -5 a 5 5 0 0 1 10 0 v 5" class="draw-a"/>
-  <text x="542" y="154" text-anchor="middle" class="lab">final judge</text>
-  <text x="542" y="176" text-anchor="middle" class="sm m">optional · hidden tests</text>
-  <text x="542" y="194" text-anchor="middle" class="sm m">runs once, then locks</text>
+  <circle cx="546" cy="110" r="28" class="draw-a"/>
+  <path d="M 538 104 h 16 v 12 h -16 z M 541 104 v -5 a 5 5 0 0 1 10 0 v 5" class="draw-a"/>
+  <text x="546" y="178" text-anchor="middle" class="lab">final judge</text>
+  <text x="546" y="200" text-anchor="middle" class="sm m">optional · hidden tests</text>
+  <text x="546" y="218" text-anchor="middle" class="sm m">runs once, then locks</text>
 
-  <!-- reward into the table -->
-  <path d="M 574 104 H 646" class="draw-a" marker-end="url(#m-acc)"/>
-  <text x="610" y="90" text-anchor="middle" class="sm a">reward</text>
+  <!-- final judge -> table -->
+  <path d="M 578 110 H 648" class="draw-a" marker-end="url(#m-acc)"/>
+  <text x="613" y="96" text-anchor="middle" class="sm a">reward</text>
 
+  <!-- one table: the bold row sits on the axis, where the arrow points -->
   <text x="666" y="66" class="lab">one table, every run</text>
-  <circle cx="672" cy="98" r="3.5" fill="#0E7490"/>
-  <line x1="686" y1="98" x2="806" y2="98" class="draw-a" stroke-width="3"/>
-  <text x="818" y="102" class="sm a">final reward</text>
-  <circle cx="672" cy="120" r="3" fill="#AABDC3"/>
-  <line x1="686" y1="120" x2="790" y2="120" class="draw-f"/>
-  <circle cx="672" cy="140" r="3" fill="#AABDC3"/>
-  <line x1="686" y1="140" x2="798" y2="140" class="draw-f"/>
-  <circle cx="672" cy="160" r="3" fill="#AABDC3"/>
-  <line x1="686" y1="160" x2="784" y2="160" class="draw-f"/>
-  <text x="818" y="134" class="sm m">ledger rows</text>
+  <circle cx="672" cy="88" r="3" fill="#AABDC3"/>
+  <line x1="686" y1="88" x2="790" y2="88" class="draw-f"/>
+  <circle cx="672" cy="110" r="3.5" fill="#0E7490"/>
+  <line x1="686" y1="110" x2="806" y2="110" class="draw-a" stroke-width="3"/>
+  <text x="818" y="114" class="sm a">final reward</text>
+  <circle cx="672" cy="132" r="3" fill="#AABDC3"/>
+  <line x1="686" y1="132" x2="798" y2="132" class="draw-f"/>
+  <circle cx="672" cy="154" r="3" fill="#AABDC3"/>
+  <line x1="686" y1="154" x2="784" y2="154" class="draw-f"/>
+  <text x="818" y="146" class="sm m">ledger rows</text>
   <text x="666" y="200" class="sm m">accumulates across runs;</text>
   <text x="666" y="218" class="sm m">curves are queries</text>
+
+  <!-- the ledger curve, under the judge -->
+  <path d="M 300 246 V 288 H 414" class="draw-f"/>
+  <polyline points="306,282 330,282 330,270 356,270 356,262 382,262 382,254 406,254" class="draw-a"/>
+  <circle cx="406" cy="254" r="4" fill="#0E7490"/>
+  <text x="430" y="272" class="sm a">the ledger: score over time, every point judged</text>
 </svg>
