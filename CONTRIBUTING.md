@@ -23,6 +23,8 @@ reviewed against a short list of design rules more than against style.
 6. **Loud beats lenient** for measurement code: a missing metric column, a
    duplicate store key, or a corrupt benchmark line raises; only
    agent-written data (score logs) is parsed leniently.
+7. **The two READMEs move together.** A PR that changes `README.md` updates
+   `README_CN.md` in the same commit.
 
 ## What's welcome
 

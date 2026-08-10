@@ -238,6 +238,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="tide", description="autoresearch evaluation on the Harbor task standard"
     )
+    from tide import __version__
+
+    parser.add_argument("--version", action="version", version=f"tide {__version__}")
     parser.add_argument("--tasks-dir", default=None, help="tasks catalog root")
     sub = parser.add_subparsers(dest="command", required=True)
 
