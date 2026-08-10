@@ -30,12 +30,12 @@ def test_put_get_roundtrip(store):
     assert got.rewards == {"reward": 0.5}
 
 
-def test_has_and_duplicate_key_is_loud(store):
+def test_duplicate_key_is_loud(store):
     import sqlite3
 
     store.put(row())
-    assert store.has("k1")
-    assert not store.has("k2")
+    assert store.get("k1") is not None
+    assert store.get("k2") is None
     with pytest.raises(sqlite3.IntegrityError):
         store.put(row())
 
@@ -82,5 +82,5 @@ def test_delete_prefix(store):
     store.put(row(key="e1#t1", kind="trace"))
     store.put(row(key="e2"))
     assert store.delete_prefix("e1#") == 2
-    assert store.has("e1") and store.has("e2")
-    assert not store.has("e1#t0")
+    assert store.get("e1") is not None and store.get("e2") is not None
+    assert store.get("e1#t0") is None

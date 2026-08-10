@@ -6,7 +6,7 @@ Design rules (see the top-level README):
   ``df()`` expands tags into columns. Metrics never require a fixed schema —
   each metric function documents the tag names it expects.
 - **Raw scores only.** Normalization happens at query time, never at write time.
-- **The idempotency key is the resume mechanism.** ``has()`` lets callers skip
+- **The idempotency key is the resume mechanism.** ``get()`` lets callers skip
   work that already produced a row, so re-running a crashed script resumes it.
 """
 
@@ -50,7 +50,7 @@ class Store:
 
     def put(self, row: Row) -> None:
         """Insert a row. Raises on a duplicate key: callers are expected to
-        check ``has()`` first, and a violated assumption should be loud."""
+        check ``get()`` first, and a violated assumption should be loud."""
         with self._lock:
             self._conn.execute(
                 "INSERT INTO results (key, kind, task, tags, rewards, uri, created_at)"
@@ -66,15 +66,6 @@ class Store:
                 ),
             )
             self._conn.commit()
-
-    def put_many(self, rows: list[Row]) -> None:
-        for row in rows:
-            self.put(row)
-
-    def has(self, key: str) -> bool:
-        with self._lock:
-            cur = self._conn.execute("SELECT 1 FROM results WHERE key = ?", (key,))
-            return cur.fetchone() is not None
 
     def get(self, key: str) -> Row | None:
         with self._lock:

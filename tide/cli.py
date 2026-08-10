@@ -21,14 +21,24 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import sys
 from pathlib import Path
 
 
 def _find_tasks_root(tasks_dir: str | None) -> Path | None:
-    from tide.paths import find_tasks_root
-
-    return find_tasks_root(tasks_dir)
+    """Locate the tasks catalog: explicit arg → $TIDE_TASKS_DIR → ./tasks →
+    the checkout the tide package itself lives in."""
+    if tasks_dir:
+        return Path(tasks_dir)
+    env = os.environ.get("TIDE_TASKS_DIR")
+    if env:
+        return Path(env)
+    for base in (Path.cwd(), Path(__file__).parent.parent):
+        candidate = base / "tasks"
+        if candidate.is_dir():
+            return candidate
+    return None
 
 
 def _is_task_dir(path: Path) -> bool:
