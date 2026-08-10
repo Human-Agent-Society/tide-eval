@@ -39,7 +39,7 @@ states the oracle baseline and what the task teaches.
 | [`function-minimization`](autoresearch/function-minimization) | minimize deceptive Levi N.13 | 0.333 → 1.0 | exploration vs local search |
 | [`tsp-tour`](autoresearch/tsp-tour) | shorten a 40-city tour | 1.0 → ~2.0 | combinatorial search, continuous signal |
 | [`bin-packing`](autoresearch/bin-packing) | beat first-fit on 60 items | 1.0 → >1.0 | exact constraint checking |
-| [`symbolic-regression`](autoresearch/symbolic-regression) | recover a hidden formula | 0.604 → 1.0 | **the anti-overfitting wall**: graded on held-out points |
+| [`symbolic-regression`](autoresearch/symbolic-regression) | recover a hidden formula | 0.604 → 1.0 | **held-out grading**: scored on points the agent never saw |
 | [`string-compression`](autoresearch/string-compression) | ship decompressor + payload | 3.47 → higher | **grading agent-shipped code safely** (sandboxed subprocess, reference deleted first) |
 
 ## External benchmarks

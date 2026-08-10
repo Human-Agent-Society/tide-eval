@@ -15,7 +15,7 @@ timeout_sec = 600.0                          # TODO(task): the budget
 
 [verifier]
 timeout_sec = 60.0
-environment_mode = "separate"                # the anti-hack wall — keep it
+environment_mode = "separate"                # verifier isolation — keep it
 
 [environment]
 build_timeout_sec = 600.0

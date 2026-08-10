@@ -6,36 +6,61 @@ adds conventions *around* the format, never fields inside it. Start from
 [`tasks/_template`](../../tasks/_template) (recommended), verify standalone
 with `harbor trial start -p <dir>`, then run it under tide.
 
-## A plain episodic task
+## Anatomy of a task
+
+Every file belongs to one of two evaluations — the agent's own (public) or
+the benchmark's (private):
 
 ```
 my-task/
-├── task.toml          # timeouts, resources, network policy
-├── instruction.md     # what the agent sees (the ONLY thing it sees)
-├── environment/       # Dockerfile — the agent's world
-├── tests/             # test.sh → writes /logs/verifier/reward.{txt,json}
-└── solution/          # solve.sh — proves the task is solvable (oracle)
+├── task.toml          # config: budget, resources, network policy, declared artifacts
+├── instruction.md     # the problem statement (the ONLY thing the agent is told)
+├── environment/       # agent container — built from this Dockerfile
+│   └── scorer.py      #   PUBLIC eval: the scorer the agent iterates against
+├── tests/             # verifier container — its own Dockerfile, built separately
+│   ├── test.sh        #   entrypoint: runs grade.py
+│   ├── grade.py       #   PRIVATE eval: the trusted grader
+│   └── vectors.json   #   test vectors for the grader (oracle + cheat cases)
+└── solution/          # reference solution — the oracle agent runs solve.sh
 ```
+
+## Public vs private evaluation
+
+The split is the same one Kaggle users know as public vs private
+leaderboard: the score you can query freely is not the score that counts.
+
+| | Public scorer | Private verifier |
+|---|---|---|
+| file | `environment/scorer.py` | `tests/grade.py` |
+| built into | the **agent's** container image | a **separate** verifier image (`tests/` is its own build context) |
+| runs | whenever the agent calls it — unlimited | once, in a fresh container, after the budget ends |
+| sees | everything in the agent container | **only** the artifacts declared in `task.toml` |
+| output | a score on stdout; the agent logs it to `score_log.jsonl` → `trace` rows | `/logs/verifier/reward.json` → the `episode` row |
+| trusted | no — the agent can tamper with it; it exists as search feedback | yes — this is the benchmark number |
+
+Setup: declaring `environment_mode = "separate"` under `[verifier]` plus an
+`artifacts = [...]` list in `task.toml` is what creates the isolation —
+Harbor builds `tests/` as its own image, collects only the declared files
+from the finished agent container, and grades them in a fresh one. The two
+scripts usually share their math (the exemplar duplicates it deliberately,
+with the private side at stricter tolerance).
 
 ## An autoresearch task (the four conventions)
 
 Reference implementation: [`tasks/autoresearch/circle-packing`](../../tasks/autoresearch/circle-packing).
 
 1. **Public scorer in the image** (`environment/scorer.py`). The agent
-   self-evaluates freely. Deliberately unisolated: *things you don't trust
-   don't need walls* — tampering with it only sends the agent up the wrong
-   gradient.
-2. **The wall**: in `task.toml`,
+   self-evaluates freely. Deliberately unprotected: nothing it produces is
+   trusted, so tampering with it only misleads the agent's own search.
+2. **Verifier isolation**: in `task.toml`,
    ```toml
    artifacts = ["/app/best/solution.json", "/app/best/score_log.jsonl"]
    [verifier]
    environment_mode = "separate"
    ```
-   Grading runs in a fresh container that receives *only* declared artifacts;
-   `tests/grade.py` recomputes everything (exact rational arithmetic in the
-   exemplar — a 5e-9 overlap scores zero), and **never reads agent-claimed
-   scores**. In separate mode `tests/` is the verifier's build context, so it
-   ships its own `Dockerfile` that copies itself to `/tests`.
+   `tests/grade.py` recomputes everything from the declared artifacts alone
+   (exact rational arithmetic in the exemplar — a 5e-9 overlap scores zero)
+   and **never reads agent-claimed scores**.
 3. **Timeout = budget.** The instruction mandates atomic best-so-far writes
    (temp file + rename); Harbor grades after a timeout, so a deadline kill
    still scores the best snapshot.
@@ -61,10 +86,12 @@ to `/logs/verifier/`.
 
 ## Testing your task: `tests/vectors.json`
 
-A **cheat vector** is a handcrafted artifact embodying one way to fake the
-score — a constraint violation, a float-epsilon exploit, a forged
-self-reported score. Each must grade **exactly 0.0, with a reason**; the
-suite re-checks them on every CI run. The exemplar's real file:
+`vectors.json` holds the grader's test vectors: one **oracle case** (a
+known-good artifact and the exact reward it must earn) and a set of
+**cheat cases** — adversarial artifacts each embodying one way to fake the
+score (a constraint violation, a float-epsilon exploit, a forged
+self-reported score). Each cheat case must grade **exactly 0.0, with a
+reason**; the suite re-checks them on every CI run. The exemplar's real file:
 [circle-packing/tests/vectors.json](../../tasks/autoresearch/circle-packing/tests/vectors.json).
 
 ```jsonc

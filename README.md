@@ -84,7 +84,7 @@ Re-running any script resumes it. Reference:
 
 ## Evaluate *your* agent
 
-Same tasks, same wall, same store — numbers stay comparable across methods:
+Same tasks, same isolated verifier, same store — numbers stay comparable across methods:
 
 | You have | Integration |
 |---|---|
@@ -105,7 +105,7 @@ pytest tests/test_task_suite.py          # picked up automatically
 ```
 
 Six `TODO(task)` files (config, instruction, public scorer, trusted
-grader, cheat vectors, oracle solution); the suite checks oracle score,
+grader, cheat cases, oracle solution); the suite checks oracle score,
 cheats, and Harbor validity with zero test code. GPU tasks add two lines
 of config. Guide: **[docs/components/tasks.md](docs/components/tasks.md)**.
 
@@ -119,7 +119,7 @@ of config. Guide: **[docs/components/tasks.md](docs/components/tasks.md)**.
 | [AlgoTune](https://github.com/oripress/AlgoTune) | 154 · via Harbor registry | `tide run algotune/<task> --agent <a>` |
 
 Each first-party task teaches one hard part of the category
-(oracle-verified in real containers, cheat-vector-tested in CI):
+(oracle-verified in real containers, cheat cases re-tested in CI):
 
 | Task | Teaches |
 |---|---|

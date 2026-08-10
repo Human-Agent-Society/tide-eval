@@ -48,7 +48,7 @@ logs, the filesystem — because nothing in there is believed. The trusted
 score is computed afterwards in a fresh container that receives **only the
 artifact files the task declared**, recomputes everything from them, and
 never reads agent-claimed numbers. Self-evaluation is free *because* it is
-untrusted; the wall is what makes that freedom safe.
+untrusted; verifier isolation is what makes that freedom safe.
 
 Four task conventions carry the model (reference implementation:
 [`tasks/autoresearch/circle-packing`](../tasks/autoresearch/circle-packing)):
@@ -56,12 +56,12 @@ Four task conventions carry the model (reference implementation:
 | # | Convention | Mechanism |
 |---|---|---|
 | 1 | **Public scorer in the image** | `environment/scorer.py` — the agent's inner-loop feedback; deliberately unisolated |
-| 2 | **The wall** | `environment_mode = "separate"` + `artifacts = [...]` in `task.toml`; `tests/grade.py` recomputes from artifacts alone |
+| 2 | **Verifier isolation** | `environment_mode = "separate"` + `artifacts = [...]` in `task.toml`; `tests/grade.py` recomputes from artifacts alone |
 | 3 | **Timeout = budget** | the instruction mandates atomic best-so-far writes (temp file + rename), so a deadline kill still grades |
 | 4 | **Score log** | `{"t": sec, "score": x}` lines appended to `score_log.jsonl` — on every improvement at minimum, every self-eval ideally (`metrics.improvements` needs the latter); ingested as untrusted `trace` rows |
 
 Trust is tested, not asserted. `tests/test_task_suite.py` feeds every
-grader its task's cheat vectors — overlapping circles, float-epsilon
+grader its task's cheat cases — overlapping circles, float-epsilon
 violations, forged score claims — and requires exactly zero for each. The
 E2E workflow additionally runs the oracle agent through real containers on
 every first-party task and requires its exact known score.
@@ -107,7 +107,7 @@ metrics. See [components/](components/) for each module's invariants.
 
 ## Extensibility
 
-The frozen surface is deliberately minimal — `Lab.run`'s signature and the
+The frozen interface is deliberately minimal — `Lab.run`'s signature and the
 store schema (columns may be added, never changed) — and the extension
 points are structural rather than speculative:
 
@@ -125,10 +125,11 @@ rewrites of it. None of that machinery exists today, deliberately.
 
 ## Design rules
 
-1. **One frozen surface.** `Lab.run`'s signature and the store schema.
+1. **One frozen interface.** `Lab.run`'s signature and the store schema.
 2. **Tasks stay stock Harbor.** No tide-specific fields in `task.toml`, ever.
-3. **Trust is walled, never assumed.** Trusted scores come only from
-   separate verifiers; anti-hack measures ship with tests that actually cheat.
+3. **Trust is isolated, never assumed.** Trusted scores come only from
+   separate verifiers; every anti-cheating measure ships with tests that
+   actually cheat.
 4. **Persistence lives in data, not processes.** No daemon; idempotent keys
    make any crashed script resumable.
 5. **Abstractions are earned.** A helper enters the library when it has

@@ -19,5 +19,5 @@ validation, no test code to write. Then prove it in containers:
 `harbor trial start -p tasks/autoresearch/my-task`.
 
 Full reference — the grader contract, the `vectors.json` schema (what a
-cheat vector is), network policy, and GPU tasks:
+cheat case is), network policy, and GPU tasks:
 [docs/components/tasks.md](../../docs/components/tasks.md).

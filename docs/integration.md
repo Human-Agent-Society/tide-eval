@@ -1,7 +1,7 @@
 # Evaluating your agent, harness, or method
 
 An "agent" is anything Harbor can run against the task container. Same
-tasks, same wall, same store — numbers stay comparable across methods.
+tasks, same isolated verifier, same store — numbers stay comparable across methods.
 
 ## Level 1 — a supported harness (zero code)
 

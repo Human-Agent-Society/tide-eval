@@ -1,54 +1,66 @@
 # Lab & store
 
-`tide/lab.py` · `tide/store.py` — **the frozen surface**. Everything else in
-tide (and everything users build) depends on exactly two things: the
+`tide/lab.py` · `tide/store.py` — **the frozen interface**: everything else
+in tide, and everything users build, depends on exactly two things — the
 signature of `Lab.run`, and the results table. Change anything here as an
 addition, never a mutation.
 
-## What it does
+## Use it
 
-- `Lab(root, executor=…, concurrency=…)` — a Lab **is a
-  directory**: `results.sqlite` plus (for the Harbor executor) `trials/`.
-- `run(task, agent, *, tags, key, **overrides) → Row` — one episode.
-  Checks the idempotency key, bounds concurrency with a semaphore, executes,
-  stores one `episode` row plus `key#t<i>` `trace` rows for any ingested
-  score trajectory.
-- `df(kind=None)` — the store as pandas, tags/rewards expanded to columns.
+```python
+from tide import Lab
+
+lab = Lab("runs/exp1")  # a Lab IS a directory: results.sqlite + trials/
+
+row = await lab.run(  # one episode = one trusted score
+    "tasks/autoresearch/tsp-tour",
+    agent={"name": "oracle"},
+    tags={"budget": 1},  # free-form tags = your result schema
+)
+rows = await lab.run_many([...])  # many episodes, concurrency-bounded
+df = lab.df("episode")  # the store as pandas
+```
+
+Three things to know about `run`:
+
+- **Idempotency = resume.** The episode key is auto-derived from
+  (task, agent, tags, overrides) — or passed as `key=`. If the key already
+  has a row, nothing executes and the stored row is returned. Re-running a
+  crashed sweep therefore resumes it; that's the whole mechanism.
+- **Trace comes for free.** Any `score_log.jsonl` the episode produced is
+  stored as `<key>#t<i>` rows of kind `trace`, next to the `episode` row.
+- **`**overrides` reach the executor** — for Harbor, these are
+  `TrialConfig` fields (e.g. `verifier={...}`).
 
 ## The row model
 
-| kind | meaning | key shape |
-|---|---|---|
-| `episode` | trusted, verifier-backed score | `<key>` |
-| `trace` | untrusted intermediate score from inside an episode | `<key>#t<i>` |
+| kind | one row per | key shape | trusted |
+|---|---|---|---|
+| `episode` | task × agent × tags | `<key>` | yes — verifier-backed |
+| `trace` | one self-evaluation | `<key>#t<i>` | no — agent-claimed |
 
-`kind` is an open string: future evaluation regimes add new kinds with their
-own key shapes, no schema change.
+`kind` is an open string: a future evaluation regime adds new kinds (with
+their own key shapes) without any schema change.
 
-Column collisions in `df()` are resolved with prefixes (`tag_`, `reward_`) so
-every column stays 1-dimensional — base columns win over tags, tags over
-rewards.
+`df()` expands tags and rewards into columns. On name collisions, base
+columns win over tags, tags over rewards; the losers get a `tag_` /
+`reward_` prefix, so every column stays 1-dimensional.
 
 ## Invariants (do not break)
 
-1. **Append-only.** The only sanctioned delete is `delete_prefix("<key>#")` —
+1. **Append-only.** The one sanctioned delete is `delete_prefix("<key>#")` —
    clearing a retried episode's partial trace before re-running.
-2. **Idempotency is exact.** The auto-key digests (task, agent, tags,
-   overrides); any semantic change to what "the same episode" means is a
-   breaking change for every user's resume behavior.
-3. **Raw rewards only.** Normalization lives in `tide/metrics.py`, applied at
-   query time.
-4. **Duplicate keys raise.** A silent overwrite would corrupt resumes; loud
-   beats lenient here.
+2. **Idempotency is exact.** Changing what "the same episode" means breaks
+   every user's resume behavior.
+3. **Raw scores only.** Normalization lives in `tide/metrics.py`, at query
+   time.
+4. **Duplicate keys raise.** A silent overwrite would corrupt resumes.
 
-## How to modify
+## Extend it
 
-- **New row kind** (e.g. `audit` for re-graded trajectories): add the kind
-  string, write rows with a distinct key shape, filter with `df(kind=…)`.
-  No schema change needed.
-- **New key policy**: pass `key=` explicitly from your script — do not change
+- **New row kind**: pick a kind string and a distinct key shape, write rows,
+  filter with `df(kind=…)`. No schema change.
+- **New key policy**: pass `key=` from your script — don't change
   `_default_key`.
-- **New backend**: that's an executor, not a Lab change — see
-  [executors.md](executors.md).
-- **Schema additions**: new columns are fine (idempotency: old rows read as
-  NULL); renames/type changes are forbidden.
+- **New backend**: that's an [executor](executors.md), not a Lab change.
+- **New columns**: fine (old rows read as NULL). Renames/retypes: never.
