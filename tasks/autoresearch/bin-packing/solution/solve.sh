@@ -1,9 +1,8 @@
 #!/bin/bash
 # Oracle: first-fit — valid, reward exactly 1.0. Proves the pipeline.
 set -euo pipefail
-mkdir -p /app/best
 python3 - <<'PY'
-import json, os
+import json
 from pathlib import Path
 data = json.loads(Path("/app/items.json").read_text())
 items, cap = data["items"], data["capacity"]
@@ -14,8 +13,12 @@ for i, s in enumerate(items):
             bins[k].append(i); loads[k] += s; break
     else:
         bins.append([i]); loads.append(s)
-Path("/app/best/solution.json.tmp").write_text(json.dumps({"bins": bins}))
-os.rename("/app/best/solution.json.tmp", "/app/best/solution.json")
+Path("/tmp/solution.json").write_text(json.dumps({"bins": bins}))
 PY
-echo '{"t": 1.0, "score": 1.0}' >> /app/best/score_log.jsonl
-python3 /app/scorer.py /app/best/solution.json
+python3 - <<'PY'
+import json, os, urllib.request
+req = urllib.request.Request(
+    os.environ["JUDGE_URL"] + "/submit", data=open("/tmp/solution.json", "rb").read()
+)
+print(json.loads(urllib.request.urlopen(req, timeout=60).read()))
+PY

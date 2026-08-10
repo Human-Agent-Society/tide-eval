@@ -1,32 +1,35 @@
-"""The in-container half of the minimal harness: random search, pure stdlib.
+"""The smallest possible method under the judge protocol: random search.
 
-This is what an autoresearch "method" looks like from inside the task
-container. It speaks the task contract and nothing else:
+Pure stdlib, no LLM, no keys. It shows the whole contract from the
+method's side: generate candidates, POST them to ``$JUDGE_URL/submit``,
+read the score that comes back — the judge's response IS the feedback —
+and stop when the time budget or the submission budget runs out.
 
-- call the task's public scorer (``/app/scorer.py``) as its feedback signal;
-- keep the best solution atomically written to ``/app/best/solution.json``;
-- append one line per improvement to ``/app/best/score_log.jsonl``.
-
-No LLM, no API keys — it samples random candidates until the budget ends.
-``APP`` and ``BUDGET_SEC`` are env-overridable so the same script runs
-against a local copy of the scorer in tests.
+Written for the circle-packing task; the protocol is identical for every
+task, only the solution format changes.
 """
 
 import json
 import os
 import random
-import sys
 import time
+import urllib.error
+import urllib.request
 
-APP = os.environ.get("APP", "/app")
+JUDGE_URL = os.environ["JUDGE_URL"]
 BUDGET_SEC = float(os.environ.get("BUDGET_SEC", "30"))
 
-sys.path.insert(0, APP)
-from scorer import score  # noqa: E402 — the task's public scorer
 
-best_path = os.path.join(APP, "best", "solution.json")
-log_path = os.path.join(APP, "best", "score_log.jsonl")
-cand_path = os.path.join(APP, "best", ".candidate.json")
+def submit(solution: dict) -> dict | None:
+    request = urllib.request.Request(
+        JUDGE_URL + "/submit", data=json.dumps(solution).encode()
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return json.loads(response.read())
+    except urllib.error.HTTPError:
+        return None  # 429 — out of submissions, stop searching
+
 
 t0 = time.monotonic()
 best = 0.0
@@ -34,15 +37,9 @@ while time.monotonic() - t0 < BUDGET_SEC:
     circles = [
         [random.random(), random.random(), random.uniform(0.02, 0.35)] for _ in range(3)
     ]
-    with open(cand_path, "w") as f:
-        json.dump({"circles": circles}, f)
-    s = score(cand_path)
-    if s > best:
-        best = s
-        os.replace(cand_path, best_path)  # atomic: same directory
-        with open(log_path, "a") as f:
-            f.write(
-                json.dumps({"t": round(time.monotonic() - t0, 3), "score": s}) + "\n"
-            )
+    result = submit({"circles": circles})
+    if result is None:
+        break
+    best = result["best"]
 
-print(f"random search done: best={best:.4f}")
+print(f"random search done: best={best}")

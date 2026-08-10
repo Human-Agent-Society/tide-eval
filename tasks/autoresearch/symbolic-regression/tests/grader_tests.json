@@ -5,9 +5,54 @@
       "solution": {
         "expr": "0.5 * x**2"
       },
+      "reward": 0.5807589364237363,
+      "tolerance": 1e-09,
+      "why": "the reference expression's score on the TRAINING points (the session score)"
+    },
+    {
+      "solution": {
+        "expr": "__import__('os').system('id')"
+      },
+      "reward": 0.0,
+      "why": "code injection in the expression must be rejected"
+    },
+    {
+      "solution": {
+        "expr": "().__class__"
+      },
+      "reward": 0.0,
+      "why": "an attribute-based sandbox escape must be rejected"
+    },
+    {
+      "solution": {
+        "expr": "exp(exp(exp(x + 100)))"
+      },
+      "reward": 0.0,
+      "why": "non-finite values must be rejected"
+    },
+    {
+      "solution": {
+        "expr": 42
+      },
+      "reward": 0.0,
+      "why": "a non-string expression must be rejected"
+    },
+    {
+      "solution": {
+        "formula": "x"
+      },
+      "reward": 0.0,
+      "why": "malformed input must score zero, not crash"
+    }
+  ],
+  "final_cases": [
+    {
+      "solution": {
+        "expr": "0.5 * x**2"
+      },
       "reward": 0.604169977748831,
       "tolerance": 1e-09,
-      "why": "the reference solution scores exactly this"
+      "why": "the reference expression's score on the HELD-OUT points"
     },
     {
       "solution": {

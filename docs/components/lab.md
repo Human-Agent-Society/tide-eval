@@ -27,8 +27,9 @@ Three things to know about `run`:
   (task, agent, tags, overrides) — or passed as `key=`. If the key already
   has a row, nothing executes and the stored row is returned. Re-running a
   crashed sweep therefore resumes it; that's the whole mechanism.
-- **Trace comes for free.** Any `score_log.jsonl` the episode produced is
-  stored as `<key>#t<i>` rows of kind `trace`, next to the `episode` row.
+- **Trace comes for free.** The judge's submission ledger is stored as
+  `<key>#t<i>` rows of kind `trace`, next to the `episode` row — every
+  point judge-scored, so the curve is trusted.
 - **`**overrides` reach the executor** — for Harbor, these are
   `TrialConfig` fields (e.g. `verifier={...}`).
 
@@ -52,10 +53,10 @@ printed report; a Lab is the ledger those reports are booked into.
 
 ## The row model
 
-| kind | one row per | key shape | trusted |
+| kind | one row per | key shape | source |
 |---|---|---|---|
-| `episode` | one task run (= one Harbor trial) | `<key>` | yes — verifier-backed |
-| `trace` | one self-evaluation | `<key>#t<i>` | no — agent-claimed |
+| `episode` | one task run (= one Harbor trial) | `<key>` | the judge's final verdict |
+| `trace` | one submission | `<key>#t<i>` | the judge's ledger |
 
 `kind` is an open string: a future evaluation regime adds new kinds (with
 their own key shapes) without any schema change.

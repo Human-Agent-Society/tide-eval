@@ -288,7 +288,7 @@ def main(argv: list[str] | None = None) -> int:
         "--command",
         default=None,
         metavar="CMD",
-        help="the shell command --local runs; it reads $APP and $BUDGET_SEC",
+        help="the shell command --local runs; it reads $JUDGE_URL and $BUDGET_SEC",
     )
     p_run.set_defaults(func=cmd_run)
 

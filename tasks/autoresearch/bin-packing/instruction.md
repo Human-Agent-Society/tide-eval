@@ -7,21 +7,27 @@ item into as few bins as possible.
 heuristic scores exactly 1.0; every bin you save pushes the reward above 1.0.
 (First-fit-decreasing and smarter searches do save bins here.)
 
-## Output format
-
-Write your best packing to `/app/best/solution.json`:
+## Solution format
 
 ```json
 {"bins": [[0, 7, 12], [1, 3], ...]}
 ```
 
 Item indices, each appearing exactly once; every bin's sizes must sum to
-≤ 100. A scorer is provided: `python /app/scorer.py /app/best/solution.json`.
-The final grade is recomputed independently — invalid packings score 0.
+≤ 100. Invalid packings score 0.
 
-## Protocol
+## How you are scored
 
-- Whenever you save a bin, **atomically** rewrite
-  `/app/best/solution.json` (temp file + rename); only that file is graded.
-- On each improvement, append `{"t": <seconds since start>, "score": <s>}`
-  to `/app/best/score_log.jsonl`.
+Submit your solution file to the judge — your final score is your **best
+submission** (`$JUDGE_URL` is set in your environment):
+
+```bash
+curl -s -X POST --data-binary @solution.json "$JUDGE_URL/submit"
+# → {"n": 0, "score": ..., "reason": "...", "best": ..., "remaining": ...}
+curl -s "$JUDGE_URL/status"
+```
+
+You have a **limited number of submissions** (see `remaining`) — evaluate
+candidates yourself however you like, and spend submissions on the ones
+worth scoring. Being stopped at the deadline is normal; your best
+submission so far is what counts.

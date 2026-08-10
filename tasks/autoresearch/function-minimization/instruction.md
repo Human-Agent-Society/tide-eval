@@ -9,24 +9,28 @@ f(x, y) = sin²(3πx) + (x−1)²(1 + sin²(3πy)) + (y−1)²(1 + sin²(2πy))
 It is deceptive: gradient descent from most starts lands in one of many local
 minima. Your **reward is 1 / (1 + f(x, y))** — the global optimum scores 1.0.
 
-## Output format
-
-Write your best point to `/app/best/solution.json`:
+## Solution format
 
 ```json
 {"x": 0.0, "y": 0.0}
 ```
 
-A scorer is provided: `python /app/scorer.py /app/best/solution.json`.
-Call it as often as you like; the final grade is recomputed independently.
 Coordinates must be finite and within |v| ≤ 100.
 
-## Protocol
+## How you are scored
 
-- Whenever you find a better point, **atomically** rewrite
-  `/app/best/solution.json` (write a temp file, then rename). You may be
-  stopped at any moment; only that file is graded.
-- On each improvement, append `{"t": <seconds since start>, "score": <s>}`
-  to `/app/best/score_log.jsonl`.
+Submit your solution file to the judge — your final score is your **best
+submission** (`$JUDGE_URL` is set in your environment):
+
+```bash
+curl -s -X POST --data-binary @solution.json "$JUDGE_URL/submit"
+# → {"n": 0, "score": ..., "reason": "...", "best": ..., "remaining": ...}
+curl -s "$JUDGE_URL/status"
+```
+
+You have a **limited number of submissions** (see `remaining`) — evaluate
+candidates yourself however you like, and spend submissions on the ones
+worth scoring. Being stopped at the deadline is normal; your best
+submission so far is what counts.
 
 Baseline for reference: the origin (0, 0) scores 1/3.

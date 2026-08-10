@@ -9,8 +9,9 @@ Recover a hidden formula from samples; reward = 1/(1+RMSE) on HELD-OUT points.
 | **Run it** | `await lab.run("tasks/autoresearch/symbolic-regression", {"name": "oracle"})` |
 | **Verify standalone** | `harbor trial start -p tasks/autoresearch/symbolic-regression` |
 
-**What this task teaches:** Held-out grading against overfitting: the agent optimizes against training points, the grader scores points the agent never saw. Expressions run through an AST whitelist, never eval().
+**What this task teaches:** The final judge: the session judge scores training points, and a final judge scores the best submission once on held-out points the agent never saw — no submission budget can probe them. Expressions run through an AST whitelist, never eval().
 
-Files: `instruction.md` (what the agent sees) · `environment/` (its world,
-scorer included) · `tests/` (the separate-verifier grader + `grader_tests.json`
-cheat suite) · `solution/` (the oracle baseline).
+Files: `instruction.md` (the problem + the submission protocol) ·
+`environment/` (the agent's container, plus the judge: `score.py`, budget,
+sidecar wiring) · `tests/grader_tests.json` (the scoring rule's cheat
+suite) · `solution/` (the reference solution; submits once).

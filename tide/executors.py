@@ -5,10 +5,10 @@ The Lab doesn't care how — that indirection is what keeps the core testable
 without Docker and lets the same orchestration drive containers today and
 anything else later.
 
-- :class:`HarborExecutor` — the benchmark run: containers, isolated
+- :class:`HarborExecutor` — the benchmark run: containers, judge sidecar,
   verifier. Harbor is imported lazily so the rest of tide works without it.
-- :class:`LocalExecutor` — the development run: the real scorer and grader
-  on this machine, no containers.
+- :class:`LocalExecutor` — the development run: the task's real judge as a
+  local process, no containers.
 - :class:`FakeExecutor` — deterministic, instant, dependency-free. Used by
   the test suite and the quickstart demo.
 """
@@ -16,18 +16,21 @@ anything else later.
 from __future__ import annotations
 
 import asyncio
-import importlib.util
+import json
 import os
-import shutil
+import socket
 import subprocess
+import sys
 import tempfile
+import time
 import tomllib
+import urllib.request
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Protocol
 
-from tide.score_log import load_trace
-from tide.types import EpisodeResult, EpisodeSpec
+from tide.ledger import load_trace
+from tide.types import EpisodeResult, EpisodeSpec, TracePoint
 
 
 class Executor(Protocol):
@@ -78,32 +81,25 @@ class HarborExecutor:
         return EpisodeResult(
             rewards=dict(rewards),
             uri=result.trial_uri,
-            trace=tuple(load_trace(trial.paths.artifacts_dir)),
+            trace=tuple(load_trace(trial.paths.trial_dir)),
             error=error,
         )
 
 
 class LocalExecutor:
-    """Runs episodes on this machine — real scorer, real grader, no Docker.
+    """Runs episodes on this machine — the task's real judge, no Docker.
 
-    The task contract is identical to the container run, with one
-    substitution: ``APP`` is a temp directory on the host instead of
-    ``/app``. Your command finds ``scorer.py`` at ``$APP/scorer.py``, writes
-    its best solution to ``$APP/best/solution.json``, and gets its time
-    budget as ``$BUDGET_SEC``; being killed at the deadline is a normal
-    ending. Afterwards ``tests/grade.py`` is imported and called directly on
-    the artifact.
+    The contract is identical to the container run: the same
+    ``judge_server.py`` that runs as a sidecar in containers is started as a
+    local process, your command gets ``$JUDGE_URL`` (and ``$BUDGET_SEC``)
+    and submits solutions to it, and the final result is the judge's
+    verdict. Being killed at the deadline is a normal ending.
 
-    This is the development loop: fast, dependency-free, and honest about
-    what it is — nothing is isolated, so every row's ``uri`` says
-    ``local://`` and local numbers should never be reported as benchmark
-    results. Works for any task that follows the template layout
-    (``environment/scorer.py`` + ``tests/grade.py``); image-based tasks
-    (EdgeBench, FrontierCS) need containers.
-
-    ``spec.agent`` needs a ``command`` (a shell command — the CLI flag is
-    ``--command``) and may carry ``override_timeout_sec``; otherwise the
-    budget comes from the task's ``[agent] timeout_sec``.
+    Fast and dependency-free — the development loop. Local rows carry a
+    ``local://`` uri because the judge ran on a machine the agent also
+    controls; report container numbers. Works for any task following the
+    template layout (``environment/judge_server.py`` + ``score.py``);
+    image-based tasks (EdgeBench, FrontierCS) need containers.
     """
 
     def __init__(self, root: Path | str | None = None):
@@ -113,13 +109,15 @@ class LocalExecutor:
 
     async def execute(self, spec: EpisodeSpec) -> EpisodeResult:
         task_dir = Path(spec.task)
-        scorer = task_dir / "environment" / "scorer.py"
-        grader_path = task_dir / "tests" / "grade.py"
-        if not (scorer.is_file() and grader_path.is_file()):
+        judge_dir = task_dir / "environment"
+        if not (
+            (judge_dir / "judge_server.py").is_file()
+            and (judge_dir / "score.py").is_file()
+        ):
             return EpisodeResult(
                 rewards={},
                 error=f"{spec.task} does not follow the template layout "
-                "(environment/scorer.py + tests/grade.py) — run it in containers",
+                "(environment/judge_server.py + score.py) — run it in containers",
             )
         command = spec.agent.get("command")
         if not command:
@@ -135,49 +133,81 @@ class LocalExecutor:
             budget = config.get("agent", {}).get("timeout_sec", 600.0)
 
         workdir = Path(tempfile.mkdtemp(prefix=f"{task_dir.name}-", dir=self.root))
-        for item in (task_dir / "environment").iterdir():
-            if item.name == "Dockerfile":
-                continue
-            if item.is_dir():
-                shutil.copytree(item, workdir / item.name)
-            else:
-                shutil.copy(item, workdir / item.name)
-        (workdir / "best").mkdir(exist_ok=True)
-
-        error = None
+        port = _free_port()
+        judge = subprocess.Popen(
+            [sys.executable, str(judge_dir / "judge_server.py")],
+            env={
+                **os.environ,
+                "PORT": str(port),
+                "JUDGE_DIR": str(judge_dir),
+                "DATA_DIR": str(workdir / "judge_data"),
+            },
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        judge_url = f"http://127.0.0.1:{port}"
         try:
-            # The command runs from the caller's cwd (so its relative paths
-            # work); the task's files are reached through $APP.
-            proc = await asyncio.to_thread(
-                subprocess.run,
-                command,
-                shell=True,
-                env={**os.environ, "APP": str(workdir), "BUDGET_SEC": str(budget)},
-                timeout=float(budget),
-                capture_output=True,
-                text=True,
-            )
-            if proc.returncode != 0:
-                error = f"agent command exited {proc.returncode}: {proc.stderr[-500:]}"
-        except subprocess.TimeoutExpired:
-            pass  # budget spent — a normal ending
+            await asyncio.to_thread(_wait_healthy, judge_url)
 
-        artifact = workdir / "best" / "solution.json"
-        grade = self._load_grader(grader_path, workdir.name)
-        result = grade(artifact if artifact.exists() else None)
+            error = None
+            try:
+                proc = await asyncio.to_thread(
+                    subprocess.run,
+                    command,
+                    shell=True,
+                    env={
+                        **os.environ,
+                        "JUDGE_URL": judge_url,
+                        "BUDGET_SEC": str(budget),
+                    },
+                    timeout=float(budget),
+                    capture_output=True,
+                    text=True,
+                )
+                if proc.returncode != 0:
+                    error = (
+                        f"agent command exited {proc.returncode}: {proc.stderr[-500:]}"
+                    )
+            except subprocess.TimeoutExpired:
+                pass  # budget spent — a normal ending
+
+            final = await asyncio.to_thread(_get_json, f"{judge_url}/final")
+        finally:
+            judge.kill()
+
+        ledger = final.get("ledger", [])
+        with (workdir / "ledger.jsonl").open("w") as f:
+            for entry in ledger:
+                f.write(json.dumps({"t": entry["t"], "score": entry["score"]}) + "\n")
         return EpisodeResult(
-            rewards={"reward": float(result["reward"])},
+            rewards={"reward": float(final["reward"])},
             uri=f"local://{workdir}",
-            trace=tuple(load_trace(workdir)),
+            trace=tuple(TracePoint(t=e["t"], score=e["score"]) for e in ledger),
             error=error,
         )
 
-    @staticmethod
-    def _load_grader(grader_path: Path, unique: str):
-        spec = importlib.util.spec_from_file_location(f"grade_{unique}", grader_path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        return module.grade
+
+def _free_port() -> int:
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
+def _wait_healthy(judge_url: str, timeout_sec: float = 10.0) -> None:
+    deadline = time.monotonic() + timeout_sec
+    while True:
+        try:
+            urllib.request.urlopen(f"{judge_url}/health", timeout=2)
+            return
+        except Exception as e:
+            if time.monotonic() > deadline:
+                raise RuntimeError(f"judge at {judge_url} never became healthy") from e
+            time.sleep(0.05)
+
+
+def _get_json(url: str) -> dict:
+    with urllib.request.urlopen(url, timeout=60) as resp:
+        return json.loads(resp.read())
 
 
 class FakeExecutor:
@@ -185,7 +215,7 @@ class FakeExecutor:
 
     ``score`` maps a spec to rewards; the default scores by a stable hash of
     the task name so demos produce varied but reproducible numbers. ``trace``
-    optionally fabricates a score log per spec.
+    optionally fabricates a submission ledger per spec.
     """
 
     def __init__(

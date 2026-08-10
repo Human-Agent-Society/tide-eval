@@ -24,16 +24,16 @@ class Executor(Protocol):
 
 ## Shipped
 
-- **`HarborExecutor(trials_dir)`** — the real one. Builds a `TrialConfig`
-  (the agent dict passes to Harbor's `AgentConfig` verbatim; `overrides`
-  onto `TrialConfig` fields), runs the trial, ingests `score_log.jsonl`
-  into `trace`. Harbor is imported lazily, so the rest of tide works
-  without it installed.
-- **`LocalExecutor(root=…)`** — the development run: executes your
-  `command` on this machine with `$APP` and `$BUDGET_SEC` set, then imports
-  the task's `grade.py` and scores the artifact directly. Real numbers, no
-  containers, no isolation — rows carry a `local://` uri so they can never
-  be mistaken for benchmark results.
+- **`HarborExecutor(trials_dir)`** — the benchmark run. Builds a
+  `TrialConfig` (the agent dict passes to Harbor's `AgentConfig` verbatim;
+  `overrides` onto `TrialConfig` fields), runs the trial with the judge as
+  a sidecar, ingests the judge's ledger into `trace`. Harbor is imported
+  lazily, so the rest of tide works without it installed.
+- **`LocalExecutor(root=…)`** — the development run: starts the task's own
+  `judge_server.py` as a local process, runs your `command` with
+  `$JUDGE_URL` and `$BUDGET_SEC` set, and takes the judge's final verdict.
+  The same judge code as containers, no Docker — rows carry a `local://`
+  uri because the judge ran on a machine the agent also controls.
 - **`FakeExecutor(score=…, trace=…)`** — deterministic and instant; powers
   the test suite, `--fake`, and the offline examples. Records `calls` for
   assertions.

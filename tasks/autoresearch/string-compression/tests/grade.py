@@ -1,90 +1,39 @@
-"""Trusted grader — teaching point: grading code the agent SHIPS, safely.
+"""The verifier's whole job under the judge protocol: ask the judge for the
+final result and write it down.
 
-The artifact contains a decompressor program plus a payload. The grader runs
-the decompressor in a subprocess and requires a byte-exact round trip;
-reward = corpus bytes / (decompressor source bytes + payload string bytes).
+Generic — task authors never edit this file. It runs inside the task
+environment after the agent's budget ends, calls ``GET $JUDGE_URL/final``
+(final.py on the best submission if the task has one, else the best
+session score), and writes:
 
-Walls:
-- the reference corpus is loaded into memory and every on-disk copy the
-  verifier container holds is DELETED before the decompressor runs, so
-  "decompress by reading the reference file" finds nothing;
-- the subprocess gets a hard timeout and an empty temp cwd.
+- ``/logs/verifier/reward.json``  — ``{"reward": <float>}``
+- ``/logs/verifier/reason.txt``   — the human-readable reason
+- ``/logs/verifier/ledger.jsonl`` — one ``{"t", "score"}`` line per
+  submission; tide ingests these as the trusted score-over-time curve.
 """
 
 import json
-import subprocess
-import sys
-import tempfile
+import os
+import urllib.request
 from pathlib import Path
 
-REWARD_PATH = Path("/logs/verifier/reward.json")
-CORPUS = (Path(__file__).parent / "corpus.txt").read_text()
-TIMEOUT_SEC = 15
-MAX_DECOMPRESSOR_BYTES = 100_000
+VERIFIER_DIR = Path("/logs/verifier")
 
 
-def _delete_reference_copies() -> None:
-    """Remove every corpus copy the verifier container might hold (no-op on
-    dev machines, where these absolute paths don't exist)."""
-    import contextlib
-
-    for path in (Path("/tests/corpus.txt"), Path("/app/corpus.txt")):
-        with contextlib.suppress(OSError):
-            path.unlink(missing_ok=True)
-
-
-def find_artifact() -> Path | None:
-    canonical = Path("/app/best/solution.json")
-    if canonical.exists():
-        return canonical
-    hits = sorted(Path("/logs/artifacts").rglob("solution.json"))
-    return hits[0] if hits else None
-
-
-def grade(artifact: Path | None) -> dict:
-    if artifact is None or not Path(artifact).exists():
-        return {"reward": 0.0, "reason": "no solution.json artifact"}
+def finalize(judge_url: str) -> dict:
     try:
-        solution = json.loads(Path(artifact).read_text())
-        decompressor, payload = solution["decompressor"], solution["payload"]
-        if not isinstance(decompressor, str) or not isinstance(payload, str):
-            raise TypeError("decompressor and payload must be strings")
-    except (KeyError, ValueError, TypeError) as e:
-        return {"reward": 0.0, "reason": f"malformed solution: {e}"}
-    if len(decompressor.encode()) > MAX_DECOMPRESSOR_BYTES:
-        return {"reward": 0.0, "reason": "decompressor too large"}
-
-    _delete_reference_copies()
-
-    with tempfile.TemporaryDirectory() as tmp:
-        program = Path(tmp) / "decompress.py"
-        program.write_text(f"PAYLOAD = {payload!r}\n" + decompressor)
-        try:
-            run = subprocess.run(
-                [sys.executable, str(program)],
-                capture_output=True,
-                text=True,
-                timeout=TIMEOUT_SEC,
-                cwd=tmp,
-            )
-        except subprocess.TimeoutExpired:
-            return {"reward": 0.0, "reason": f"decompressor exceeded {TIMEOUT_SEC}s"}
-    if run.returncode != 0:
-        return {"reward": 0.0, "reason": f"decompressor failed: {run.stderr[:200]}"}
-    if run.stdout != CORPUS:
-        return {"reward": 0.0, "reason": "round trip is not byte-exact"}
-
-    compressed = len(decompressor.encode()) + len(payload.encode())
-    return {
-        "reward": len(CORPUS.encode()) / compressed,
-        "compressed_bytes": compressed,
-    }
+        with urllib.request.urlopen(f"{judge_url}/final", timeout=60) as resp:
+            return json.loads(resp.read())
+    except Exception as e:
+        return {"reward": 0.0, "reason": f"judge unreachable: {e!r}", "ledger": []}
 
 
 if __name__ == "__main__":
-    result = grade(find_artifact())
-    reason = result.pop("reason", "")
-    REWARD_PATH.parent.mkdir(parents=True, exist_ok=True)
-    REWARD_PATH.write_text(json.dumps(result))
-    (REWARD_PATH.parent / "reason.txt").write_text(reason or "ok")
-    print(json.dumps(result), reason)
+    result = finalize(os.environ.get("JUDGE_URL", "http://judge:8082"))
+    VERIFIER_DIR.mkdir(parents=True, exist_ok=True)
+    (VERIFIER_DIR / "reward.json").write_text(json.dumps({"reward": result["reward"]}))
+    (VERIFIER_DIR / "reason.txt").write_text(result.get("reason") or "ok")
+    with (VERIFIER_DIR / "ledger.jsonl").open("w") as f:
+        for entry in result.get("ledger", []):
+            f.write(json.dumps({"t": entry["t"], "score": entry["score"]}) + "\n")
+    print(json.dumps({"reward": result["reward"]}), result.get("reason", ""))

@@ -9,12 +9,12 @@
 [English](README.md) | **中文**
 
 Autoresearch 任务——AlphaEvolve / OpenEvolve 那一类工作负载——是开放式优化
-问题:数小时的预算、连续的分数、一个在过程中给自己打几百次分的 agent。这里没有"通过/不通过",只有*多好、多快*。tide 把这
-种形态的评测做扎实:
+问题:数小时的预算、连续的分数、一个持续迭代逼近更优解的 agent。这里没有
+"通过/不通过",只有*多好、多快*。tide 把这种形态的评测做扎实:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-hero-dark.svg">
-  <img src="docs/assets/readme-hero-light.svg" alt="The agent scores itself while it searches, but its own scores are not trusted. Its best solution crosses to an isolated verifier, which re-scores it while ignoring what the agent claimed. The trusted score and the agent's own scores land in one table, with score over time as a curve — the curve self-reported, its endpoint verified." width="100%">
+  <img src="docs/assets/readme-hero-light.svg" alt="The agent searches however it likes and submits what is worth scoring, within a submission limit. The judge holds all scoring code and data and scores every submission into a ledger. An optional final judge with hidden tests runs once on the best submission and locks the session. The reward and the ledger land in one table that accumulates across runs." width="100%">
 </picture>
 
 任务是 100% 原生 Harbor 任务(有测试强制保证)。agent 是任何能在容器里工作
@@ -28,7 +28,7 @@ tide 正是把它当库来做这件事。而 autoresearch 在此之上还需要�
 
 | 直接用 Harbor | tide |
 |---|---|
-| 每次 trial 只有一个 reward 数字,agent 的自评曲线丢了 | score log 变成 `trace` 行:anytime 曲线、AUC、到达阈值的时间各是一个查询 |
+| 每次 trial 只有一个 reward 数字,过程信息丢了 | 每次提交都由 judge 打分记入账本:anytime 曲线、AUC、到达阈值的时间各是一个查询,而且每个点都可信 |
 | 统计只在单个 job 内部(pass@k) | 预算是普通标签,"8 小时比 2 小时多买到多少分"是跨任意 run 集合的一个查询 |
 | sweep 崩了从零重来 | 幂等键让重跑自动跳过已完成的 episode——当一个 episode 要跑几小时,这是刚需 |
 | 每次运行是一个一次性 job 目录 | 一个 append-only 结果库按周累积,`tide report` 直接读 |
@@ -54,23 +54,23 @@ tide report                              # 汇总结果库
 
 ### 没有 Docker?本地开发,容器验证
 
-`--local` 让你的方法在本机直接对着任务**真实的 scorer 和真实的 grader**运行,
-完全不涉及容器:
+`--local` 在本机把任务**自己的 judge**作为进程启动,让你的命令直接对着它
+运行,完全不涉及容器:
 
 ```bash
 tide run autoresearch/circle-packing --local \
   --command "python examples/minimal_harness_search.py" --budget 0.01
 ```
 
-你的命令读两个环境变量——`$APP`(工作目录,`scorer.py` 和 `best/` 都在里面)
-和 `$BUDGET_SEC`——命令结束(或被预算掐掉)后,任务真实的 `grade.py` 给它留
-下的产物打分。本地行的 uri 标记为 `local://`,因为没有任何隔离:它用于开发你
-的方法,正式报告的数字应来自容器运行。(`python examples/quickstart.py` 和
+你的命令读 `$JUDGE_URL` 和 `$BUDGET_SEC`,把解 POST 到
+`$JUDGE_URL/submit`,judge 的裁决就是结果——和容器里作为 sidecar 运行的是
+同一份 judge 代码。本地行的 uri 标记为 `local://`,因为 judge 跑在 agent 也
+能控制的机器上:本地开发,报容器数字。(`python examples/quickstart.py` 和
 `--fake` 依然零依赖可用,但它们的分数是模拟的。)
 
 有 Docker 之后,`python examples/run_circle_packing.py` 端到端验证真实流水线
 ——oracle 必须恰好得 0.75 分——而 `python examples/minimal_harness.py` 是最小
-的完整容器 harness:三十行左右的适配器,包着同一个随机搜索循环。
+的完整容器 harness:二十五行左右的适配器,包着同一个随机搜索循环。
 
 ## 用 API
 
@@ -89,7 +89,7 @@ row = await lab.run(
 )
 row.rewards  # 可信分数          row.uri → 可审计的 trial 目录
 
-curve = metrics.anytime(lab.df("trace"))  # agent 自己的分数随时间的变化
+curve = metrics.anytime(lab.df("trace"))  # judge 账本上的分数随时间的变化
 metrics.auc(curve)  # anytime 分数
 metrics.scaling(lab.df("episode"), by=["model"])  # 更多预算买到多少分?
 ```
@@ -100,17 +100,17 @@ metrics.scaling(lab.df("episode"), by=["model"])  # 更多预算买到多少分?
 
 ## 接入*你的* agent
 
-无论用哪种方式接入,任务、隔离的 verifier、结果库都完全相同——所以不同方法
-的数字可以直接比较:
+每个任务都给你的 agent 一个 `$JUDGE_URL` 和一份提交额度;无论用哪种方式
+接入,任务、judge、结果库都完全相同——所以不同方法的数字可以直接比较:
 
 | 你有什么 | 接入方式 |
 |---|---|
 | 主流 harness(`claude-code`、`codex`、`aider` 等) | `--agent <名字> --model <模型>`,零代码 |
 | 你自己的 harness | 一个 `BaseAgent` 子类,用 `import_path` 引用——可运行的模板:[`examples/minimal_harness.py`](examples/minimal_harness.py) |
-| 根本不是 "agent" 的方法(OpenEvolve 式搜索、求解器) | 把最优解保持写在产物路径上,可选地记录自评分数 |
+| 根本不是 "agent" 的方法(OpenEvolve 式搜索、求解器) | 把候选解 POST 到 `$JUDGE_URL/submit`,收到 429 就停——约 20 行 |
 
-六个第一方任务的容器内契约完全一致,一次接入覆盖全套。唯一不能自带的是
-grader。完整指南(`BaseAgent` 骨架 + OpenEvolve 实例):
+所有任务的协议完全一致,一次接入覆盖全套。唯一不能自带的是 judge。完整
+指南(`BaseAgent` 骨架 + OpenEvolve 接法):
 **[docs/integration.md](docs/integration.md)**。
 
 ## 定义新任务
@@ -121,8 +121,9 @@ pytest tests/test_task_suite.py          # 自动被识别——而且直接是�
 ```
 
 模板本身就是一个完整可跑的任务,所以你从全绿开始,一次替换一个
-`TODO(task)` 标记的部分(配置、题面、公开 scorer、私有 grader、作弊用例、
-参考解)。GPU 任务只多两行配置。指南:
+`TODO(task)` 标记的部分:题面、judge 对每次提交运行的那一份 `score.py`、
+提交额度、作弊用例、参考解——可选地再加一个 `final.py`(hidden tests,只
+在最优提交上跑一次)。GPU 任务只多两行配置。指南:
 **[docs/components/tasks.md](docs/components/tasks.md)**。
 
 ## 任务目录
@@ -143,7 +144,7 @@ pytest tests/test_task_suite.py          # 自动被识别——而且直接是�
 | [`function-minimization`](tasks/autoresearch/function-minimization) | 探索 vs 局部搜索 |
 | [`tsp-tour`](tasks/autoresearch/tsp-tour) | 组合搜索、连续信号 |
 | [`bin-packing`](tasks/autoresearch/bin-packing) | 精确约束检查 |
-| [`symbolic-regression`](tasks/autoresearch/symbolic-regression) | 防过拟合:用 agent 没见过的点判分 |
+| [`symbolic-regression`](tasks/autoresearch/symbolic-regression) | final judge:session 用训练点,最终分用 agent 没见过的点 |
 | [`string-compression`](tasks/autoresearch/string-compression) | 安全地给 agent 提交的代码判分 |
 
 ## Roadmap

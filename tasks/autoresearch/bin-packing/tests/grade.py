@@ -1,60 +1,39 @@
-"""Trusted grader: validates the packing exactly, recomputes the first-fit
-baseline from the same pinned item set. Reward = first-fit bins / your bins;
-1.0 = as good as first-fit, above 1.0 = genuinely better."""
+"""The verifier's whole job under the judge protocol: ask the judge for the
+final result and write it down.
+
+Generic — task authors never edit this file. It runs inside the task
+environment after the agent's budget ends, calls ``GET $JUDGE_URL/final``
+(final.py on the best submission if the task has one, else the best
+session score), and writes:
+
+- ``/logs/verifier/reward.json``  — ``{"reward": <float>}``
+- ``/logs/verifier/reason.txt``   — the human-readable reason
+- ``/logs/verifier/ledger.jsonl`` — one ``{"t", "score"}`` line per
+  submission; tide ingests these as the trusted score-over-time curve.
+"""
 
 import json
+import os
+import urllib.request
 from pathlib import Path
 
-REWARD_PATH = Path("/logs/verifier/reward.json")
-_DATA = json.loads((Path(__file__).parent / "items.json").read_text())
-ITEMS, CAPACITY = _DATA["items"], _DATA["capacity"]
+VERIFIER_DIR = Path("/logs/verifier")
 
 
-def first_fit_bins() -> int:
-    bins: list[int] = []
-    for size in ITEMS:
-        for i, load in enumerate(bins):
-            if load + size <= CAPACITY:
-                bins[i] += size
-                break
-        else:
-            bins.append(size)
-    return len(bins)
-
-
-def find_artifact() -> Path | None:
-    canonical = Path("/app/best/solution.json")
-    if canonical.exists():
-        return canonical
-    hits = sorted(Path("/logs/artifacts").rglob("solution.json"))
-    return hits[0] if hits else None
-
-
-def grade(artifact: Path | None) -> dict:
-    if artifact is None or not Path(artifact).exists():
-        return {"reward": 0.0, "reason": "no solution.json artifact"}
+def finalize(judge_url: str) -> dict:
     try:
-        bins = json.loads(Path(artifact).read_text())["bins"]
-        bins = [[int(i) for i in b] for b in bins]
-    except (KeyError, ValueError, TypeError) as e:
-        return {"reward": 0.0, "reason": f"malformed solution: {e}"}
-
-    placed = sorted(i for b in bins for i in b)
-    if placed != list(range(len(ITEMS))):
-        return {"reward": 0.0, "reason": "every item must appear exactly once"}
-    for k, b in enumerate(bins):
-        if not b:
-            return {"reward": 0.0, "reason": f"bin {k} is empty"}
-        if sum(ITEMS[i] for i in b) > CAPACITY:
-            return {"reward": 0.0, "reason": f"bin {k} exceeds capacity {CAPACITY}"}
-
-    return {"reward": first_fit_bins() / len(bins), "bins_used": len(bins)}
+        with urllib.request.urlopen(f"{judge_url}/final", timeout=60) as resp:
+            return json.loads(resp.read())
+    except Exception as e:
+        return {"reward": 0.0, "reason": f"judge unreachable: {e!r}", "ledger": []}
 
 
 if __name__ == "__main__":
-    result = grade(find_artifact())
-    reason = result.pop("reason", "")
-    REWARD_PATH.parent.mkdir(parents=True, exist_ok=True)
-    REWARD_PATH.write_text(json.dumps(result))
-    (REWARD_PATH.parent / "reason.txt").write_text(reason or "ok")
-    print(json.dumps(result), reason)
+    result = finalize(os.environ.get("JUDGE_URL", "http://judge:8082"))
+    VERIFIER_DIR.mkdir(parents=True, exist_ok=True)
+    (VERIFIER_DIR / "reward.json").write_text(json.dumps({"reward": result["reward"]}))
+    (VERIFIER_DIR / "reason.txt").write_text(result.get("reason") or "ok")
+    with (VERIFIER_DIR / "ledger.jsonl").open("w") as f:
+        for entry in result.get("ledger", []):
+            f.write(json.dumps({"t": entry["t"], "score": entry["score"]}) + "\n")
+    print(json.dumps({"reward": result["reward"]}), result.get("reason", ""))

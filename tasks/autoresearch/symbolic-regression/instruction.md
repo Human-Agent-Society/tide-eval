@@ -5,7 +5,7 @@ on roughly x ∈ [−3, 3]. Recover the formula.
 
 ## Output format
 
-Write your best expression to `/app/best/solution.json`:
+## Solution format
 
 ```json
 {"expr": "0.5 * x**2 + sin(x)"}
@@ -16,16 +16,26 @@ Allowed: numbers, `x`, `+ - * / **`, unary minus, and
 
 ## Scoring — read this carefully
 
-`python /app/scorer.py /app/best/solution.json` reports 1/(1+RMSE) on the
-**training** points. The trusted grade is 1/(1+RMSE) on **held-out points
-you never see, on a slightly wider range**. An expression that memorizes the
-training set (e.g. a huge interpolating polynomial) will score near 1.0
-locally and collapse on the real grade. Only the true structure generalizes
-— the exact formula scores 1.0.
+The judge scores each submission as 1/(1+RMSE) on the **training** points.
+A **final judge** then scores your best submission ONCE on **held-out
+points you never see, on a slightly wider range** — that number is your
+grade. An expression that memorizes the training set (e.g. a huge
+interpolating polynomial) will score near 1.0 in session and collapse on
+the final grade. Only the true structure generalizes — the exact formula
+scores 1.0.
 
-## Protocol
+## How you are scored
 
-- Whenever you find a better expression, **atomically** rewrite
-  `/app/best/solution.json` (temp file + rename); only that file is graded.
-- On each improvement, append `{"t": <seconds since start>, "score": <s>}`
-  to `/app/best/score_log.jsonl`.
+Submit your solution file to the judge — your final score is your **best
+submission** (`$JUDGE_URL` is set in your environment):
+
+```bash
+curl -s -X POST --data-binary @solution.json "$JUDGE_URL/submit"
+# → {"n": 0, "score": ..., "reason": "...", "best": ..., "remaining": ...}
+curl -s "$JUDGE_URL/status"
+```
+
+You have a **limited number of submissions** (see `remaining`) — evaluate
+candidates yourself however you like, and spend submissions on the ones
+worth scoring. Being stopped at the deadline is normal; your best
+submission so far is what counts.

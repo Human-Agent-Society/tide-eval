@@ -11,6 +11,7 @@ Pack 60 items into capacity-100 bins; reward = first-fit bins / yours.
 
 **What this task teaches:** Exact constraint checking: every item exactly once, no overfull bins — one violation scores zero.
 
-Files: `instruction.md` (what the agent sees) · `environment/` (its world,
-scorer included) · `tests/` (the separate-verifier grader + `grader_tests.json`
-cheat suite) · `solution/` (the oracle baseline).
+Files: `instruction.md` (the problem + the submission protocol) ·
+`environment/` (the agent's container, plus the judge: `score.py`, budget,
+sidecar wiring) · `tests/grader_tests.json` (the scoring rule's cheat
+suite) · `solution/` (the reference solution; submits once).

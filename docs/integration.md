@@ -2,26 +2,45 @@
 
 An "agent" is anything Harbor can run against the task container. Three
 integration levels follow, cheapest first. Whichever you pick, the task,
-the isolated verifier, and the results store are identical, so numbers
-stay comparable across methods.
+the judge, and the results store are identical, so numbers stay comparable
+across methods.
+
+## The contract, first
+
+Every task gives your agent two environment variables and one protocol:
+
+| | |
+|---|---|
+| `$JUDGE_URL` | the judge's HTTP address |
+| `$BUDGET_SEC` | your time budget (local runs; containers use the task timeout) |
+| `POST $JUDGE_URL/submit` | body = your solution file → `{"score", "best", "remaining", ...}`; over budget → 429 |
+| `GET $JUDGE_URL/status` | submissions used / remaining, best so far |
+
+Your final score is your best submission (re-scored by a final judge with
+hidden tests, if the task has one). Everything else — how you search, what
+you evaluate locally, whether you build your own scorer — is your
+business; tide places no constraints on the agent's side.
 
 ## Level 1 — a supported harness (zero code)
 
 `claude-code`, `codex`, `aider`, `cursor-cli`, `terminus-2`, … plus
-`oracle` (runs the task's solution — proves the pipeline) and `nop` (does
-nothing — catches leakage):
+`oracle` (submits the task's reference solution — proves the pipeline) and
+`nop` (does nothing — catches leakage):
 
 ```bash
 tide run autoresearch --agent claude-code --model anthropic/claude-opus-5
-tide run edgebench/ann_vector_search_qps --agent codex --budget 2   # hours
+tide run autoresearch/tsp-tour --agent codex --budget 2   # hours
 ```
 
-`--budget` sets the timeout and a `budget` tag; extra `AgentConfig` fields
-pass via `--agent-arg key=value`.
+The instruction tells the harness the submission protocol; `--budget` sets
+the timeout and a `budget` tag. Extra `AgentConfig` fields pass via
+`--agent-arg key=value`.
 
 ## Level 2 — your own harness (one class)
 
-Implement Harbor's `BaseAgent`, reference it by import path:
+Implement Harbor's `BaseAgent`, reference it by import path. Your code
+runs on the host; the container (where `$JUDGE_URL` lives) is reached via
+`environment.exec` / `upload_dir` / `download_file`:
 
 ```python
 from harbor.agents.base import BaseAgent
@@ -40,7 +59,7 @@ class MyAgent(BaseAgent):
 
     async def run(
         self, instruction, environment, context
-    ) -> None: ...  # your loop; `instruction` is the task's instruction.md
+    ) -> None: ...  # your loop; submit from inside via $JUDGE_URL
 ```
 
 ```python
@@ -52,111 +71,43 @@ row = await lab.run(
 ```
 
 Runnable version: [`examples/minimal_harness.py`](../examples/minimal_harness.py)
-— a ~30-line adapter + a random-search loop, no LLM, no keys.
+— a ~25-line adapter around a random-search loop, no LLM, no keys.
 
-**Your code runs on the host**; the container is reached via
-`environment.exec(command=...)` / `upload_dir` / `download_file`. Two
-placements, both fine (only declared artifacts reach the verifier):
+Two placements for your method, both fine:
 
 - **Host-side loop** — your method keeps its own GPUs / inference server /
-  orchestrator, and uses the container only to execute and score
-  candidates via `exec`. The fit for external learners (TTT-style training
-  loops) and host-side multi-agent systems (CORAL-style).
-- **In-container** — upload your method and launch it (OpenEvolve example
-  below). LLM calls from inside need the task's network policy opened:
-  an `allowlist` on the `[agent]` phase, keys via `exec(..., env={...})` —
-  see [network policy](components/tasks.md#network-policy).
-
-For learning methods: the public scorer's per-candidate numbers are your
-**training signal** (free, dense, untrusted); the verifier's episode score
-is the **eval number**. Your method never sees the verifier.
+  orchestrator and submits through the container
+  (`environment.exec(command="curl ... $JUDGE_URL/submit")`). The fit for
+  external learners (TTT-style training loops) and host-side multi-agent
+  systems (CORAL-style).
+- **In-container** — upload your method and launch it; it talks to the
+  judge directly. LLM calls from inside need the task's network policy
+  opened: add your API host to the `[agent]` phase allowlist — see
+  [network policy](components/tasks.md#network-policy).
 
 ## Level 3 — your method isn't an "agent" at all
 
-Evolutionary search, solver, sampling loop — the task contract is two rules:
+An evolutionary search, a solver portfolio, a bare sampling loop — the
+whole integration is: read `$JUDGE_URL`, POST candidates worth scoring,
+stop at 429. The minimal version is ~20 lines
+([`examples/minimal_harness_search.py`](../examples/minimal_harness_search.py)).
 
-1. keep your best solution at the declared artifact path, atomically
-   (temp file + rename) — that's what gets graded when the budget ends;
-2. optionally append `{"t": <sec>, "score": <x>}` lines to
-   `score_log.jsonl` — that becomes your progress curve in the store.
-
-The contract is identical across all six first-party tasks:
-
-| What | Where |
-|---|---|
-| problem statement | `instruction.md` → your agent's `instruction` |
-| public scorer | `python /app/scorer.py /app/best/solution.json` → prints a float |
-| gradeable artifact | `/app/best/solution.json` |
-| score log | `/app/best/score_log.jsonl` |
-| verifier sees | **only** the `artifacts` declared in `task.toml` |
-
-### Worked example: OpenEvolve
-
-One evaluator shim covers all six tasks — score the candidate with the
-task's scorer, keep the artifact current:
-
-```python
-# evaluator.py — uploaded into the container next to your seed program.
-import json, pathlib, subprocess, time
-
-BEST = pathlib.Path("/app/best/solution.json")
-LOG = pathlib.Path("/app/best/score_log.jsonl")
-T0, best = time.monotonic(), 0.0
-
-
-def evaluate(program_path: str) -> dict:
-    global best
-    run = subprocess.run(["python", program_path], capture_output=True, timeout=120)
-    cand = pathlib.Path("/tmp/candidate.json")
-    cand.write_bytes(run.stdout)  # candidate prints its solution
-    out = subprocess.run(
-        ["python", "/app/scorer.py", str(cand)], capture_output=True, text=True
-    )
-    score = float(out.stdout.strip() or 0.0)
-    if score > best:
-        best = score
-        tmp = BEST.with_suffix(".tmp")
-        tmp.write_bytes(cand.read_bytes())
-        tmp.rename(BEST)
-        with LOG.open("a") as f:
-            f.write(json.dumps({"t": time.monotonic() - T0, "score": score}) + "\n")
-    return {"combined_score": score}
-```
-
-```python
-import os
-
-from harbor.agents.base import BaseAgent
-
-
-class OpenEvolveAgent(BaseAgent):
-    @staticmethod
-    def name() -> str:
-        return "openevolve"
-
-    def version(self) -> str | None:
-        return None
-
-    async def setup(self, environment) -> None:
-        await environment.exec(command="pip install openevolve")
-        await environment.upload_dir("./oe_setup", "/opt/oe")  # seed + evaluator.py
-
-    async def run(self, instruction, environment, context) -> None:
-        await environment.exec(
-            command="cd /opt/oe && openevolve-run seed.py evaluator.py --iterations 100000",
-            env={"OPENAI_API_KEY": os.environ["OPENAI_API_KEY"]},
-        )
-```
+An OpenEvolve-style loop plugs in the same way: its `evaluate()` function
+POSTs the candidate to `$JUDGE_URL/submit` and returns the judge's score.
+Mind the submission budget — evolutionary methods burn evaluations fast,
+so give cheap candidates a local pre-filter (your own evaluator, written
+from the instruction) and spend submissions on survivors.
 
 ## Rules of the game
 
-- **You cannot bring your own grader.** Trusted scores come from the task's
-  verifier or they don't exist. Different scoring rule = a new task
-  ([`tasks/_template`](../tasks/_template)), not a new grader.
-- **Compare methods at the same `budget` tag**, and lead with the trusted
-  `reward` — the claimed anytime/AUC numbers come second, clearly labeled
-  as the agent's own. `oracle` and `nop` bracket the plausible range.
+- **You cannot bring your own judge.** Scores come from the task's judge
+  or they don't exist. Different scoring rule = a new task
+  ([`tasks/_template`](../tasks/_template)), not a new judge for an
+  existing one.
+- **Compare methods at the same `budget` tag**, on the same tasks. All
+  scores are judge-computed, so the curve comparison is as trustworthy as
+  the endpoint comparison. `oracle` and `nop` bracket the plausible range.
 - **Sanity-check cheaply**: `--agent oracle` proves the task, `--agent nop`
   proves no leakage, `--fake` exercises your sweep script with no
   containers — and `--local --command "..."` runs your method against the
-  real scorer and grader with no Docker at all (see the README).
+  task's real judge with no Docker at all (see the README).

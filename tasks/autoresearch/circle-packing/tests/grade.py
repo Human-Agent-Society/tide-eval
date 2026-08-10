@@ -1,73 +1,39 @@
-"""Trusted grader: recomputes the score from the declared artifact, from
-scratch, in exact rational arithmetic.
+"""The verifier's whole job under the judge protocol: ask the judge for the
+final result and write it down.
 
-Never reads the agent's claimed scores. Runs in a separate verifier container
-that received only the declared artifacts, so nothing the agent did to its own
-environment (including tampering with the public scorer) can reach this code.
+Generic — task authors never edit this file. It runs inside the task
+environment after the agent's budget ends, calls ``GET $JUDGE_URL/final``
+(final.py on the best submission if the task has one, else the best
+session score), and writes:
 
-Conservative by construction: exact Fraction comparisons with the documented
-1e-9 tolerance, so buying radius with float-epsilon overlaps scores zero.
-
-Protocol (uniform across tide's first-party tasks): ``grade(path)`` is pure
-and takes the artifact path explicitly; ``find_artifact()`` resolves the
-canonical location; ``__main__`` writes a numbers-only ``reward.json`` plus a
-human ``reason.txt``.
+- ``/logs/verifier/reward.json``  — ``{"reward": <float>}``
+- ``/logs/verifier/reason.txt``   — the human-readable reason
+- ``/logs/verifier/ledger.jsonl`` — one ``{"t", "score"}`` line per
+  submission; tide ingests these as the trusted score-over-time curve.
 """
 
 import json
-from fractions import Fraction
+import os
+import urllib.request
 from pathlib import Path
 
-OPTIMUM = 1.007626  # known optimum for n=3, for the normalized view
-TOL = Fraction(1, 10**9)
-REWARD_PATH = Path("/logs/verifier/reward.json")
+VERIFIER_DIR = Path("/logs/verifier")
 
 
-def find_artifact() -> Path | None:
-    # Harbor re-materializes declared artifacts at their ORIGINAL container
-    # paths inside the separate verifier env; check the canonical path first.
-    canonical = Path("/app/best/solution.json")
-    if canonical.exists():
-        return canonical
-    hits = sorted(Path("/logs/artifacts").rglob("solution.json"))
-    return hits[0] if hits else None
-
-
-def grade(artifact: Path | None) -> dict:
-    if artifact is None or not Path(artifact).exists():
-        return {"reward": 0.0, "reason": "no solution.json artifact"}
+def finalize(judge_url: str) -> dict:
     try:
-        circles = json.loads(Path(artifact).read_text())["circles"]
-        parsed = [(Fraction(x), Fraction(y), Fraction(r)) for x, y, r in circles]
-    except (KeyError, ValueError, TypeError) as e:
-        return {"reward": 0.0, "reason": f"malformed solution: {e}"}
-    if len(parsed) != 3:
-        return {"reward": 0.0, "reason": "need exactly 3 circles"}
-
-    one = Fraction(1)
-    for x, y, r in parsed:
-        if r <= 0:
-            return {"reward": 0.0, "reason": "non-positive radius"}
-        if x - r < -TOL or x + r > one + TOL or y - r < -TOL or y + r > one + TOL:
-            return {"reward": 0.0, "reason": "circle outside unit square"}
-
-    for i in range(3):
-        for j in range(i + 1, 3):
-            xi, yi, ri = parsed[i]
-            xj, yj, rj = parsed[j]
-            # Exact: dist^2 >= (ri + rj - tol)^2, no square roots involved.
-            min_dist = ri + rj - TOL
-            if min_dist > 0 and (xi - xj) ** 2 + (yi - yj) ** 2 < min_dist**2:
-                return {"reward": 0.0, "reason": f"circles {i},{j} overlap"}
-
-    total = float(sum(r for _, _, r in parsed))
-    return {"reward": total, "normalized": total / OPTIMUM}
+        with urllib.request.urlopen(f"{judge_url}/final", timeout=60) as resp:
+            return json.loads(resp.read())
+    except Exception as e:
+        return {"reward": 0.0, "reason": f"judge unreachable: {e!r}", "ledger": []}
 
 
 if __name__ == "__main__":
-    result = grade(find_artifact())
-    reason = result.pop("reason", "")
-    REWARD_PATH.parent.mkdir(parents=True, exist_ok=True)
-    REWARD_PATH.write_text(json.dumps(result))
-    (REWARD_PATH.parent / "reason.txt").write_text(reason or "ok")
-    print(json.dumps(result), reason)
+    result = finalize(os.environ.get("JUDGE_URL", "http://judge:8082"))
+    VERIFIER_DIR.mkdir(parents=True, exist_ok=True)
+    (VERIFIER_DIR / "reward.json").write_text(json.dumps({"reward": result["reward"]}))
+    (VERIFIER_DIR / "reason.txt").write_text(result.get("reason") or "ok")
+    with (VERIFIER_DIR / "ledger.jsonl").open("w") as f:
+        for entry in result.get("ledger", []):
+            f.write(json.dumps({"t": entry["t"], "score": entry["score"]}) + "\n")
+    print(json.dumps({"reward": result["reward"]}), result.get("reason", ""))

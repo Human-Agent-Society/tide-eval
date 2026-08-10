@@ -1,109 +1,39 @@
-"""Trusted grader — and this task's teaching point: the anti-OVERFITTING wall.
+"""The verifier's whole job under the judge protocol: ask the judge for the
+final result and write it down.
 
-The agent only ever sees the training points; this grader scores the
-submitted expression on HELD-OUT points it has never seen. Memorizing the
-training set (a giant interpolating polynomial) collapses on the held-out
-range; only the true structure generalizes.
+Generic — task authors never edit this file. It runs inside the task
+environment after the agent's budget ends, calls ``GET $JUDGE_URL/final``
+(final.py on the best submission if the task has one, else the best
+session score), and writes:
 
-Expressions are evaluated through an AST whitelist — never eval() — so the
-artifact cannot execute anything.
+- ``/logs/verifier/reward.json``  — ``{"reward": <float>}``
+- ``/logs/verifier/reason.txt``   — the human-readable reason
+- ``/logs/verifier/ledger.jsonl`` — one ``{"t", "score"}`` line per
+  submission; tide ingests these as the trusted score-over-time curve.
 """
 
-import ast
 import json
-import math
-import operator
+import os
+import urllib.request
 from pathlib import Path
 
-REWARD_PATH = Path("/logs/verifier/reward.json")
-HELDOUT = json.loads((Path(__file__).parent / "heldout.json").read_text())["points"]
-MAX_EXPR_LEN = 2000
-
-_BINOPS = {
-    ast.Add: operator.add,
-    ast.Sub: operator.sub,
-    ast.Mult: operator.mul,
-    ast.Div: operator.truediv,
-    ast.Pow: operator.pow,
-}
-_UNARY = {ast.USub: operator.neg, ast.UAdd: operator.pos}
-_FUNCS = {
-    "sin": math.sin,
-    "cos": math.cos,
-    "tan": math.tan,
-    "exp": math.exp,
-    "log": math.log,
-    "sqrt": math.sqrt,
-    "abs": abs,
-}
+VERIFIER_DIR = Path("/logs/verifier")
 
 
-def _eval_node(node: ast.AST, x: float) -> float:
-    if isinstance(node, ast.Expression):
-        return _eval_node(node.body, x)
-    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
-        return float(node.value)
-    if isinstance(node, ast.Name) and node.id == "x":
-        return x
-    if isinstance(node, ast.BinOp) and type(node.op) in _BINOPS:
-        return _BINOPS[type(node.op)](
-            _eval_node(node.left, x), _eval_node(node.right, x)
-        )
-    if isinstance(node, ast.UnaryOp) and type(node.op) in _UNARY:
-        return _UNARY[type(node.op)](_eval_node(node.operand, x))
-    if (
-        isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id in _FUNCS
-        and len(node.args) == 1
-        and not node.keywords
-    ):
-        return _FUNCS[node.func.id](_eval_node(node.args[0], x))
-    raise ValueError(f"disallowed syntax: {ast.dump(node)[:80]}")
-
-
-def evaluate(expr: str, x: float) -> float:
-    return _eval_node(ast.parse(expr, mode="eval"), x)
-
-
-def find_artifact() -> Path | None:
-    canonical = Path("/app/best/solution.json")
-    if canonical.exists():
-        return canonical
-    hits = sorted(Path("/logs/artifacts").rglob("solution.json"))
-    return hits[0] if hits else None
-
-
-def grade(artifact: Path | None) -> dict:
-    if artifact is None or not Path(artifact).exists():
-        return {"reward": 0.0, "reason": "no solution.json artifact"}
+def finalize(judge_url: str) -> dict:
     try:
-        expr = json.loads(Path(artifact).read_text())["expr"]
-    except (KeyError, ValueError, TypeError) as e:
-        return {"reward": 0.0, "reason": f"malformed solution: {e}"}
-    if not isinstance(expr, str) or len(expr) > MAX_EXPR_LEN:
-        return {
-            "reward": 0.0,
-            "reason": f"expr must be a string <= {MAX_EXPR_LEN} chars",
-        }
-
-    errors = []
-    for x, y in HELDOUT:
-        try:
-            prediction = evaluate(expr, x)
-        except (ValueError, SyntaxError, ZeroDivisionError, OverflowError) as e:
-            return {"reward": 0.0, "reason": f"expr failed at x={x}: {e}"}
-        if not math.isfinite(prediction):
-            return {"reward": 0.0, "reason": f"non-finite prediction at x={x}"}
-        errors.append((prediction - y) ** 2)
-    rmse = math.sqrt(sum(errors) / len(errors))
-    return {"reward": 1.0 / (1.0 + rmse), "rmse_heldout": rmse}
+        with urllib.request.urlopen(f"{judge_url}/final", timeout=60) as resp:
+            return json.loads(resp.read())
+    except Exception as e:
+        return {"reward": 0.0, "reason": f"judge unreachable: {e!r}", "ledger": []}
 
 
 if __name__ == "__main__":
-    result = grade(find_artifact())
-    reason = result.pop("reason", "")
-    REWARD_PATH.parent.mkdir(parents=True, exist_ok=True)
-    REWARD_PATH.write_text(json.dumps(result))
-    (REWARD_PATH.parent / "reason.txt").write_text(reason or "ok")
-    print(json.dumps(result), reason)
+    result = finalize(os.environ.get("JUDGE_URL", "http://judge:8082"))
+    VERIFIER_DIR.mkdir(parents=True, exist_ok=True)
+    (VERIFIER_DIR / "reward.json").write_text(json.dumps({"reward": result["reward"]}))
+    (VERIFIER_DIR / "reason.txt").write_text(result.get("reason") or "ok")
+    with (VERIFIER_DIR / "ledger.jsonl").open("w") as f:
+        for entry in result.get("ledger", []):
+            f.write(json.dumps({"t": entry["t"], "score": entry["score"]}) + "\n")
+    print(json.dumps({"reward": result["reward"]}), result.get("reason", ""))

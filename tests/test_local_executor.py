@@ -1,4 +1,4 @@
-"""LocalExecutor: the real scorer and grader on the host, no containers."""
+"""LocalExecutor: the task's real judge as a local process, no containers."""
 
 import sys
 from pathlib import Path
@@ -7,32 +7,37 @@ from tide import Lab, LocalExecutor
 
 TEMPLATE = str(Path(__file__).parent.parent / "tasks" / "_template")
 
-WRITE_SOLUTION = """
-import json, os, pathlib
-app = pathlib.Path(os.environ["APP"])
-(app / "best" / "solution.json").write_text(json.dumps({"x": 0.9}))
-with (app / "best" / "score_log.jsonl").open("a") as f:
-    f.write(json.dumps({"t": 1.0, "score": 0.9}) + "\\n")
+SUBMIT_TWICE = """
+import json, os, urllib.request
+
+def submit(payload):
+    req = urllib.request.Request(
+        os.environ["JUDGE_URL"] + "/submit", data=json.dumps(payload).encode()
+    )
+    return json.loads(urllib.request.urlopen(req, timeout=30).read())
+
+print(submit({"x": 0.4}))
+print(submit({"x": 0.9}))
 """
 
 
-async def test_local_run_scores_for_real(tmp_path):
+async def test_local_run_goes_through_the_real_judge(tmp_path):
     script = tmp_path / "method.py"
-    script.write_text(WRITE_SOLUTION)
+    script.write_text(SUBMIT_TWICE)
     lab = Lab(tmp_path / "lab", executor=LocalExecutor(root=tmp_path))
 
     row = await lab.run(
         TEMPLATE,
         {"command": f"{sys.executable} {script}", "override_timeout_sec": 30},
     )
-    assert row.rewards == {"reward": 0.9}  # graded by the task's real grade.py
-    assert row.uri.startswith("local://")  # provenance says: not isolation-backed
-    assert lab.df("trace")["score"].tolist() == [0.9]
+    assert row.rewards == {"reward": 0.9}  # best submission, judged for real
+    assert row.uri.startswith("local://")  # provenance: not isolation-backed
+    assert lab.df("trace")["score"].tolist() == [0.4, 0.9]  # the judge's ledger
 
 
-async def test_local_missing_artifact_scores_zero(tmp_path):
+async def test_local_no_submissions_scores_zero(tmp_path):
     lab = Lab(tmp_path / "lab", executor=LocalExecutor(root=tmp_path))
-    row = await lab.run(TEMPLATE, {"command": "true", "override_timeout_sec": 5})
+    row = await lab.run(TEMPLATE, {"command": "true", "override_timeout_sec": 10})
     assert row.rewards == {"reward": 0.0}
 
 

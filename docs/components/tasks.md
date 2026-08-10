@@ -10,106 +10,89 @@ run it under tide.
 
 ## Anatomy of a task
 
-Every file belongs to one of two evaluations — the agent's own (public) or
-the benchmark's (private):
+Two containers: the agent's, and the judge's. All scoring lives with the
+judge; the agent only ever sees scores come back over HTTP.
 
 ```
 my-task/
-├── task.toml          # config: budget, resources, network policy, declared artifacts
-├── instruction.md     # the problem statement (the ONLY thing the agent is told)
-├── environment/       # agent container — built from this Dockerfile
-│   └── scorer.py      #   PUBLIC eval: the scorer the agent iterates against
-├── tests/             # verifier container — its own Dockerfile, built separately
-│   ├── test.sh        #   entrypoint: runs grade.py
-│   ├── grade.py       #   PRIVATE eval: the trusted grader
-│   └── grader_tests.json   #   unit tests for grade.py: solution → reward → why
-└── solution/          # reference solution — the oracle agent runs solve.sh
+├── task.toml            # stock Harbor config; network allows only the judge
+├── instruction.md       # the problem + the submission protocol
+├── environment/
+│   ├── Dockerfile           # the AGENT's container (its data, no scoring)
+│   ├── Dockerfile.judge     # the JUDGE's container
+│   ├── docker-compose.yaml  # wires the judge in as a sidecar, sets $JUDGE_URL
+│   ├── judge_server.py      # generic HTTP server — never edited per task
+│   ├── score.py             # THE scoring rule: grade(path) → {"reward", "reason"}
+│   ├── final.py             # optional final judge (hidden tests) — see below
+│   └── judge_config.json    # {"max_submissions": N, "min_interval_sec": s}
+├── tests/
+│   ├── test.sh · grade.py   # generic verifier: asks the judge for /final
+│   └── grader_tests.json    # unit tests for score.py (and final.py)
+└── solution/solve.sh        # reference solution — submits once, proves the pipeline
 ```
 
-## Public vs private evaluation
+## The judge protocol
 
-The split is the same one Kaggle users know as public vs private
-leaderboard: the score you can query freely is not the score that counts.
+The agent gets `$JUDGE_URL` and a submission budget; everything else about
+how it works is its own business (it may write its own local evaluator —
+the objective is stated in the instruction):
 
-| | Public scorer | Private verifier |
+| Request | Who calls it | What happens |
 |---|---|---|
-| file | `environment/scorer.py` | `tests/grade.py` |
-| built into | the **agent's** container image | a **separate** verifier image (`tests/` is its own build context) |
-| runs | whenever the agent calls it — unlimited | once, in a fresh container, after the budget ends |
-| sees | everything in the agent container | **only** the artifacts declared in `task.toml` |
-| output | a score on stdout; the agent logs it to `score_log.jsonl` → `trace` rows | `/logs/verifier/reward.json` → the `episode` row |
-| trusted | no — the agent can tamper with it; it exists as search feedback | yes — this is the benchmark number |
+| `POST /submit` (body = the solution file) | the agent, at will | `score.py` grades it; the result joins the ledger; over budget → 429 |
+| `GET /status` | the agent | submissions used / remaining, best so far |
+| `GET /final` | the verifier, once, at the end | the final verdict + the full ledger. **Terminal**: the first call locks the session; later submissions are refused, repeat calls return the cached verdict. An agent that peeks early ends its own run. |
 
-Setup: declaring `environment_mode = "separate"` under `[verifier]` plus an
-`artifacts = [...]` list in `task.toml` is what creates the isolation —
-Harbor builds `tests/` as its own image, collects only the declared files
-from the finished agent container, and grades them in a fresh one.
+Trust follows from the topology: scoring code and data live only in the
+judge image, the agent's network reaches only the judge
+(`network_mode = "allowlist"`, `allowed_hosts = ["judge"]`), and every
+number in the ledger was computed by the judge — which is why the
+score-over-time curve is trusted, not self-reported.
 
-**You write the scoring twice, on purpose.** The two files live in
-different build contexts and cannot import each other, and the private
-side should usually be stricter anyway (exact arithmetic, held-out data,
-conservative rejection). If they drift apart, scores stay correct — the
-public side only misleads the agent's own search. The
-[template](../../tasks/_template) demonstrates the pattern and documents
-the single-source alternative.
+## The submission budget
 
-## An autoresearch task (the four conventions)
+`judge_config.json` is the task's anti-probing dial:
 
-Reference implementation: [`tasks/autoresearch/circle-packing`](../../tasks/autoresearch/circle-packing).
+- **public metric, cheap scoring** (circle-packing, tsp-tour): a generous
+  cap (say 1000) — the budget exists mainly to bound judge compute;
+- **expensive scoring** (string-compression runs the agent's program):
+  a tighter cap;
+- **metric with a secret**: keep the session feedback on public data and
+  put the secret in the **final judge** (next section) — then the budget
+  doesn't need to carry the secrecy burden at all.
 
-1. **Public scorer in the image** (`environment/scorer.py`). The agent
-   self-evaluates freely. Deliberately unprotected: nothing it produces is
-   trusted, so tampering with it only misleads the agent's own search.
-2. **Verifier isolation**: in `task.toml`,
-   ```toml
-   artifacts = ["/app/best/solution.json", "/app/best/score_log.jsonl"]
-   [verifier]
-   environment_mode = "separate"
-   ```
-   `tests/grade.py` recomputes everything from the declared artifacts alone
-   (exact rational arithmetic in the exemplar — a 5e-9 overlap scores zero)
-   and **never reads agent-claimed scores**.
-3. **Timeout = budget.** The instruction mandates atomic best-so-far writes
-   (temp file + rename); Harbor grades after a timeout, so a deadline kill
-   still scores the best snapshot.
-4. **Score log**: the agent appends `{"t": <sec>, "score": <x>}` to
-   `score_log.jsonl` in the artifact dir. tide ingests it as `trace` rows —
-   the agent's own (untrusted) scores — and `metrics.anytime` does the rest.
+## The final judge (`final.py`, optional)
 
-## The grader contract
+Same signature as `score.py`, run exactly once — on the best submission,
+when the verifier finalizes. This is where hidden tests live: held-out
+data, stricter checks, anything the session score must not leak.
+[symbolic-regression](../../tasks/autoresearch/symbolic-regression) is the
+reference: the session scores on training points; the final judge scores
+once on held-out points, so no submission budget can be spent probing
+them. Without `final.py`, the final verdict is simply the best session
+score.
 
-`tests/test.sh` runs `tests/grade.py` in the verifier container:
+## The scoring contract
+
+`score.py` (and `final.py`) expose one function:
 
 ```python
 def grade(artifact: Path | None) -> dict:
-    # {"reward": float, "reason": str}; artifact None → reward 0.0
+    # {"reward": float, "reason": str}; invalid input → 0.0 with a reason
 ```
 
-Three rules ([template](../../tasks/_template/tests/grade.py)): recompute
-everything from the artifact, **never read agent-claimed scores**; validate
-conservatively (exact arithmetic where floats can be gamed; reject, don't
-round); missing/malformed artifact → `0.0` with a reason, never an
-exception. The script writes `reward.json` (numbers only) and `reason.txt`
-to `/logs/verifier/`.
+Rules: recompute everything from the submitted file, never trust anything
+inside it; validate conservatively (exact arithmetic where floats can be
+gamed; reject, don't round); malformed input scores `0.0` with a reason,
+never an exception. Data files sit next to the script and are read via
+`Path(__file__).parent`, so the same file works in the judge image and in
+`--local` runs.
 
-## Unit-testing the grader: `tests/grader_tests.json`
+## Testing your task: `tests/grader_tests.json`
 
-Three questions, answered up front:
-
-- **Is this a Harbor concept?** No. Harbor's own quality check is running
-  the oracle agent in real containers — correct but slow, and it needs
-  Docker. `grader_tests.json` is tide's fast path: it unit-tests
-  `grade.py` directly, in milliseconds, offline, on every CI run.
-- **Do you need it?** To *run* a task — no; tasks without it work fine
-  (none of the external catalogs have one). To merge a **first-party**
-  task — yes, and the suite enforces that. Autoresearch graders hand out
-  continuous scores computed from agent-written files: one lenient check
-  is free points, and an agent with an hours-long budget will find it.
-- **How do you write it?** Each case is one sentence: *this solution must
-  score this reward, because…* Write one case for your reference solution
-  and one for **each rule your grader enforces** (expected reward `0.0`).
-
-The template's complete file, for the maximize-`x` task:
+Each case is one sentence: *this solution must score this reward,
+because…* Write one case for your reference solution and one for **each
+rule your scorer enforces** (expected reward `0.0`). The template's file:
 
 ```json
 {
@@ -117,45 +100,40 @@ The template's complete file, for the maximize-`x` task:
   "cases": [
     {"solution": {"x": 0.5}, "reward": 0.5, "why": "the reference solution scores exactly this"},
     {"solution": {"x": 1.5}, "reward": 0.0, "why": "out-of-bounds values must be rejected"},
-    {"solution": {"x": 1.0000000001}, "reward": 0.0, "why": "epsilon over the bound is still out of bounds"},
-    {"solution": {"x": 0.0, "claimed_score": 999.0}, "reward": 0.0, "why": "a self-reported score must be ignored"},
     {"solution": {"nonsense": true}, "reward": 0.0, "why": "malformed input must score zero, not crash"}
   ]
 }
 ```
 
-- `cases` drive the offline suite: each `solution` is written to a file,
-  passed to `grade()`, and must earn its `reward` (± optional
-  `"tolerance"`, default 1e-9). Zero-reward cases must also produce a
-  `reason`. `why` is documentation and the test-failure message.
-- `solve_sh_scores` drives the E2E gate: what the reference solution must
-  earn when the oracle agent runs it through real containers. A number for
-  an exact expectation, or `{"min": …, "max": …}` where the live run
-  legitimately varies (compression ratios across zlib builds).
+- `cases` exercise `score.py` offline, in milliseconds, on every CI run;
+  add `final_cases` (same shape) when the task has a final judge.
+- `solve_sh_scores` drives the containerized E2E gate: what the reference
+  solution must earn end to end — a number, or `{"min": …, "max": …}`
+  where the live run legitimately varies.
+- Optional per-case `"tolerance"` for float comparison (default 1e-9).
 
-`--agent nop` completes the picture: it must score 0 — if it doesn't, the
-environment leaks the answer.
+`pytest tests/test_task_suite.py` picks up any folder with this file
+automatically. In containers, `--agent oracle` must reproduce
+`solve_sh_scores` (the E2E gate) and `--agent nop` must score 0 — if it
+doesn't, the environment leaks the answer.
 
 ## Network policy
 
-Harbor's network policy is per-phase, set in `task.toml`:
+The default is the tightest thing that still works: the agent may reach
+the judge and nothing else.
 
 ```toml
 [environment]
-network_mode = "no-network"        # baseline: "public" | "no-network" | "allowlist"
-
-[agent]                            # optional phase override, same fields
 network_mode = "allowlist"
-allowed_hosts = ["api.openai.com", "api.anthropic.com"]
+allowed_hosts = ["judge"]
 
-[verifier]                         # keep the verifier offline — always
-network_mode = "no-network"
+[agent]                            # optional phase override, e.g. for
+network_mode = "allowlist"         # in-container LLM loops
+allowed_hosts = ["judge", "api.openai.com"]
 ```
 
-Guidance: default the environment to `no-network` (an offline task can't
-look up known solutions); when agents need an LLM API *from inside* the
-container, open an `allowlist` on the `[agent]` phase rather than making
-the whole environment public; never give the verifier network access.
+Never give the agent open internet on a task whose answers can be looked
+up.
 
 ## A GPU task (kernels, CUDA, ML workloads)
 
@@ -171,10 +149,9 @@ tide adds nothing:
    gpus = 1
    ```
 
-2. For local Docker, Harbor merges a task-authored
-   `environment/docker-compose.yaml` over its generated one (the agent's
-   service is named `main`). GPU access is a standard compose device
-   reservation, and needs the NVIDIA Container Toolkit on the host:
+2. For local Docker, GPU access is a standard compose device reservation in
+   the task's `environment/docker-compose.yaml` (which the judge sidecar
+   already uses), and needs the NVIDIA Container Toolkit on the host:
 
    ```yaml
    services:
@@ -188,27 +165,19 @@ tide adds nothing:
                  capabilities: [gpu]
    ```
 
-The same overlay mechanism composes with everything else — the vendored
-FrontierCS kernel tasks (`tasks/frontier-cs/*gpu-kernel*`) use it to add a
-separate judge sidecar with health checks. If the *verifier* needs the GPU
-too (re-timing kernels trustably), give `tests/` its own Dockerfile with the
-same reservation; in `separate` mode it is its own build context.
-
-One honest caveat for kernel-timing tasks: wall-clock speedups measured on
-shared/heterogeneous hosts are noisy. Prefer verifiers that grade against a
-reference implementation run *in the same container, same session* (relative
-speedup), and record the GPU model as a tag so curves never mix hardware.
+Give the **judge** service the reservation instead (or as well) when
+scoring itself needs the GPU — re-timing kernels trustably. One honest
+caveat for kernel-timing tasks: wall-clock speedups measured on
+shared/heterogeneous hosts are noisy. Prefer scoring against a reference
+implementation run in the same container, same session (relative speedup),
+and record the GPU model as a tag so curves never mix hardware.
 
 ## A benchmark converter
 
 A converter turns a published external format into a folder of task dirs.
-Converters depend **only on the
-published format and tide's public types** — so they can't break anything.
-The reference implementation is `tide/converters/edgebench.py`: the spec's
-`work` half becomes `instruction.md` + `environment/`, its `judge` half
-becomes `tests/` (their two-container judging maps onto the separate
-verifier), `submit_paths` become declared artifacts, and budgets are run
-parameters (`tags={"budget": h}` + `metrics.scaling`). Its tests pin the
-converter to unmodified published spec files — do the same for any new
-converter: check one real spec into `tests/fixtures/` and validate the
-emitted task under Harbor's `TaskConfig`.
+Converters depend **only on the published format and tide's public types**
+— so they can't break anything. The reference implementation is
+`tide/converters/edgebench.py`; its tests pin the converter to unmodified
+published spec files — do the same for any new converter: check one real
+spec into `tests/fixtures/` and validate the emitted task under Harbor's
+`TaskConfig`.

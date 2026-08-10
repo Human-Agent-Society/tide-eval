@@ -10,8 +10,8 @@
 
 Autoresearch tasks — the AlphaEvolve / OpenEvolve style of workload — are
 open-ended optimization problems: hours of budget, a continuous score, and
-an agent that evaluates itself hundreds of times along the way. There is no "passed" — only *how good, by when*. tide
-evaluates that regime honestly:
+an agent iterating toward a better solution the whole way. There is no
+"passed" — only *how good, by when*. tide evaluates that regime honestly:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-hero-dark.svg">
@@ -29,7 +29,7 @@ Autoresearch needs four things on top, and they are the reason tide exists:
 
 | Plain Harbor | tide |
 |---|---|
-| One reward number per trial; the agent's self-eval curve is lost | The score log becomes `trace` rows, so the anytime curve, its AUC, and time-to-threshold are one query each |
+| One reward number per trial; how the agent got there is lost | Every submission is judge-scored into a ledger — the anytime curve, its AUC, and time-to-threshold are one query each, every point trusted |
 | Statistics live inside a single job (pass@k) | Budget is an ordinary tag, so "what does 8 h buy over 2 h?" is a query across any set of runs |
 | A crashed sweep restarts from zero | Idempotency keys skip finished episodes on re-run — which matters when one episode costs hours |
 | Each run is a throwaway job directory | One append-only store accretes for weeks, and `tide report` reads it |
@@ -55,26 +55,26 @@ tide report                              # summarize the results store
 
 ### No Docker? Develop locally, verify in containers
 
-`--local` runs your own method against the task's **real scorer and real
-grader** on your machine, with no containers involved:
+`--local` starts the task's **own judge** as a local process and runs
+your command against it, with no containers involved:
 
 ```bash
 tide run autoresearch/circle-packing --local \
   --command "python examples/minimal_harness_search.py" --budget 0.01
 ```
 
-Your command reads two environment variables — `$APP`, the working
-directory where `scorer.py` and `best/` live, and `$BUDGET_SEC` — and when
-it finishes (or the budget kills it), the task's real `grade.py` scores
-whatever it left behind. Local rows carry a `local://` uri because nothing
-is isolated: they are for developing your method, and the number you
-report should come from a container run. (`python examples/quickstart.py`
+Your command reads `$JUDGE_URL` and `$BUDGET_SEC`, POSTs solutions to
+`$JUDGE_URL/submit`, and the judge's verdict is the result — the same
+judge code that runs as a sidecar in containers. Local rows carry a
+`local://` uri because the judge ran on a machine the agent also controls:
+develop locally, report container numbers. (`python examples/quickstart.py`
 and `--fake` still work with zero setup, but their scores are simulated.)
 
 When you have Docker, `python examples/run_circle_packing.py` proves the
 real pipeline end to end — the oracle must score exactly 0.75 — and
 `python examples/minimal_harness.py` is the smallest complete container
-harness: about thirty lines of adapter around the same random-search loop.
+harness: about twenty-five lines of adapter around the same random-search
+loop.
 
 ## Use the API
 
@@ -93,7 +93,7 @@ row = await lab.run(
 )
 row.rewards  # trusted score          row.uri → the auditable trial dir
 
-curve = metrics.anytime(lab.df("trace"))  # the agent's own scores over time
+curve = metrics.anytime(lab.df("trace"))  # the judge's ledger over time
 metrics.auc(curve)  # the anytime score
 metrics.scaling(lab.df("episode"), by=["model"])  # what does more budget buy?
 ```
@@ -104,19 +104,20 @@ Re-running any script resumes it. Reference:
 
 ## Evaluate *your* agent
 
-Whichever way you integrate, the task, the isolated verifier, and the
-results store are identical — so numbers stay comparable across methods:
+Every task hands your agent `$JUDGE_URL` and a submission budget;
+whichever way you integrate, the task, the judge, and the results store
+are identical — so numbers stay comparable across methods:
 
 | You have | Integration |
 |---|---|
 | a mainstream harness (`claude-code`, `codex`, `aider`, …) | `--agent <name> --model <m>` — zero code |
 | your own harness | one `BaseAgent` subclass, referenced via `import_path` — runnable template: [`examples/minimal_harness.py`](examples/minimal_harness.py) |
-| a method that isn't an "agent" (OpenEvolve-style search, a solver) | keep your best solution at the artifact path; optionally log self-scores |
+| a method that isn't an "agent" (OpenEvolve-style search, a solver) | POST candidates to `$JUDGE_URL/submit`, stop at 429 — ~20 lines |
 
-The container contract is identical across all six first-party tasks, so
-one integration covers the suite. The only thing you cannot bring is your
-own grader. Full guide with the `BaseAgent` skeleton and a worked
-OpenEvolve example: **[docs/integration.md](docs/integration.md)**.
+The protocol is identical across every task, so one integration covers
+the suite. The only thing you cannot bring is your own judge. Full guide
+with the `BaseAgent` skeleton and the OpenEvolve pattern:
+**[docs/integration.md](docs/integration.md)**.
 
 ## Define a new task
 
@@ -125,10 +126,12 @@ cp -r tasks/_template tasks/autoresearch/my-task
 pytest tests/test_task_suite.py          # picked up automatically — and already green
 ```
 
-The template ships as a complete working task, so you start from green and
-replace one `TODO(task)` piece at a time (config, instruction, public
-scorer, private grader, cheat cases, oracle solution). GPU tasks add two
-lines of config. Guide: **[docs/components/tasks.md](docs/components/tasks.md)**.
+The template ships as a complete working task, so you start from green
+and replace one `TODO(task)` piece at a time: the instruction, one
+`score.py` the judge runs on every submission, the submission budget, the
+cheat cases, the reference solution — and optionally a `final.py` with
+hidden tests, run once on the best submission. GPU tasks add two lines of
+config. Guide: **[docs/components/tasks.md](docs/components/tasks.md)**.
 
 ## Tasks
 
@@ -148,7 +151,7 @@ Each first-party task teaches one hard part of the category
 | [`function-minimization`](tasks/autoresearch/function-minimization) | exploration vs local search |
 | [`tsp-tour`](tasks/autoresearch/tsp-tour) | combinatorial search, continuous signal |
 | [`bin-packing`](tasks/autoresearch/bin-packing) | exact constraint checking |
-| [`symbolic-regression`](tasks/autoresearch/symbolic-regression) | anti-overfitting: graded on held-out points |
+| [`symbolic-regression`](tasks/autoresearch/symbolic-regression) | the final judge: session on training points, the grade on held-out points |
 | [`string-compression`](tasks/autoresearch/string-compression) | safely grading agent-shipped code |
 
 ## Roadmap

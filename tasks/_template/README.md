@@ -12,34 +12,23 @@ pytest tests/test_task_suite.py            # your copy is picked up automaticall
 Work through the `TODO(task)` markers:
 
 1. `task.toml` — name, description, budget (`[agent] timeout_sec`)
-2. `instruction.md` — the problem, the output format, the protocol
-3. `environment/scorer.py` — the public scorer the agent iterates against
-4. `tests/grade.py` — the private grader: recompute from the artifact, never trust claims
-5. `tests/grader_tests.json` — one case per grading rule: solution → expected reward → why
-6. `solution/solve.sh` — the oracle baseline (proves the task is solvable)
+2. `instruction.md` — the problem, the solution format, the submission protocol
+3. `environment/score.py` — THE scoring rule, run by the judge on every submission
+4. `environment/judge_config.json` — the submission budget
+5. `tests/grader_tests.json` — one case per scoring rule: solution → expected reward → why
+6. `solution/solve.sh` — the reference solution (submits once; proves the pipeline)
+7. `environment/Dockerfile` — anything the agent's container should contain
 
-Then prove it in containers: `harbor trial start -p tasks/autoresearch/my-task`.
+Optionally add `environment/final.py` (same signature as score.py): the
+**final judge** — hidden tests, run exactly once on the best submission
+when the verifier finalizes. Put held-out data there; the submission
+budget can never probe it.
 
-## One scoring rule, two implementations — on purpose
+You never edit `judge_server.py`, `docker-compose.yaml`,
+`Dockerfile.judge`, or `tests/` — they are the generic judge plumbing.
+Prove the task in containers with
+`harbor trial start -p tasks/autoresearch/my-task`.
 
-You write the scoring **twice**: once in `environment/scorer.py` (public,
-agent-facing) and once in `tests/grade.py` (private, trusted). This is a
-deliberate design, not an oversight:
-
-- the two files live in **different build contexts** (`environment/` builds
-  the agent image, `tests/` builds the verifier image), so they physically
-  cannot import each other;
-- the private side should usually be **stricter** anyway — exact arithmetic
-  where floats can be gamed, held-out data, conservative rejection. In this
-  template the public scorer tolerates `1e-9` while the private grader
-  rejects `x > 1` exactly; the `epsilon_over` cheat case pins that gap.
-
-If your two implementations drift apart, scores stay correct — the public
-side only misleads the agent's own search. Prefer single-source anyway?
-Keep the shared function in `tests/` and copy it into `environment/`
-yourself; the default is duplication because the private side usually
-diverges on purpose.
-
-Full reference — the grader contract, the `grader_tests.json` schema (what a
-cheat case is), network policy, and GPU tasks:
+Full reference — the judge protocol, the scoring contract, the
+`grader_tests.json` schema, network policy, and GPU tasks:
 [docs/components/tasks.md](../../docs/components/tasks.md).

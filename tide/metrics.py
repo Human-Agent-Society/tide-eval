@@ -108,9 +108,8 @@ def improvements(
     best so far; the first point counts), and their ratio
     ``improvement_rate``.
 
-    Meaningful when the score log records *every* evaluation. Under the
-    improvements-only log convention the rate is 1.0 by construction — then
-    ``improvements`` (the count) is the informative column.
+    The ledger records every submission, so the rate is a real property of
+    the method: how often spending a submission actually helped.
     """
     out = df.sort_values((by or []) + [time])
     if by:

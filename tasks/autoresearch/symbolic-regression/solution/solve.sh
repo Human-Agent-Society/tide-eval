@@ -2,8 +2,11 @@
 # Oracle: a plain quadratic fit — decent on train, imperfect held-out.
 # Deliberately NOT the true formula; proves the pipeline with a mid score.
 set -euo pipefail
-mkdir -p /app/best
-printf '{"expr": "0.5 * x**2"}' > /app/best/solution.json.tmp
-mv /app/best/solution.json.tmp /app/best/solution.json
-echo '{"t": 1.0, "score": 0.6}' >> /app/best/score_log.jsonl
-python3 /app/scorer.py /app/best/solution.json
+printf '{"expr": "0.5 * x**2"}' > /tmp/solution.json
+python3 - <<'PY'
+import json, os, urllib.request
+req = urllib.request.Request(
+    os.environ["JUDGE_URL"] + "/submit", data=open("/tmp/solution.json", "rb").read()
+)
+print(json.loads(urllib.request.urlopen(req, timeout=60).read()))
+PY

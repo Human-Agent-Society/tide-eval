@@ -1,10 +1,10 @@
-"""The smallest complete agent harness: ~30 lines of adapter, no LLM.
+"""The smallest complete agent harness: ~25 lines of adapter, no LLM.
 
-Pairs with ``minimal_harness_search.py`` (the in-container random-search
-loop) to show the full integration path end to end: upload your method
-into the container, run it against the task's public scorer, and get back
-a trusted verifier score plus your method's score log as trace rows.
-Requires Docker + ``pip install tide-eval[harbor]``.
+Pairs with ``minimal_harness_search.py`` (the random-search loop) to show
+the full integration path end to end: put your method in the container,
+point it at the judge, and get back a trusted score plus the judge's
+submission ledger as trace rows. Requires Docker +
+``pip install tide-eval[harbor]``.
 
     python examples/minimal_harness.py
 """
@@ -38,6 +38,8 @@ class RandomSearchHarness(BaseAgent):
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / "search.py").write_text(SEARCH_SCRIPT.read_text())
             await environment.upload_dir(source_dir=tmp, target_dir="/opt/harness")
+        # JUDGE_URL is already in the container's environment (set by the
+        # task's docker-compose); only the time budget needs passing.
         await environment.exec(
             command="python /opt/harness/search.py",
             env={"BUDGET_SEC": "30"},
@@ -51,12 +53,12 @@ async def main():
         agent={"import_path": "minimal_harness:RandomSearchHarness"},
         tags={"harness": "random-search"},
     )
-    print("trusted reward:", row.rewards)  # the verifier's verdict
+    print("trusted reward:", row.rewards)  # the judge's final verdict
 
     trace = lab.df("trace")
     if not trace.empty:
         curve = metrics.anytime(trace)
-        print("\nthe harness's own score log, as ingested:")
+        print("\nthe judge's ledger, as ingested:")
         print(curve[["t", "score", "best_so_far"]].to_string(index=False))
         print("anytime AUC:", round(metrics.auc(curve), 4))
 

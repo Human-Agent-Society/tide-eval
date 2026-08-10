@@ -6,28 +6,30 @@ not overlap (tangency is allowed).
 
 ## Output format
 
-Write your best solution to `/app/best/solution.json`:
+## Solution format
 
 ```json
 {"circles": [[x1, y1, r1], [x2, y2, r2], [x3, y3, r3]]}
 ```
 
-## Scoring
+Your score is the sum of radii, computed in exact arithmetic — overlap or
+out-of-bounds beyond tolerance 1e-9 scores 0.
 
-- Your score is the sum of radii. Invalid solutions (overlap or out of bounds
-  beyond tolerance 1e-9) score 0.
-- A scorer is provided: `python /app/scorer.py /app/best/solution.json`
-  prints the score. Call it as often as you like — but note the final grade
-  is recomputed independently at higher precision, so violating constraints
-  by tiny epsilons will score 0 there.
+## How you are scored
 
-## Protocol (important)
+Submit your solution file to the judge — your final score is your **best
+submission** (`$JUDGE_URL` is set in your environment):
 
-- **Whenever you find a better solution, immediately write it to
-  `/app/best/solution.json` atomically** (write to a temp file, then rename).
-  You may be stopped at any moment; only what is in that file gets graded.
-- Each time you improve, append one line to `/app/best/score_log.jsonl`:
-  `{"t": <seconds since start>, "score": <your score>}`.
+```bash
+curl -s -X POST --data-binary @solution.json "$JUDGE_URL/submit"
+# → {"n": 0, "score": ..., "reason": "...", "best": ..., "remaining": ...}
+curl -s "$JUDGE_URL/status"
+```
+
+You have a **limited number of submissions** (see `remaining`) — evaluate
+candidates yourself however you like, and spend submissions on the ones
+worth scoring. Being stopped at the deadline is normal; your best
+submission so far is what counts.
 
 The known optimum for n=3 is ≈ 1.007626. Beat the greedy baseline (0.75)
 and get as close to the optimum as you can within the budget.

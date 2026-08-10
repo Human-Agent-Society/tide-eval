@@ -36,12 +36,10 @@ Note: tasks reference EdgeBench's prebuilt work/judge images; pull access
 follows their docs (`sforge pull`).
 
 **Fidelity vs upstream.** EdgeBench's own harness runs its judge as a live
-server during the session — an auto-eval thread periodically submits the
-agent's code, so upstream agents iterate against real judge feedback and
-the reported score can be the peak over those submissions. This conversion
-keeps the trusted final grading (their judge becomes the separate
-verifier, run once) but not the live judge loop: under tide the agent
-iterates against whatever feedback the work environment itself provides,
-and keeping the best submission in place is the agent's own job. A
-higher-fidelity conversion would run their judge as a sidecar (the
-compose-overlay pattern the FrontierCS tasks use); it is not built.
+server during the session, and tide's first-party tasks now use the same
+shape (a judge sidecar scoring limited submissions, peak counted). This
+conversion, however, still maps their judge onto a run-once separate
+verifier: converted tasks give the agent only the work environment's own
+feedback, and keeping the best submission in place is the agent's job.
+Regenerating the conversion onto tide's judge-sidecar layout would close
+that gap; it is not built.

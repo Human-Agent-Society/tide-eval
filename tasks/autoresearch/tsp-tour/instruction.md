@@ -7,21 +7,26 @@
 file order scores exactly 1.0; every improvement pushes the reward above 1.0.
 Good heuristics (nearest-neighbor + 2-opt and beyond) reach ~1.8–2.0.
 
-## Output format
-
-Write your best tour to `/app/best/solution.json`:
+## Solution format
 
 ```json
 {"tour": [0, 17, 5, ...]}
 ```
 
-A permutation of 0..39. A scorer is provided:
-`python /app/scorer.py /app/best/solution.json` — call it freely; the final
-grade is recomputed independently (invalid permutations score 0).
+A permutation of 0..39 — invalid permutations score 0.
 
-## Protocol
+## How you are scored
 
-- Whenever you find a shorter tour, **atomically** rewrite
-  `/app/best/solution.json` (temp file + rename); only that file is graded.
-- On each improvement, append `{"t": <seconds since start>, "score": <s>}`
-  to `/app/best/score_log.jsonl`.
+Submit your solution file to the judge — your final score is your **best
+submission** (`$JUDGE_URL` is set in your environment):
+
+```bash
+curl -s -X POST --data-binary @solution.json "$JUDGE_URL/submit"
+# → {"n": 0, "score": ..., "reason": "...", "best": ..., "remaining": ...}
+curl -s "$JUDGE_URL/status"
+```
+
+You have a **limited number of submissions** (see `remaining`) — evaluate
+candidates yourself however you like, and spend submissions on the ones
+worth scoring. Being stopped at the deadline is normal; your best
+submission so far is what counts.

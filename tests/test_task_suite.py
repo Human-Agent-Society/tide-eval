@@ -3,7 +3,7 @@
 Each task under tasks/ that ships a ``tests/grader_tests.json`` gets,
 automatically:
 
-- **grader cases** — every declared solution scores its declared reward
+- **judge scoring cases** — every declared solution scores its declared reward
   (each case says why; zero-reward cases must also produce a reason);
 - a **stock-Harbor check** — its ``task.toml`` validates under Harbor's
   ``TaskConfig`` (skipped when harbor isn't installed).
@@ -32,9 +32,10 @@ ALL_TASKS = sorted(
 )
 
 
-def _load_grader(task_dir: Path):
+def _load_grader(task_dir: Path, filename: str = "score.py"):
     spec = importlib.util.spec_from_file_location(
-        f"grade_{task_dir.name}", task_dir / "tests" / "grade.py"
+        f"{filename.removesuffix('.py')}_{task_dir.name}",
+        task_dir / "environment" / filename,
     )
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -66,6 +67,21 @@ def test_grader_cases(task_dir, tmp_path):
 
 
 @pytest.mark.parametrize("task_dir", GRADER_TESTED_TASKS, ids=lambda p: p.name)
+def test_final_judge_cases(task_dir, tmp_path):
+    """Tasks with a final judge (final.py — hidden tests, run once on the
+    best submission) declare its expectations as final_cases."""
+    cases = _grader_tests(task_dir).get("final_cases", [])
+    if not cases:
+        pytest.skip("no final judge")
+    grader = _load_grader(task_dir, "final.py")
+    for case in cases:
+        result = grader.grade(_write_artifact(tmp_path, case["solution"]))
+        assert result["reward"] == pytest.approx(
+            case["reward"], abs=case.get("tolerance", 1e-9)
+        ), (case["why"], result)
+
+
+@pytest.mark.parametrize("task_dir", GRADER_TESTED_TASKS, ids=lambda p: p.name)
 def test_missing_artifact_scores_zero(task_dir):
     grader = _load_grader(task_dir)
     assert grader.grade(None)["reward"] == 0.0
@@ -82,6 +98,10 @@ def test_task_is_stock_harbor(task_dir):
     for required in (
         "instruction.md",
         "environment/Dockerfile",
+        "environment/Dockerfile.judge",
+        "environment/judge_server.py",
+        "environment/score.py",
+        "environment/docker-compose.yaml",
         "tests/test.sh",
         "solution/solve.sh",
     ):

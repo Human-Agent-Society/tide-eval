@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 250" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 950 300" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
   <style>
     text { font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; fill: #22363E; }
     .m { fill: #7A929A; } .a { fill: #0E7490; } .c { fill: #D65F4A; }
@@ -7,7 +7,7 @@
     .draw-f { stroke: #AABDC3; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
     .draw-a { stroke: #0E7490; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
     .draw-c { stroke: #D65F4A; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-    .dash { stroke-dasharray: 5 6; }
+    .dash { stroke-dasharray: 4 5; }
   </style>
   <defs>
     <marker id="m-ink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
@@ -21,52 +21,55 @@
     </marker>
   </defs>
 
-  <!-- 1 · the agent searches, scoring itself as it goes -->
-  <path d="M 62 58 A 20 20 0 1 1 42 38" class="draw-c" marker-end="url(#m-cor)"/>
-  <text x="78" y="56" class="lab">agent</text>
-  <text x="36" y="100" class="sm m">scores itself while it searches</text>
+  <!-- agent -->
+  <path d="M 74 84 A 20 20 0 1 1 54 64" class="draw-c" marker-end="url(#m-cor)"/>
+  <text x="92" y="82" class="lab">agent</text>
+  <text x="46" y="124" class="sm m">searches however it likes,</text>
+  <text x="46" y="142" class="sm m">submits what's worth scoring</text>
 
-  <polyline points="36,196 68,196 68,174 102,174 102,178 134,178 134,150 172,150 172,154 204,154 204,128 240,128"
-            class="draw-c"/>
-  <circle cx="68" cy="174" r="3.5" fill="#D65F4A"/>
-  <circle cx="134" cy="150" r="3.5" fill="#D65F4A"/>
-  <circle cx="204" cy="128" r="3.5" fill="#D65F4A"/>
-  <circle cx="240" cy="128" r="4.5" fill="#D65F4A"/>
-  <text x="36" y="224" class="sm c">its own scores — not trusted</text>
+  <!-- submissions out, scores back -->
+  <path d="M 236 74 H 306" class="draw-c" marker-end="url(#m-cor)"/>
+  <text x="272" y="60" text-anchor="middle" class="sm c">submit — limited</text>
+  <path d="M 306 170 H 250" class="draw-f dash" marker-end="url(#m-ink)"/>
+  <text x="282" y="192" text-anchor="middle" class="sm m">score</text>
 
-  <!-- 2 · an isolated verifier re-scores the solution -->
-  <line x1="330" y1="52" x2="330" y2="214" class="draw-f dash"/>
+  <!-- judge -->
+  <circle cx="366" cy="120" r="38" class="draw-a"/>
+  <path d="M 348 120 l 13 14 l 24 -30" class="draw-a"/>
+  <text x="366" y="184" text-anchor="middle" class="lab">judge</text>
+  <text x="366" y="206" text-anchor="middle" class="sm m">all scoring lives here;</text>
+  <text x="366" y="224" text-anchor="middle" class="sm m">it scores every submission</text>
 
-  <path d="M 268 112 H 296" class="draw"/>
-  <rect x="308" y="92" width="34" height="42" rx="5" class="draw"/>
-  <line x1="316" y1="106" x2="334" y2="106" class="draw-f"/>
-  <line x1="316" y1="116" x2="334" y2="116" class="draw-f"/>
-  <line x1="316" y1="126" x2="328" y2="126" class="draw-f"/>
-  <path d="M 348 112 H 386" class="draw" marker-end="url(#m-ink)"/>
-  <text x="330" y="44" text-anchor="middle" class="sm m">its best solution</text>
+  <!-- ledger -->
+  <path d="M 306 250 V 288 H 420" class="draw-f"/>
+  <polyline points="312,282 336,282 336,270 362,270 362,262 388,262 388,254 412,254" class="draw-a"/>
+  <circle cx="412" cy="254" r="4" fill="#0E7490"/>
+  <text x="434" y="272" class="sm a">the ledger: score over time, every point judged</text>
 
-  <circle cx="446" cy="112" r="34" class="draw-a"/>
-  <path d="M 430 112 l 11 12 l 22 -26" class="draw-a"/>
-  <text x="446" y="172" text-anchor="middle" class="lab">verifier</text>
-  <text x="446" y="194" text-anchor="middle" class="sm m">isolated — re-scores the solution,</text>
-  <text x="446" y="212" text-anchor="middle" class="sm m">ignoring what the agent claimed</text>
+  <!-- final judge -->
+  <path d="M 408 104 H 500" class="draw-a" marker-end="url(#m-acc)"/>
+  <text x="454" y="90" text-anchor="middle" class="sm m">best, once</text>
+  <circle cx="542" cy="104" r="28" class="draw-a"/>
+  <path d="M 534 98 h 16 v 12 h -16 z M 537 98 v -5 a 5 5 0 0 1 10 0 v 5" class="draw-a"/>
+  <text x="542" y="154" text-anchor="middle" class="lab">final judge</text>
+  <text x="542" y="176" text-anchor="middle" class="sm m">optional · hidden tests</text>
+  <text x="542" y="194" text-anchor="middle" class="sm m">runs once, then locks</text>
 
-  <path d="M 490 112 H 552" class="draw-a" marker-end="url(#m-acc)"/>
-  <text x="524" y="94" text-anchor="middle" class="sm a">trusted score</text>
+  <!-- reward into the table -->
+  <path d="M 574 104 H 646" class="draw-a" marker-end="url(#m-acc)"/>
+  <text x="610" y="90" text-anchor="middle" class="sm a">reward</text>
 
-  <!-- 3 · everything lands in one table -->
-  <text x="576" y="56" class="lab">one table, every run</text>
-  <circle cx="582" cy="86" r="3.5" fill="#0E7490"/>
-  <line x1="596" y1="86" x2="716" y2="86" class="draw-a" stroke-width="3"/>
-  <text x="728" y="90" class="sm a">trusted score</text>
-  <circle cx="582" cy="108" r="3" fill="#AABDC3"/>
-  <line x1="596" y1="108" x2="700" y2="108" class="draw-f"/>
-  <circle cx="582" cy="128" r="3" fill="#AABDC3"/>
-  <line x1="596" y1="128" x2="708" y2="128" class="draw-f"/>
-  <text x="728" y="122" class="sm m">the agent's own scores</text>
-
-  <path d="M 580 158 V 218 H 700" class="draw-f"/>
-  <polyline points="586,210 610,210 610,196 636,196 636,186 662,186 662,174 692,174" class="draw-c"/>
-  <circle cx="692" cy="174" r="4" fill="#0E7490"/>
-  <text x="728" y="202" class="sm m">score over time</text>
+  <text x="666" y="66" class="lab">one table, every run</text>
+  <circle cx="672" cy="98" r="3.5" fill="#0E7490"/>
+  <line x1="686" y1="98" x2="806" y2="98" class="draw-a" stroke-width="3"/>
+  <text x="818" y="102" class="sm a">final reward</text>
+  <circle cx="672" cy="120" r="3" fill="#AABDC3"/>
+  <line x1="686" y1="120" x2="790" y2="120" class="draw-f"/>
+  <circle cx="672" cy="140" r="3" fill="#AABDC3"/>
+  <line x1="686" y1="140" x2="798" y2="140" class="draw-f"/>
+  <circle cx="672" cy="160" r="3" fill="#AABDC3"/>
+  <line x1="686" y1="160" x2="784" y2="160" class="draw-f"/>
+  <text x="818" y="134" class="sm m">ledger rows</text>
+  <text x="666" y="200" class="sm m">accumulates across runs;</text>
+  <text x="666" y="218" class="sm m">curves are queries</text>
 </svg>

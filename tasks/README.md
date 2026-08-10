@@ -6,8 +6,9 @@
 > regenerates them from the published sources).
 
 Throughout this catalog, `oracle` is Harbor's built-in agent that runs a
-task's reference `solution/` — the standard way to prove a task's pipeline
-works. Every task runs two ways, always:
+task's reference `solution/` (which submits once to the judge) — the
+standard way to prove a task's pipeline works. Every task runs two ways,
+always:
 
 ```python
 await lab.run("tasks/autoresearch/tsp-tour", {"name": "oracle"})  # through tide
