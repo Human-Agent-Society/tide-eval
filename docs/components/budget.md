@@ -23,10 +23,13 @@ tide run autoresearch/tsp-tour --agent aider        --max-evals 50 --max-cost 3
 
 ```python
 from tide import Lab, Budget
+
 lab = Lab("runs/exp")
-await lab.run("tasks/autoresearch/tsp-tour",
-              agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"},
-              budget=Budget(max_tokens=500_000))   # a bare number is hours: budget=2
+await lab.run(
+    "tasks/autoresearch/tsp-tour",
+    agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"},
+    budget=Budget(max_tokens=500_000),
+)  # a bare number is hours: budget=2
 ```
 
 ## Set → deliver → record
@@ -110,14 +113,17 @@ Because budget and spend are both ordinary columns, the analyses are one call:
 
 ```python
 from tide import metrics
+
 df = lab.df("episode")
 
 # What does more budget buy? (any axis — pass the budget column)
 metrics.scaling(df, budget="budget_max_tokens", by=["model"])
 
 # Reward per unit actually spent — the budget's flip side
-metrics.efficiency(df, spend="used_n_total_tokens", per=1000, by=["model"])  # per 1k tokens
-metrics.efficiency(df, spend="used_cost_usd", by=["model"])                  # per dollar
+metrics.efficiency(
+    df, spend="used_n_total_tokens", per=1000, by=["model"]
+)  # per 1k tokens
+metrics.efficiency(df, spend="used_cost_usd", by=["model"])  # per dollar
 ```
 
 Compare methods at the same budget tag, on the same tasks; `oracle` and `nop`
