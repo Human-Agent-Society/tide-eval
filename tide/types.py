@@ -58,12 +58,19 @@ class EpisodeResult:
     tests). ``trace`` is the untrusted score log recovered from the
     episode's artifacts. ``uri`` points at the provenance (the Harbor trial
     directory) so every stored number stays auditable.
+
+    ``usage`` is what the episode actually spent — the *measured* side of a
+    budget: ``n_input_tokens`` / ``n_output_tokens`` / ``n_cache_tokens`` /
+    ``cost_usd`` (reported by the harness's own accounting, so as accurate as
+    the provider's bill) and ``n_submissions`` (evals used). Every key is
+    optional; the Lab records whatever is present as ``used_*`` columns.
     """
 
     rewards: Rewards
     uri: str | None = None
     trace: tuple[TracePoint, ...] = ()
     error: str | None = None
+    usage: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

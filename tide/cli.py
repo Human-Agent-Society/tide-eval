@@ -89,8 +89,6 @@ def _build_agent(args: argparse.Namespace) -> dict:
     agent: dict = {"name": args.agent}
     if args.model:
         agent["model_name"] = args.model
-    if args.budget is not None:
-        agent["override_timeout_sec"] = args.budget * 3600
     for pair in args.agent_arg or []:
         key, _, value = pair.partition("=")
         try:
@@ -98,6 +96,30 @@ def _build_agent(args: argparse.Namespace) -> dict:
         except json.JSONDecodeError:
             agent[key] = value
     return agent
+
+
+def _build_budget(args: argparse.Namespace):
+    """Assemble a Budget from the budget flags (all optional)."""
+    from tide import Budget
+
+    budget = Budget(
+        time_h=args.budget,
+        max_submissions=args.max_evals,
+        max_tokens=_parse_count(args.max_tokens),
+        max_cost_usd=args.max_cost,
+    )
+    return None if budget.is_empty else budget
+
+
+def _parse_count(value: str | None) -> int | None:
+    """Accept plain ints or human suffixes: 500k, 2m, 1.5M."""
+    if value is None:
+        return None
+    text = value.strip().lower()
+    mult = {"k": 1_000, "m": 1_000_000, "b": 1_000_000_000}
+    if text and text[-1] in mult:
+        return int(float(text[:-1]) * mult[text[-1]])
+    return int(text)
 
 
 def _parse_tags(pairs: list[str] | None) -> dict:
@@ -159,8 +181,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     if args.command:
         agent["command"] = args.command
     base_tags = _parse_tags(args.tag)
-    if args.budget is not None:
-        base_tags.setdefault("budget", args.budget)
+    budget = _build_budget(args)
 
     lab = _make_lab(args)
 
@@ -170,6 +191,7 @@ def cmd_run(args: argparse.Namespace) -> int:
                 "task": target,
                 "agent": agent,
                 "tags": {**base_tags, "attempt": attempt},
+                "budget": budget,
             }
             for target in targets
             for attempt in range(args.attempts)
@@ -258,7 +280,28 @@ def main(argv: list[str] | None = None) -> int:
         "--budget",
         type=float,
         default=None,
-        help="hours; sets the agent timeout and a budget tag",
+        metavar="HOURS",
+        help="time budget in hours (HARD: sets the container timeout)",
+    )
+    p_run.add_argument(
+        "--max-evals",
+        type=int,
+        default=None,
+        metavar="N",
+        help="submission/eval budget (agent signal; judge caps at the task's own limit)",
+    )
+    p_run.add_argument(
+        "--max-tokens",
+        default=None,
+        metavar="N",
+        help="token budget, e.g. 500k or 2m (soft: signalled to the agent, actuals recorded)",
+    )
+    p_run.add_argument(
+        "--max-cost",
+        type=float,
+        default=None,
+        metavar="USD",
+        help="cost budget in USD (soft: signalled to the agent, actuals recorded)",
     )
     p_run.add_argument("--attempts", "-n", type=int, default=1)
     p_run.add_argument("--concurrent", type=int, default=4)

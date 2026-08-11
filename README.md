@@ -30,12 +30,12 @@ against containers, the ecosystem of agent adapters — and tide uses it as
 a library for exactly that. Autoresearch needs four things on top, and
 they are the reason tide exists:
 
-| Plain Harbor | tide |
-|---|---|
-| One reward number per trial; how the agent got there is lost | The judge scores and records every submission, so the anytime curve, its AUC, and time-to-threshold are one query each — and every point on them is trusted |
-| Statistics live inside a single job (pass@k) | Budget is an ordinary tag, so "what does 8 h buy over 2 h?" is a query across any set of runs |
-| One task, one run — and covering the suite, repeating for variance, or scanning budgets multiplies that into days of compute, which a crash throws away | Run the same script again and finished episodes are skipped automatically, so only the unfinished work re-runs |
-| Each run is a throwaway job directory | Every run lands in the same table, so comparing agents across runs is a single query — `tide report` reads it |
+| What you want | Plain Harbor | tide |
+|---|---|---|
+| **The whole score trajectory, not just the endpoint** | One reward number per trial; how the agent got there is lost | The judge records every submission, so the anytime curve, its AUC, and time-to-threshold are one query each — and every point is trusted |
+| **Compare across budgets** ("what does 8 h buy over 2 h?") | Statistics live inside a single job (pass@k) | Budget is an ordinary tag, so scaling curves are a pivot over any set of runs |
+| **Resume from failure on long, multi-day sweeps** | A crash throws the whole job away; covering a suite × variance × budgets is days of compute to lose | Re-run the same script and finished episodes are skipped — only the unfinished work re-runs |
+| **Compare agents across many runs** | Each run is a throwaway job directory | Every run lands in one table, so comparing agents is a single query — `tide report` reads it |
 
 One honest limit: resume works at episode granularity. A batch of runs
 picks up where it crashed, but a crashed 12-hour episode itself starts
@@ -55,9 +55,13 @@ pip install -e ".[harbor]"               # container runs; plain -e . covers --l
 
 tide list                                # what's runnable
 tide run autoresearch --agent oracle     # oracle = built-in agent that runs each task's reference solution
-tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2   # hours
+tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2      # time: 2 hours
+tide run autoresearch/tsp-tour --agent codex --model openai/gpt-5 --max-tokens 500k                # or: tokens / --max-evals / --max-cost
 tide report                              # summarize the results store
 ```
+
+`--budget` is hours; the other budget axes are `--max-tokens` (e.g. `500k`),
+`--max-evals`, and `--max-cost` (USD). See [budget](docs/components/budget.md).
 
 #### No Docker? Develop locally, verify in containers
 
@@ -92,25 +96,32 @@ trial), and `df` returns everything recorded so far as a pandas DataFrame:
 
 ```python
 # Lab is asyncio-based: run this inside an async function or a notebook.
-from tide import Lab, metrics
+from tide import Lab, Budget, metrics
 
 lab = Lab("runs/exp1")
 row = await lab.run(
     "tasks/autoresearch/circle-packing",  # any task dir or Harbor registry id
     agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"},
-    tags={"budget": 2},  # free-form tags = your schema
+    budget=Budget(time_h=2),        # the budget — time, or tokens / evals / cost
+    tags={"suite": "smoke"},        # free-form tags = your schema
 )
 row.rewards  # the judge's final verdict
-row.uri  # the trial directory, for auditing
+row.uri      # the trial directory, for auditing
 
-curve = metrics.anytime(lab.df("trace"))  # every submission's score, over time
-metrics.auc(curve)  # the anytime score
-metrics.scaling(lab.df("episode"))  # what does more budget buy?
+# Budget is more than a clock — bound whichever resource is scarce:
+await lab.run("tasks/autoresearch/circle-packing",
+              agent={"name": "codex", "model_name": "openai/gpt-5"},
+              budget=Budget(max_tokens=500_000))   # or max_evals=50, max_cost_usd=3
+
+curve = metrics.anytime(lab.df("trace"))            # every submission's score, over time
+metrics.auc(curve)                                  # the anytime score
+metrics.scaling(lab.df("episode"), budget="budget_max_tokens")  # what does more budget buy?
+metrics.efficiency(lab.df("episode"), spend="used_cost_usd")    # reward per dollar actually spent
 ```
 
 Re-running any script resumes it. Reference:
-[lab](docs/components/lab.md) · [metrics](docs/components/metrics.md) ·
-[executors](docs/components/executors.md).
+[lab](docs/components/lab.md) · [budget](docs/components/budget.md) ·
+[metrics](docs/components/metrics.md) · [executors](docs/components/executors.md).
 
 ### Evaluate your own agent
 

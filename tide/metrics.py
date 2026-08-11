@@ -129,6 +129,43 @@ def improvements(
     return agg.reset_index()
 
 
+def efficiency(
+    df: pd.DataFrame,
+    *,
+    spend: str = "used_n_total_tokens",
+    score: str = "reward",
+    by: list[str] | None = None,
+    per: float = 1.0,
+) -> pd.DataFrame:
+    """Reward per unit of what the run actually spent — the budget's flip side.
+
+    ``spend`` is a ``used_*`` column (tokens, ``used_cost_usd``,
+    ``used_n_submissions``); ``per`` scales the denominator (e.g. ``1000``
+    for reward per 1k tokens). Returns mean reward, mean spend, and
+    ``reward_per_unit`` per *by* group (or overall). Rows missing the spend
+    column are dropped, so this is only meaningful once usage is recorded.
+    """
+    have = df[df[spend].notna() & (df[spend] > 0)] if spend in df else df.iloc[0:0]
+    if have.empty:
+        return pd.DataFrame(columns=(by or []) + [score, spend, "reward_per_unit"])
+
+    def _one(g: pd.DataFrame) -> dict:
+        s, c = g[score].mean(), g[spend].mean()
+        return {
+            score: s,
+            spend: c,
+            "reward_per_unit": s / (c / per) if c else float("nan"),
+        }
+
+    if not by:
+        return pd.DataFrame([_one(have)])
+    rows = [
+        {**dict(zip(by, k if isinstance(k, tuple) else (k,), strict=False)), **_one(g)}
+        for k, g in have.groupby(by)
+    ]
+    return pd.DataFrame(rows)
+
+
 # -------------------------------------------------------------- normalizers
 
 
