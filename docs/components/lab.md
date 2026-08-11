@@ -8,26 +8,40 @@ addition, never a mutation.
 ## Use it
 
 ```python
-from tide import Lab
+from tide import Lab, Budget
 
 lab = Lab("runs/exp1")  # a Lab IS a directory: results.sqlite + trials/
 
 row = await lab.run(  # one episode = one trusted score
     "tasks/autoresearch/tsp-tour",
     agent={"name": "oracle"},
-    tags={"budget": 1},  # free-form tags = your result schema
+    budget=Budget(time_h=1),  # the budget (units are explicit — see below)
+    tags={"suite": "smoke"},  # free-form tags = your result schema
 )
 rows = await lab.run_many([...])  # many episodes, concurrency-bounded
 df = lab.df("episode")  # the store as pandas
 ```
 
-Three things to know about `run`:
+Four things to know about `run`:
 
+- **Budget bounds the run — on any of four axes.** `budget=` takes a
+  [`Budget`](budget.md) (a bare number means hours):
+
+  | `Budget(...)` | what it bounds | enforcement |
+  |---|---|---|
+  | `time_h=2` | wall-clock hours | hard (container timeout) |
+  | `max_submissions=50` | judge evals | hard at the task's ceiling, else signalled |
+  | `max_tokens=500_000` | LLM tokens | soft signal, actual recorded |
+  | `max_cost_usd=3` | dollars | soft signal, actual recorded |
+
+  Each axis is delivered to the agent as a `TIDE_*` env var, tagged
+  (`budget`, `budget_max_tokens`, …) so runs pivot by it, and its real
+  spend comes back as `used_*` columns. Full guide: [budget.md](budget.md).
 - **Re-running = resuming.** Every episode gets a stable ID, auto-derived
-  from (task, agent, tags, overrides) or passed as `key=`. If that ID is
-  already in the table, nothing executes and the stored row is returned —
-  so running the same script again picks up where it crashed. (Engineers
-  know this pattern as an idempotency key.)
+  from (task, agent, tags, budget, overrides) or passed as `key=`. If that
+  ID is already in the table, nothing executes and the stored row is
+  returned — so running the same script again picks up where it crashed.
+  (Engineers know this pattern as an idempotency key.)
 - **Trace comes for free.** The judge's submission log is stored as
   `<key>#t<i>` rows of kind `trace`, next to the `episode` row — every
   point judge-scored, so the curve is trusted.

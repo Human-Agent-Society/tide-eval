@@ -21,6 +21,11 @@ hidden tests, if the task has one). Everything else — how you search, what
 you evaluate locally, whether you build your own scorer — is your
 business; tide places no constraints on the agent's side.
 
+If the run set a [budget](components/budget.md) beyond time, the container
+also carries `TIDE_MAX_SUBMISSIONS`, `TIDE_MAX_TOKENS`, and/or
+`TIDE_MAX_COST_USD`. Reading them lets your method pace itself; you don't
+have to, since tide records the actual spend either way.
+
 ## Level 1 — a supported harness (zero code)
 
 `claude-code`, `codex`, `aider`, `cursor-cli`, `terminus-2`, … plus
