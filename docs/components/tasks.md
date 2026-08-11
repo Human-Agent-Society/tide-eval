@@ -175,9 +175,9 @@ and record the GPU model as a tag so curves never mix hardware.
 ## A benchmark converter
 
 A converter turns a published external format into a folder of task dirs.
-Converters depend **only on the published format and tide's public types**
-— so they can't break anything. The reference implementation is
-`tide/converters/edgebench.py`; its tests pin the converter to unmodified
-published spec files — do the same for any new converter: check one real
-spec into `tests/fixtures/` and validate the emitted task under Harbor's
-`TaskConfig`.
+Converters live beside the benchmark they maintain and depend only on its
+published format, keeping benchmark-specific tooling out of tide's runtime
+package. The reference implementation is `tasks/edgebench/convert.py`; its
+tests pin the converter to unmodified published spec files — do the same for
+any new converter: check one real spec into `tests/fixtures/` and validate
+the emitted task under Harbor's `TaskConfig`.

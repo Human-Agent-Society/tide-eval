@@ -9,7 +9,7 @@ README.md here for how to run one.
 
 Note: EdgeBench tasks reference prebuilt work/judge images from the EdgeBench
 registry; pulling them follows their docs (`sforge pull`). Requires
-`pip install "tide-eval[converters]"` (PyYAML).
+PyYAML (`python -m pip install pyyaml`).
 """
 
 import json
@@ -17,7 +17,7 @@ import sys
 import urllib.request
 from pathlib import Path
 
-from tide.converters import convert_edgebench_task
+from convert import convert_task
 
 HF = "https://huggingface.co/datasets/ByteDance-Seed/EdgeBench/resolve/main"
 OUT = Path(__file__).parent
@@ -50,7 +50,7 @@ def main() -> None:
     if not args:
         print(f"{len(task_ids)} EdgeBench tasks available:")
         print("\n".join(f"  {t}" for t in task_ids))
-        print("\nConvert one:  python examples/convert_edgebench.py <task_id>")
+        print("\nConvert one:  python tasks/edgebench/fetch.py <task_id>")
         return
 
     wanted = task_ids if args == ["--all"] else args
@@ -59,7 +59,7 @@ def main() -> None:
         if task_id not in task_ids:
             print(f"unknown task id: {task_id}")
             continue
-        task_dir = convert_edgebench_task(fetch(f"{task_id}.json"), benchmark, OUT)
+        task_dir = convert_task(fetch(f"{task_id}.json"), benchmark, OUT)
         print(f"converted: {task_dir}")
 
 

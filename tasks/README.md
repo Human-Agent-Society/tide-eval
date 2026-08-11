@@ -53,5 +53,5 @@ states the oracle baseline and what the task teaches.
 
 Add a folder with a README (what / license / count) and either vendored task
 dirs or a `fetch.py`. If it needs format conversion, the converter goes in
-`tide/converters/` with fixture tests pinned to unmodified published specs
-(see `edgebench.py`); the folder's `fetch.py` is just the user-facing entry.
+the benchmark folder beside `fetch.py`, with fixture tests pinned to
+unmodified published specs (see [`edgebench/convert.py`](edgebench/convert.py)).
