@@ -26,7 +26,7 @@ format.
 | Adapter | Integration | Pinned version |
 |---|---|---|
 | [OpenEvolve](https://github.com/algorithmicsuperintelligence/openevolve) | evolves `initial_program.py`; its evaluator executes the candidate and returns the Tide judge score | 0.3.2 |
-| [Codex Goal mode](https://developers.openai.com/codex/app-server/) | uses `thread/goal/set`, the programmatic form of `/goal`, then waits for `complete` or `blocked` | Codex CLI 0.147.0 |
+| [Codex Goal mode](https://developers.openai.com/codex/app-server/) | installable [`tide-codex-goal-harness`](codex) package; uses `thread/goal/set`, the programmatic form of `/goal`, then waits for `complete` or `blocked` | package 0.1.0 + Codex CLI 0.147.0 |
 | [CORAL](https://github.com/Human-Agent-Society/CORAL) | launches a two-agent organization; `coral eval` calls a packaged `TaskGrader` that submits `solution.json` to Tide | 0.7.16 |
 
 The adapters deliberately pin their tool versions so a benchmark record has a

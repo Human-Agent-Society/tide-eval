@@ -1,0 +1,17 @@
+[project]
+name = "tide-codex-goal-harness"
+version = "0.1.0"
+description = "Codex Goal mode driver for Tide benchmark harnesses."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+tide-codex-goal = "tide_codex_goal.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tide_codex_goal"]

@@ -113,8 +113,10 @@ python examples/run_harness.py coral --model gpt-5.6-terra --agents 2
 - **OpenEvolve** evolves a task-specific candidate program. Its evaluator
   executes the candidate, POSTs its JSON to Tide, and returns the judge score.
 - **Codex Goal mode** uses app-server's `thread/goal/set`, which is the same
-  persistent goal state surfaced by `/goal`, then lets Codex continue until the
-  goal is complete or blocked.
+  persistent goal state surfaced by `/goal`. The installable
+  [`tide-codex-goal-harness`](../examples/harnesses/codex) package keeps the
+  JSON-RPC client reusable outside the example runner and lets Codex continue
+  until the goal is complete or blocked.
 - **CORAL** runs multiple Codex workers over a shared repository. Its packaged
   `TaskGrader` makes `coral eval` spend one Tide submission and returns that
   feedback to the organization.

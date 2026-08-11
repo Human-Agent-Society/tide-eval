@@ -7,13 +7,11 @@ without making a real model call.
 
 from __future__ import annotations
 
-import argparse
 import json
 import os
 import shlex
 import subprocess
 import sys
-from pathlib import Path
 from typing import Any, TextIO
 
 
@@ -138,17 +136,3 @@ def run_goal(objective: str, model: str, token_budget: int | None = None) -> Non
                 return
     finally:
         server.close()
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("objective", type=Path)
-    parser.add_argument("--model", required=True)
-    parser.add_argument("--token-budget", type=int)
-    args = parser.parse_args()
-    run_goal(args.objective.read_text(), args.model, args.token_budget)
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

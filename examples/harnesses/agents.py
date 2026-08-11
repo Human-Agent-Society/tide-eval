@@ -16,6 +16,7 @@ from examples.harnesses.config import coral_config, openevolve_config
 HERE = Path(__file__).parent
 REMOTE_ROOT = Path("/opt/tide-harness")
 OPENEVOLVE_VERSION = "0.3.2"
+CODEX_HARNESS_VERSION = "0.1.0"
 CODEX_VERSION = "0.147.0"
 CORAL_VERSION = "0.7.16"
 
@@ -110,7 +111,7 @@ class CodexGoalHarness(BaseAgent):
         return "codex-goal"
 
     def version(self) -> str:
-        return CODEX_VERSION
+        return f"{CODEX_HARNESS_VERSION}+codex.{CODEX_VERSION}"
 
     async def setup(self, environment) -> None:
         await _checked(
@@ -118,6 +119,14 @@ class CodexGoalHarness(BaseAgent):
             "apt-get update && apt-get install -y --no-install-recommends nodejs npm "
             "&& rm -rf /var/lib/apt/lists/* "
             f"&& npm install -g @openai/codex@{CODEX_VERSION}",
+        )
+        await environment.upload_dir(
+            source_dir=HERE / "codex",
+            target_dir=str(REMOTE_ROOT / "codex"),
+        )
+        await _checked(
+            environment,
+            f"python -m pip install --no-cache-dir {REMOTE_ROOT / 'codex'}",
         )
 
     async def run(self, instruction, environment, context) -> None:
@@ -128,7 +137,6 @@ class CodexGoalHarness(BaseAgent):
         with tempfile.TemporaryDirectory() as tmp:
             bundle = Path(tmp) / "codex-goal"
             bundle.mkdir()
-            shutil.copy2(HERE / "codex_goal_driver.py", bundle)
             (bundle / "objective.txt").write_text(instruction)
             await environment.upload_dir(
                 source_dir=tmp,
@@ -136,8 +144,7 @@ class CodexGoalHarness(BaseAgent):
             )
         await _write_codex_auth(environment, env)
         command = [
-            "python",
-            str(REMOTE_ROOT / "codex-goal" / "codex_goal_driver.py"),
+            "tide-codex-goal",
             str(REMOTE_ROOT / "codex-goal" / "objective.txt"),
             "--model",
             model,

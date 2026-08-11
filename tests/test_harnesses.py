@@ -15,7 +15,8 @@ from examples.harnesses.config import coral_config, openevolve_config
 
 ROOT = Path(__file__).parent.parent
 OPENEVOLVE = ROOT / "examples" / "harnesses" / "openevolve"
-CODEX_DRIVER = ROOT / "examples" / "harnesses" / "codex_goal_driver.py"
+CODEX_PACKAGE = ROOT / "examples" / "harnesses" / "codex"
+CODEX_SRC = CODEX_PACKAGE / "src"
 FAKE_APP_SERVER = ROOT / "tests" / "fixtures" / "fake_codex_app_server.py"
 CORAL_GRADER_SRC = ROOT / "examples" / "harnesses" / "coral" / "grader" / "src"
 
@@ -101,11 +102,13 @@ def test_codex_goal_driver_sets_persisted_goal(tmp_path):
     env = {
         **os.environ,
         "CODEX_APP_SERVER_COMMAND": f"{sys.executable} {FAKE_APP_SERVER}",
+        "PYTHONPATH": str(CODEX_SRC),
     }
     completed = subprocess.run(
         [
             sys.executable,
-            str(CODEX_DRIVER),
+            "-m",
+            "tide_codex_goal",
             str(objective),
             "--model",
             "test-model",
@@ -117,6 +120,14 @@ def test_codex_goal_driver_sets_persisted_goal(tmp_path):
     )
     assert completed.returncode == 0, completed.stderr
     assert '"status": "complete"' in completed.stdout
+
+
+def test_codex_goal_package_exports_driver(monkeypatch):
+    monkeypatch.syspath_prepend(str(CODEX_SRC))
+    from tide_codex_goal import AppServer, run_goal
+
+    assert AppServer.__module__ == "tide_codex_goal.app_server"
+    assert callable(run_goal)
 
 
 def test_generated_configs_keep_tide_as_the_scorer():
