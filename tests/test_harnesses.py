@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import importlib.util
 import json
-import os
-import subprocess
 import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -19,9 +17,6 @@ from examples.harnesses.openevolve.config import openevolve_config
 
 ROOT = Path(__file__).parent.parent
 OPENEVOLVE = ROOT / "examples" / "harnesses" / "openevolve"
-CODEX_PACKAGE = ROOT / "examples" / "harnesses" / "codex"
-CODEX_SRC = CODEX_PACKAGE / "src"
-FAKE_APP_SERVER = ROOT / "tests" / "fixtures" / "fake_codex_app_server.py"
 CORAL_GRADER_SRC = ROOT / "examples" / "harnesses" / "coral" / "grader" / "src"
 
 
@@ -100,47 +95,23 @@ def test_coral_grader_client_uses_same_judge(tmp_path, monkeypatch):
     assert _Judge.submissions == [{"circles": []}]
 
 
-def test_codex_goal_driver_sets_persisted_goal(tmp_path):
-    objective = tmp_path / "objective.txt"
-    usage = tmp_path / "usage.jsonl"
-    objective.write_text("improve the score")
-    env = {
-        **os.environ,
-        "CODEX_APP_SERVER_COMMAND": f"{sys.executable} {FAKE_APP_SERVER}",
-        "PYTHONPATH": str(CODEX_SRC),
-    }
-    completed = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "tide_codex_goal",
-            str(objective),
-            "--model",
-            "test-model",
-            "--usage-file",
-            str(usage),
-        ],
-        env=env,
-        capture_output=True,
-        text=True,
-        timeout=10,
-    )
-    assert completed.returncode == 0, completed.stderr
-    assert '"status": "complete"' in completed.stdout
-    assert json.loads(usage.read_text()) == {
-        "model": "test-model",
-        "input_tokens": 120,
-        "cached_input_tokens": 80,
-        "output_tokens": 30,
-    }
+def test_codex_harness_reuses_version_pinned_harbor_agent(tmp_path):
+    pytest.importorskip("harbor")
+    from harbor.agents.installed.codex import Codex
 
+    from examples.harnesses.codex.agent import CODEX_VERSION, CodexHarness
 
-def test_codex_goal_package_exports_driver(monkeypatch):
-    monkeypatch.syspath_prepend(str(CODEX_SRC))
-    from tide_codex_goal import AppServer, run_goal
+    assert issubclass(CodexHarness, Codex)
+    harness = CodexHarness(logs_dir=tmp_path, model_name="openai/test-model")
+    assert harness.name() == "codex"
+    assert harness.version() == CODEX_VERSION
 
-    assert AppServer.__module__ == "tide_codex_goal.app_server"
-    assert callable(run_goal)
+    with pytest.raises(ValueError, match=f"requires Codex {CODEX_VERSION}"):
+        CodexHarness(
+            logs_dir=tmp_path,
+            model_name="openai/test-model",
+            version="different-version",
+        )
 
 
 def test_generated_configs_keep_tide_as_the_scorer():

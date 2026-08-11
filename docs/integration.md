@@ -106,17 +106,15 @@ version-pinned adapters for the three long-horizon patterns above:
 ```bash
 export OPENAI_API_KEY=...
 python examples/run_harness.py openevolve --model gpt-5-mini --iterations 100
-python examples/run_harness.py codex-goal --model gpt-5.6-terra --token-budget 40000
+python examples/run_harness.py codex --model gpt-5.6-terra
 python examples/run_harness.py coral --model gpt-5.6-terra --agents 2
 ```
 
 - **OpenEvolve** evolves a task-specific candidate program. Its evaluator
   executes the candidate, POSTs its JSON to Tide, and returns the judge score.
-- **Codex Goal mode** uses app-server's `thread/goal/set`, which is the same
-  persistent goal state surfaced by `/goal`. The installable
-  [`tide-codex-goal-harness`](../examples/harnesses/codex) package keeps the
-  JSON-RPC client reusable outside the example runner and lets Codex continue
-  until the goal is complete or blocked.
+- **Codex** subclasses Harbor's built-in Codex agent and pins the CLI version.
+  Harbor runs the task through standard non-interactive `codex exec --json`
+  and retains its trajectory and usage metrics.
 - **CORAL** runs multiple Codex workers over a shared repository. Its packaged
   `TaskGrader` makes `coral eval` spend one Tide submission and returns that
   feedback to the organization.
@@ -124,9 +122,10 @@ python examples/run_harness.py coral --model gpt-5.6-terra --agents 2
 All three adapters record actual model usage in Harbor's standard agent result:
 input tokens (including cache), cached input tokens, and output tokens. Tide
 copies those totals plus the LiteLLM price-table estimate into episode columns
-`n_input_tokens`, `n_cache_tokens`, `n_output_tokens`, and `cost_usd`. Codex
-Goal reads app-server token notifications, CORAL sums every worker's Codex JSONL
-turn usage, and OpenEvolve meters each successful SDK response.
+`n_input_tokens`, `n_cache_tokens`, `n_output_tokens`, and `cost_usd`. Harbor
+extracts Codex usage from its native session trajectory, CORAL sums every
+worker's Codex JSONL turn usage, and OpenEvolve meters each successful SDK
+response.
 
 All three run inside the Harbor task environment and therefore share its time,
 submission, and network budgets. Their final reward still comes from Harbor's

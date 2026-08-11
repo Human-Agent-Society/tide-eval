@@ -2,7 +2,7 @@
 
 Examples:
     OPENAI_API_KEY=... python examples/run_harness.py openevolve --model gpt-5-mini
-    OPENAI_API_KEY=... python examples/run_harness.py codex-goal --model gpt-5.6-terra
+    OPENAI_API_KEY=... python examples/run_harness.py codex --model gpt-5.6-terra
     OPENAI_API_KEY=... python examples/run_harness.py coral --model gpt-5.6-terra
 """
 
@@ -18,7 +18,7 @@ from tide import Lab
 TASK = str(Path(__file__).parent.parent / "tasks" / "autoresearch" / "circle-packing")
 AGENTS = {
     "openevolve": "examples.harnesses.openevolve.agent:OpenEvolveHarness",
-    "codex-goal": "examples.harnesses.codex.agent:CodexGoalHarness",
+    "codex": "examples.harnesses.codex.agent:CodexHarness",
     "coral": "examples.harnesses.coral.agent:CoralHarness",
 }
 
@@ -32,7 +32,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--iterations", type=int, default=100, help="OpenEvolve iterations"
     )
-    parser.add_argument("--token-budget", type=int, help="Codex /goal token budget")
     return parser.parse_args()
 
 
@@ -43,7 +42,7 @@ async def main() -> None:
         raise SystemExit("OPENAI_API_KEY is required")
     kwargs = {
         "openevolve": {"iterations": args.iterations},
-        "codex-goal": {"token_budget": args.token_budget},
+        "codex": {},
         "coral": {"agents": args.agents},
     }[args.harness]
     lab = Lab(args.lab)

@@ -122,7 +122,7 @@ are identical — so numbers stay comparable across methods:
 |---|---|
 | a mainstream harness (`claude-code`, `codex`, `aider`, …) | `--agent <name> --model <m>` — zero code |
 | your own harness | one `BaseAgent` subclass, referenced via `import_path` — runnable template: [`examples/minimal_harness.py`](examples/minimal_harness.py) |
-| OpenEvolve, Codex `/goal`, or CORAL | version-pinned runnable adapters: [`examples/run_harness.py`](examples/run_harness.py) |
+| OpenEvolve, Codex, or CORAL | version-pinned runnable adapters: [`examples/run_harness.py`](examples/run_harness.py) |
 | another method that isn't an "agent" (evolutionary search, a solver) | POST candidates to `$JUDGE_URL/submit`, stop at 429 — ~20 lines |
 
 The protocol is identical across every task, so one integration covers
