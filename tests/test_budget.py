@@ -29,6 +29,23 @@ def test_bare_number_is_hours():
     assert Budget.coerce(2.5).timeout_sec() == 2.5 * 3600
 
 
+def test_duration_strings():
+    from tide.budget import parse_duration_hours
+
+    assert parse_duration_hours("2h") == 2.0
+    assert parse_duration_hours("30m") == pytest.approx(0.5)
+    assert parse_duration_hours("90s") == pytest.approx(90 / 3600)
+    assert parse_duration_hours("1d") == 24.0
+    assert parse_duration_hours("0.01") == 0.01  # bare = hours (back-compat)
+    with pytest.raises(ValueError, match="unknown duration unit"):
+        parse_duration_hours("5x")
+
+
+def test_coerce_duration_string():
+    assert Budget.coerce("30m") == Budget(time_h=0.5)
+    assert Budget.coerce("90s").timeout_sec() == pytest.approx(90)
+
+
 def test_dict_coercion_and_unknown_fields():
     assert Budget.coerce({"max_tokens": 100}) == Budget(max_tokens=100)
     with pytest.raises(ValueError, match="unknown budget fields"):

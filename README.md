@@ -55,13 +55,14 @@ pip install -e ".[harbor]"               # container runs; plain -e . covers --l
 
 tide list                                # what's runnable
 tide run autoresearch --agent oracle     # oracle = built-in agent that runs each task's reference solution
-tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2      # time: 2 hours
+tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2h     # time (2h / 30m / 90s; bare = hours)
 tide run autoresearch/tsp-tour --agent codex --model openai/gpt-5 --max-tokens 500k                # or: tokens / --max-evals / --max-cost
 tide report                              # summarize the results store
 ```
 
-`--budget` is hours; the other budget axes are `--max-tokens` (e.g. `500k`),
-`--max-evals`, and `--max-cost` (USD). See [budget](docs/components/budget.md).
+`--budget` is time (`2h` / `30m` / `90s`; a bare number is hours); the other
+budget axes are `--max-tokens` (e.g. `500k`), `--max-evals`, and `--max-cost`
+(USD). See [budget](docs/components/budget.md).
 
 #### No Docker? Develop locally, verify in containers
 
@@ -70,7 +71,7 @@ your command against it, with no containers involved:
 
 ```bash
 tide run autoresearch/circle-packing --local \
-  --command "python examples/minimal_harness_search.py" --budget 0.01
+  --command "python examples/minimal_harness_search.py" --budget 30s
 ```
 
 Your command reads `$JUDGE_URL` and `$BUDGET_SEC`, POSTs solutions to
@@ -102,21 +103,27 @@ lab = Lab("runs/exp1")
 row = await lab.run(
     "tasks/autoresearch/circle-packing",  # any task dir or Harbor registry id
     agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"},
-    budget=Budget(time_h=2),        # the budget — time, or tokens / evals / cost
-    tags={"suite": "smoke"},        # free-form tags = your schema
+    budget=Budget(time_h=2),  # the budget — time, or tokens / evals / cost
+    tags={"suite": "smoke"},  # free-form tags = your schema
 )
 row.rewards  # the judge's final verdict
-row.uri      # the trial directory, for auditing
+row.uri  # the trial directory, for auditing
 
 # Budget is more than a clock — bound whichever resource is scarce:
-await lab.run("tasks/autoresearch/circle-packing",
-              agent={"name": "codex", "model_name": "openai/gpt-5"},
-              budget=Budget(max_tokens=500_000))   # or max_evals=50, max_cost_usd=3
+await lab.run(
+    "tasks/autoresearch/circle-packing",
+    agent={"name": "codex", "model_name": "openai/gpt-5"},
+    budget=Budget(max_tokens=500_000),
+)  # or max_evals=50, max_cost_usd=3
 
-curve = metrics.anytime(lab.df("trace"))            # every submission's score, over time
-metrics.auc(curve)                                  # the anytime score
-metrics.scaling(lab.df("episode"), budget="budget_max_tokens")  # what does more budget buy?
-metrics.efficiency(lab.df("episode"), spend="used_cost_usd")    # reward per dollar actually spent
+curve = metrics.anytime(lab.df("trace"))  # every submission's score, over time
+metrics.auc(curve)  # the anytime score
+metrics.scaling(
+    lab.df("episode"), budget="budget_max_tokens"
+)  # what does more budget buy?
+metrics.efficiency(
+    lab.df("episode"), spend="used_cost_usd"
+)  # reward per dollar actually spent
 ```
 
 Re-running any script resumes it. Reference:
