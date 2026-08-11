@@ -125,9 +125,15 @@ class Lab:
 
     @classmethod
     def _default_key(cls, spec: EpisodeSpec, tags: Tags) -> str:
+        # Normalize a filesystem-path task to its canonical absolute form so
+        # that "tasks/x", "tasks/x/", and an absolute path all key to one
+        # episode (otherwise resume silently re-runs). Harbor registry ids
+        # (non-paths) are hashed verbatim.
+        task_path = Path(spec.task)
+        task_id = str(task_path.resolve()) if task_path.exists() else spec.task
         digest = cls._digest(
             {
-                "task": spec.task,
+                "task": task_id,
                 "agent": spec.agent,
                 "tags": tags,
                 "overrides": spec.overrides,

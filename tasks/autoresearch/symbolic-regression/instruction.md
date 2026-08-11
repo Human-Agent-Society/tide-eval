@@ -8,7 +8,7 @@ on roughly x ∈ [−3, 3]. Recover the formula.
 ## Solution format
 
 ```json
-{"expr": "0.5 * x**2 + sin(x)"}
+{"expr": "2*x + cos(x)"}
 ```
 
 Allowed: numbers, `x`, `+ - * / **`, unary minus, and
@@ -18,11 +18,12 @@ Allowed: numbers, `x`, `+ - * / **`, unary minus, and
 
 The judge scores each submission as 1/(1+RMSE) on the **training** points.
 A **final judge** then scores your best submission ONCE on **held-out
-points you never see, on a slightly wider range** — that number is your
-grade. An expression that memorizes the training set (e.g. a huge
-interpolating polynomial) will score near 1.0 in session and collapse on
-the final grade. Only the true structure generalizes — the exact formula
-scores 1.0.
+points you never see, on a wider range that lies OUTSIDE the training
+interval** — that number is your grade. An expression that memorizes the
+training set (e.g. a high-degree fitted polynomial) will score near 1.0 in
+session and collapse on the final grade, because a polynomial that matches
+the samples still diverges from the true function once you extrapolate.
+Only the true structure generalizes — the exact formula scores 1.0.
 
 ## How you are scored
 

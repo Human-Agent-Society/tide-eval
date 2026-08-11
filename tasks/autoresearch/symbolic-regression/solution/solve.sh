@@ -1,8 +1,9 @@
 #!/bin/bash
-# Oracle: a plain quadratic fit — decent on train, imperfect held-out.
-# Deliberately NOT the true formula; proves the pipeline with a mid score.
+# Oracle: the linear trend only — decent on train, imperfect held-out.
+# Deliberately NOT the true formula (which also has an oscillation);
+# proves the pipeline with a mid score.
 set -euo pipefail
-printf '{"expr": "0.5 * x**2"}' > /tmp/solution.json
+printf '{"expr": "0.5 * x"}' > /tmp/solution.json
 python3 - <<'PY'
 import json, os, urllib.request
 req = urllib.request.Request(
