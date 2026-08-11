@@ -15,12 +15,15 @@ from examples.harnesses.common import (
     REMOTE_ROOT,
     checked,
     model_name,
+    parse_usage_jsonl,
+    populate_usage_context,
     require_api_key,
 )
 from examples.harnesses.openevolve.config import openevolve_config
 
 HERE = Path(__file__).parent
-VERSION = "0.3.2"
+HARNESS_VERSION = "0.1.0"
+OPENEVOLVE_VERSION = "0.3.2"
 
 
 class OpenEvolveHarness(BaseAgent):
@@ -35,16 +38,16 @@ class OpenEvolveHarness(BaseAgent):
         return "openevolve"
 
     def version(self) -> str:
-        return VERSION
+        return f"{HARNESS_VERSION}+openevolve.{OPENEVOLVE_VERSION}"
 
     async def setup(self, environment) -> None:
         await checked(
             environment,
-            f"python -m pip install --no-cache-dir openevolve=={VERSION}",
+            f"python -m pip install --no-cache-dir openevolve=={OPENEVOLVE_VERSION}",
         )
 
     async def run(self, instruction, environment, context) -> None:
-        del instruction, context
+        del instruction
         env = self.extra_env
         require_api_key(env)
         model = model_name(self.model_name)
@@ -53,6 +56,7 @@ class OpenEvolveHarness(BaseAgent):
             bundle.mkdir()
             shutil.copy2(HERE / "initial_program.py", bundle)
             shutil.copy2(HERE / "evaluator.py", bundle)
+            shutil.copy2(HERE / "sitecustomize.py", bundle)
             config = openevolve_config(model, env.get("OPENAI_BASE_URL"))
             (bundle / "config.yaml").write_text(json.dumps(config, indent=2))
             await environment.upload_dir(
@@ -60,18 +64,34 @@ class OpenEvolveHarness(BaseAgent):
                 target_dir=str(REMOTE_ROOT),
             )
         remote = REMOTE_ROOT / "openevolve"
-        await checked(
-            environment,
-            " ".join(
-                [
-                    "openevolve-run",
-                    shlex.quote(str(remote / "initial_program.py")),
-                    shlex.quote(str(remote / "evaluator.py")),
-                    "--config",
-                    shlex.quote(str(remote / "config.yaml")),
-                    "--iterations",
-                    str(self.iterations),
-                ]
-            ),
-            env=env,
-        )
+        usage_path = remote / "usage.jsonl"
+        run_env = {
+            **env,
+            "PYTHONPATH": str(remote),
+            "TIDE_USAGE_FILE": str(usage_path),
+        }
+        try:
+            await checked(
+                environment,
+                " ".join(
+                    [
+                        "openevolve-run",
+                        shlex.quote(str(remote / "initial_program.py")),
+                        shlex.quote(str(remote / "evaluator.py")),
+                        "--config",
+                        shlex.quote(str(remote / "config.yaml")),
+                        "--iterations",
+                        str(self.iterations),
+                    ]
+                ),
+                env=run_env,
+            )
+        finally:
+            usage = await environment.exec(
+                command=f"test -f {usage_path} && cat {usage_path} || true"
+            )
+            populate_usage_context(
+                context,
+                parse_usage_jsonl(usage.stdout or ""),
+                self.model_name or model,
+            )

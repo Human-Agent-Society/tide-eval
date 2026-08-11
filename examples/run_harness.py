@@ -61,6 +61,18 @@ async def main() -> None:
         tags={"harness": args.harness, "model": args.model},
     )
     print(row.rewards)
+    print(
+        {
+            key: row.tags[key]
+            for key in (
+                "n_input_tokens",
+                "n_cache_tokens",
+                "n_output_tokens",
+                "cost_usd",
+            )
+            if key in row.tags
+        }
+    )
     print(row.uri)
 
 

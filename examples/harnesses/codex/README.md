@@ -13,6 +13,9 @@ pip install ./examples/harnesses/codex
 tide-codex-goal objective.txt --model gpt-5.6-terra --token-budget 40000
 ```
 
+Pass `--usage-file usage.jsonl` to persist the final input, cached-input, and
+output token totals reported by `thread/tokenUsage/updated`.
+
 The Harbor adapter installs the pinned Codex CLI and this package inside the
 task container automatically. `CODEX_APP_SERVER_COMMAND` may override the
 default `codex app-server --stdio` command for protocol tests.

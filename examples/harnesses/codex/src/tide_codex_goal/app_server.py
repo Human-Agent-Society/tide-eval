@@ -12,6 +12,7 @@ import os
 import shlex
 import subprocess
 import sys
+from pathlib import Path
 from typing import Any, TextIO
 
 
@@ -66,11 +67,25 @@ class AppServer:
             self.process.wait(timeout=5)
 
 
-def run_goal(objective: str, model: str, token_budget: int | None = None) -> None:
+def _normalize_usage(value: dict[str, Any]) -> dict[str, int]:
+    return {
+        "input_tokens": int(value.get("inputTokens", 0)),
+        "cached_input_tokens": int(value.get("cachedInputTokens", 0)),
+        "output_tokens": int(value.get("outputTokens", 0)),
+    }
+
+
+def run_goal(
+    objective: str,
+    model: str,
+    token_budget: int | None = None,
+    usage_file: Path | None = None,
+) -> dict[str, Any]:
     command_text = os.environ.get(
         "CODEX_APP_SERVER_COMMAND", "codex app-server --stdio"
     )
     server = AppServer(shlex.split(command_text))
+    usage: dict[str, Any] = {}
     try:
         server.send(
             {
@@ -80,7 +95,7 @@ def run_goal(objective: str, model: str, token_budget: int | None = None) -> Non
                     "clientInfo": {
                         "name": "tide_eval",
                         "title": "Tide evaluation harness",
-                        "version": "0.1.0",
+                        "version": "0.2.0",
                     }
                 },
             }
@@ -127,12 +142,22 @@ def run_goal(objective: str, model: str, token_budget: int | None = None) -> Non
 
         while True:
             message = server.event()
+            if message.get("method") == "thread/tokenUsage/updated":
+                total = message.get("params", {}).get("tokenUsage", {}).get("total", {})
+                if isinstance(total, dict):
+                    usage = {"model": model, **_normalize_usage(total)}
+                    if usage_file:
+                        usage_file.parent.mkdir(parents=True, exist_ok=True)
+                        usage_file.write_text(
+                            json.dumps(usage, separators=(",", ":")) + "\n"
+                        )
+                continue
             if message.get("method") != "thread/goal/updated":
                 continue
             status = message.get("params", {}).get("goal", {}).get("status")
             if status in {"complete", "blocked"}:
                 if status == "blocked":
                     raise RuntimeError("Codex goal ended blocked")
-                return
+                return usage
     finally:
         server.close()

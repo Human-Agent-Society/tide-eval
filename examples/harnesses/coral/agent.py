@@ -15,13 +15,16 @@ from examples.harnesses.common import (
     REMOTE_ROOT,
     checked,
     model_name,
+    parse_usage_jsonl,
+    populate_usage_context,
     require_api_key,
 )
 from examples.harnesses.coral.auth import write_codex_auth
 from examples.harnesses.coral.config import coral_config
 
 HERE = Path(__file__).parent
-VERSION = "0.7.16"
+HARNESS_VERSION = "0.1.0"
+CORAL_VERSION = "0.7.16"
 CODEX_VERSION = "0.147.0"
 
 
@@ -39,7 +42,7 @@ class CoralHarness(BaseAgent):
         return "coral"
 
     def version(self) -> str:
-        return VERSION
+        return f"{HARNESS_VERSION}+coral.{CORAL_VERSION}"
 
     async def setup(self, environment) -> None:
         await checked(
@@ -47,12 +50,11 @@ class CoralHarness(BaseAgent):
             "apt-get update && apt-get install -y --no-install-recommends git nodejs npm "
             "&& rm -rf /var/lib/apt/lists/* "
             "&& python -m pip install --no-cache-dir uv "
-            f"'coral @ git+https://github.com/Human-Agent-Society/CORAL@v{VERSION}' "
+            f"'coral @ git+https://github.com/Human-Agent-Society/CORAL@v{CORAL_VERSION}' "
             f"&& npm install -g @openai/codex@{CODEX_VERSION}",
         )
 
     async def run(self, instruction, environment, context) -> None:
-        del context
         env = {**self.extra_env, "CODEX_HOME": "/tmp/tide-codex-home"}
         require_api_key(env)
         model = model_name(self.model_name)
@@ -60,6 +62,7 @@ class CoralHarness(BaseAgent):
             bundle = Path(tmp) / "coral"
             bundle.mkdir()
             shutil.copytree(HERE / "grader", bundle / "grader")
+            shutil.copy2(HERE / "usage.py", bundle)
             (bundle / "seed").mkdir()
             (bundle / "seed" / "solution.json").write_text(
                 json.dumps(
@@ -86,19 +89,36 @@ class CoralHarness(BaseAgent):
             )
         await write_codex_auth(environment, env)
         remote = REMOTE_ROOT / "coral"
-        await checked(
-            environment,
-            " && ".join(
-                [
-                    f"cd {shlex.quote(str(remote / 'seed'))}",
-                    "git init",
-                    "git config user.name tide-harness",
-                    "git config user.email tide-harness@example.invalid",
-                    "git add .",
-                    "git commit -m seed",
-                    f"cd {shlex.quote(str(remote))}",
-                    "coral start -c task.yaml",
-                ]
-            ),
-            env=env,
-        )
+        try:
+            await checked(
+                environment,
+                " && ".join(
+                    [
+                        f"cd {shlex.quote(str(remote / 'seed'))}",
+                        "git init",
+                        "git config user.name tide-harness",
+                        "git config user.email tide-harness@example.invalid",
+                        "git add .",
+                        "git commit -m seed",
+                        f"cd {shlex.quote(str(remote))}",
+                        "coral start -c task.yaml",
+                    ]
+                ),
+                env=env,
+            )
+        finally:
+            usage = await environment.exec(
+                command=" ".join(
+                    [
+                        "python",
+                        shlex.quote(str(remote / "usage.py")),
+                        shlex.quote(str(remote / "results")),
+                        shlex.quote(model),
+                    ]
+                )
+            )
+            populate_usage_context(
+                context,
+                parse_usage_jsonl(usage.stdout or ""),
+                self.model_name or model,
+            )

@@ -14,11 +14,13 @@ from examples.harnesses.common import (
     REMOTE_ROOT,
     checked,
     model_name,
+    parse_usage_jsonl,
+    populate_usage_context,
     require_api_key,
 )
 
 HERE = Path(__file__).parent
-HARNESS_VERSION = "0.1.0"
+HARNESS_VERSION = "0.2.0"
 CODEX_VERSION = "0.147.0"
 
 
@@ -58,7 +60,6 @@ class CodexGoalHarness(BaseAgent):
         )
 
     async def run(self, instruction, environment, context) -> None:
-        del context
         env = {**self.extra_env, "CODEX_HOME": "/tmp/tide-codex-home"}
         require_api_key(env)
         model = model_name(self.model_name)
@@ -71,16 +72,29 @@ class CodexGoalHarness(BaseAgent):
                 target_dir=str(REMOTE_ROOT),
             )
         await write_codex_auth(environment, env)
+        usage_path = REMOTE_ROOT / "codex-goal" / "usage.jsonl"
         command = [
             "tide-codex-goal",
             str(REMOTE_ROOT / "codex-goal" / "objective.txt"),
             "--model",
             model,
+            "--usage-file",
+            str(usage_path),
         ]
         if self.token_budget is not None:
             command.extend(["--token-budget", str(self.token_budget)])
-        await checked(
-            environment,
-            " ".join(shlex.quote(part) for part in command),
-            env=env,
-        )
+        try:
+            await checked(
+                environment,
+                " ".join(shlex.quote(part) for part in command),
+                env=env,
+            )
+        finally:
+            usage = await environment.exec(
+                command=f"test -f {usage_path} && cat {usage_path} || true"
+            )
+            populate_usage_context(
+                context,
+                parse_usage_jsonl(usage.stdout or ""),
+                self.model_name or model,
+            )

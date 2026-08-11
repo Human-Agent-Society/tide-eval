@@ -17,6 +17,7 @@ from typing import Any
 
 Tags = dict[str, Any]
 Rewards = dict[str, float | int]
+Usage = dict[str, float | int]
 
 
 @dataclass(frozen=True)
@@ -56,14 +57,16 @@ class EpisodeResult:
 
     ``rewards`` is the trusted verdict (from Harbor's verifier, or a fake in
     tests). ``trace`` is the untrusted score log recovered from the
-    episode's artifacts. ``uri`` points at the provenance (the Harbor trial
-    directory) so every stored number stays auditable.
+    episode's artifacts. ``usage`` carries measured token counts and model-cost
+    estimates from the agent adapter. ``uri`` points at the provenance (the
+    Harbor trial directory) so every stored number stays auditable.
     """
 
     rewards: Rewards
     uri: str | None = None
     trace: tuple[TracePoint, ...] = ()
     error: str | None = None
+    usage: Usage = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

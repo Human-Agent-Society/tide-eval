@@ -10,7 +10,11 @@ import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from types import SimpleNamespace
 
+import pytest
+
+from examples.harnesses.common import populate_usage_context
 from examples.harnesses.coral.config import coral_config
 from examples.harnesses.openevolve.config import openevolve_config
 
@@ -99,6 +103,7 @@ def test_coral_grader_client_uses_same_judge(tmp_path, monkeypatch):
 
 def test_codex_goal_driver_sets_persisted_goal(tmp_path):
     objective = tmp_path / "objective.txt"
+    usage = tmp_path / "usage.jsonl"
     objective.write_text("improve the score")
     env = {
         **os.environ,
@@ -113,6 +118,8 @@ def test_codex_goal_driver_sets_persisted_goal(tmp_path):
             str(objective),
             "--model",
             "test-model",
+            "--usage-file",
+            str(usage),
         ],
         env=env,
         capture_output=True,
@@ -121,6 +128,12 @@ def test_codex_goal_driver_sets_persisted_goal(tmp_path):
     )
     assert completed.returncode == 0, completed.stderr
     assert '"status": "complete"' in completed.stdout
+    assert json.loads(usage.read_text()) == {
+        "model": "test-model",
+        "input_tokens": 120,
+        "cached_input_tokens": 80,
+        "output_tokens": 30,
+    }
 
 
 def test_codex_goal_package_exports_driver(monkeypatch):
@@ -146,3 +159,97 @@ def test_generated_configs_keep_tide_as_the_scorer():
         "max_turns": 200,
     }
     assert "coral eval" in coral["task"]["description"]
+
+
+def test_coral_usage_aggregates_every_codex_turn(tmp_path):
+    from examples.harnesses.coral.usage import usage_records
+
+    logs = tmp_path / "results" / "run" / ".coral" / "public" / "logs"
+    logs.mkdir(parents=True)
+    (logs / "agent-1.0.log").write_text(
+        "\n".join(
+            [
+                '{"type":"thread.started","thread_id":"one"}',
+                '{"type":"turn.completed","usage":{"input_tokens":100,'
+                '"cached_input_tokens":60,"output_tokens":20}}',
+            ]
+        )
+    )
+    (logs / "agent-2.0.log").write_text(
+        '{"type":"turn.completed","usage":{"input_tokens":200,'
+        '"cached_input_tokens":100,"output_tokens":40}}\n'
+    )
+
+    assert list(usage_records(tmp_path, "test-model")) == [
+        {
+            "model": "test-model",
+            "input_tokens": 100,
+            "cached_input_tokens": 60,
+            "output_tokens": 20,
+        },
+        {
+            "model": "test-model",
+            "input_tokens": 200,
+            "cached_input_tokens": 100,
+            "output_tokens": 40,
+        },
+    ]
+
+
+def test_usage_populates_harbor_context_and_cost():
+    pytest.importorskip("litellm")
+    context = SimpleNamespace(
+        n_input_tokens=None,
+        n_cache_tokens=None,
+        n_output_tokens=None,
+        cost_usd=None,
+        metadata=None,
+    )
+    populate_usage_context(
+        context,
+        [
+            {
+                "model": "gpt-5-mini",
+                "input_tokens": 1_000,
+                "cached_input_tokens": 600,
+                "output_tokens": 200,
+            }
+        ],
+        "openai/gpt-5-mini",
+    )
+
+    assert context.n_input_tokens == 1_000
+    assert context.n_cache_tokens == 600
+    assert context.n_output_tokens == 200
+    assert context.cost_usd > 0
+    assert context.metadata["cost_usd_is_estimate"] is True
+
+
+def test_openevolve_usage_patch_records_sdk_usage(tmp_path, monkeypatch):
+    pytest.importorskip("openevolve")
+    usage_path = tmp_path / "usage.jsonl"
+    monkeypatch.setenv("TIDE_USAGE_FILE", str(usage_path))
+    spec = importlib.util.spec_from_file_location(
+        "tide_openevolve_usage_patch", OPENEVOLVE / "sitecustomize.py"
+    )
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    module._record_usage(
+        SimpleNamespace(
+            model="gpt-5-mini",
+            usage=SimpleNamespace(
+                prompt_tokens=90,
+                prompt_tokens_details=SimpleNamespace(cached_tokens=50),
+                completion_tokens=20,
+            ),
+        ),
+        "fallback-model",
+    )
+    assert json.loads(usage_path.read_text()) == {
+        "model": "gpt-5-mini",
+        "input_tokens": 90,
+        "cached_input_tokens": 50,
+        "output_tokens": 20,
+    }

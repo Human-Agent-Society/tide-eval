@@ -78,11 +78,25 @@ class HarborExecutor:
             if result.exception_info is not None
             else None
         )
+        input_tokens, cache_tokens, output_tokens, cost_usd = (
+            result.compute_token_cost_totals()
+        )
+        usage = {
+            key: value
+            for key, value in {
+                "n_input_tokens": input_tokens,
+                "n_cache_tokens": cache_tokens,
+                "n_output_tokens": output_tokens,
+                "cost_usd": cost_usd,
+            }.items()
+            if value is not None
+        }
         return EpisodeResult(
             rewards=dict(rewards),
             uri=result.trial_uri,
             trace=tuple(load_trace(trial.paths.trial_dir)),
             error=error,
+            usage=usage,
         )
 
 

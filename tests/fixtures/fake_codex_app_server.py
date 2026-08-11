@@ -29,7 +29,25 @@ send({"id": goal["id"], "result": {"goal": goal["params"]}})
 turn = read()
 assert turn["method"] == "turn/start"
 # Real app-server notifications can interleave with request responses. Emit
-# completion first to prove the harness does not accidentally discard it.
+# usage and completion before the response to prove the harness buffers both.
+send(
+    {
+        "method": "thread/tokenUsage/updated",
+        "params": {
+            "threadId": "thread-test",
+            "turnId": "turn-test",
+            "tokenUsage": {
+                "total": {
+                    "inputTokens": 120,
+                    "cachedInputTokens": 80,
+                    "outputTokens": 30,
+                    "reasoningOutputTokens": 10,
+                    "totalTokens": 150,
+                }
+            },
+        },
+    }
+)
 send(
     {
         "method": "thread/goal/updated",

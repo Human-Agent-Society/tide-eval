@@ -121,6 +121,13 @@ python examples/run_harness.py coral --model gpt-5.6-terra --agents 2
   `TaskGrader` makes `coral eval` spend one Tide submission and returns that
   feedback to the organization.
 
+All three adapters record actual model usage in Harbor's standard agent result:
+input tokens (including cache), cached input tokens, and output tokens. Tide
+copies those totals plus the LiteLLM price-table estimate into episode columns
+`n_input_tokens`, `n_cache_tokens`, `n_output_tokens`, and `cost_usd`. Codex
+Goal reads app-server token notifications, CORAL sums every worker's Codex JSONL
+turn usage, and OpenEvolve meters each successful SDK response.
+
 All three run inside the Harbor task environment and therefore share its time,
 submission, and network budgets. Their final reward still comes from Harbor's
 verifier. See the [harness README](../examples/harnesses/README.md) for versions,

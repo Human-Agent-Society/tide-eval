@@ -96,7 +96,11 @@ class Lab:
             key=key,
             kind="episode",
             task=task,
-            tags={**tags, **({"error": result.error} if result.error else {})},
+            tags={
+                **tags,
+                **result.usage,
+                **({"error": result.error} if result.error else {}),
+            },
             rewards=dict(result.rewards),
             uri=result.uri,
         )
