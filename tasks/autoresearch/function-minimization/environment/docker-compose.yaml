@@ -11,8 +11,10 @@ services:
       context: ${CONTEXT_DIR}
       dockerfile: Dockerfile.judge
     command: ["python3", "/judge/judge_server.py"]
-    expose:
-      - "8082"
+    # Explicit networking keeps the judge OUT of Harbor's egress-control
+    # namespace under allowlist mode: it stays on the bridge network with
+    # the DNS name "judge", which allowed_hosts = ["judge"] permits.
+    networks: [default]
     environment:
       PORT: "8082"
     healthcheck:
