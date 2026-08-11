@@ -11,7 +11,8 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from examples.harnesses.config import coral_config, openevolve_config
+from examples.harnesses.coral.config import coral_config
+from examples.harnesses.openevolve.config import openevolve_config
 
 ROOT = Path(__file__).parent.parent
 OPENEVOLVE = ROOT / "examples" / "harnesses" / "openevolve"

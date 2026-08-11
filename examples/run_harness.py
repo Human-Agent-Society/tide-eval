@@ -17,9 +17,9 @@ from tide import Lab
 
 TASK = str(Path(__file__).parent.parent / "tasks" / "autoresearch" / "circle-packing")
 AGENTS = {
-    "openevolve": "examples.harnesses.agents:OpenEvolveHarness",
-    "codex-goal": "examples.harnesses.agents:CodexGoalHarness",
-    "coral": "examples.harnesses.agents:CoralHarness",
+    "openevolve": "examples.harnesses.openevolve.agent:OpenEvolveHarness",
+    "codex-goal": "examples.harnesses.codex.agent:CodexGoalHarness",
+    "coral": "examples.harnesses.coral.agent:CoralHarness",
 }
 
 

@@ -1,0 +1,1 @@
+"""CORAL Harbor adapter."""
