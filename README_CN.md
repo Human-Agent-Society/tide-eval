@@ -160,11 +160,13 @@ pytest tests/test_task_suite.py          # 自动被识别——而且直接是�
 - [ ] 发布 PyPI(`tide-eval`,名字已预留,尚未发布)
 - [ ] GPU 示例任务,在 CI 中以 oracle 把关
 - [ ] Harbor 版本升级的安全流程
-- [ ] [Frontier-Eng](https://arxiv.org/abs/2604.12290) 转换器——47 个工程任务,其 interaction budget
-  循环与提交额度直接对应
-- [ ] [SOL-ExecBench](https://github.com/nvidia/sol-execbench) 转换器——235 个真实 CUDA kernel,对照硬件
-  Speed-of-Light 理论极限打分(固定靶标,计时不再依赖相对基线);需要
-  NVIDIA Blackwell GPU
+- [ ] [Frontier-Eng](https://arxiv.org/abs/2604.12290) 支持——47 个工程任务,其 interaction budget
+  循环与提交额度直接对应。其[仓库](https://github.com/EinsiaLab/Frontier-Engineering)目前没有 license,任务不能搬运
+  入库:支持形式是在用户机器上 fetch 时转换,从官方精选的 10 题
+  `v1-lite` 子集做起
+- [ ] [SOL-ExecBench](https://github.com/nvidia/sol-execbench) 支持——235 个真实 CUDA kernel,对照硬件
+  Speed-of-Light 理论极限打分(固定靶标,计时不再依赖相对基线)。
+  Apache-2.0,任务可全量搬运入库;验证需要 NVIDIA Blackwell GPU
 - [ ] 把 EdgeBench 转换重新生成到 judge 协议上
 - [ ] 托管的结果查看器
 - [ ] autoresearch 之外:持续学习任务流与在线任务——以

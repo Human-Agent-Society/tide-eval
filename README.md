@@ -171,11 +171,15 @@ config. Guide: **[docs/components/tasks.md](docs/components/tasks.md)**.
 - [ ] PyPI release (`tide-eval` — name reserved, not yet published)
 - [ ] GPU exemplar task, oracle-gated in CI
 - [ ] Harbor pin-upgrade workflow
-- [ ] [Frontier-Eng](https://arxiv.org/abs/2604.12290) converter — 47 engineering tasks whose
-  interaction-budget loop maps directly onto the submission budget
-- [ ] [SOL-ExecBench](https://github.com/nvidia/sol-execbench) converter — 235 real CUDA kernels scored
+- [ ] [Frontier-Eng](https://arxiv.org/abs/2604.12290) support — 47 engineering tasks whose
+  interaction-budget loop maps directly onto the submission budget.
+  Their [repo](https://github.com/EinsiaLab/Frontier-Engineering) currently has no license, so tasks cannot be
+  vendored: support means fetch-time conversion on the user's machine,
+  starting from the curated 10-task `v1-lite` subset
+- [ ] [SOL-ExecBench](https://github.com/nvidia/sol-execbench) support — 235 real CUDA kernels scored
   against Speed-of-Light hardware bounds (fixed targets, so timing stops
-  being hardware-relative); needs NVIDIA Blackwell GPUs
+  being hardware-relative). Apache-2.0, so tasks can be vendored;
+  validation needs NVIDIA Blackwell GPUs
 - [ ] Regenerate the EdgeBench conversion onto the judge protocol
 - [ ] Hosted results viewer
 - [ ] Beyond autoresearch: continual-learning streams and live tasks — as
