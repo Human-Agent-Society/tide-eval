@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from examples.harnesses.common import checked
+from examples.harnesses.base import TideHarnessBase
 
 
-async def write_codex_auth(environment, env: dict[str, str]) -> None:
+async def write_codex_auth(
+    agent: TideHarnessBase, environment, env: dict[str, str]
+) -> None:
     command = """python - <<'PY'
 import json
 import os
@@ -15,4 +17,4 @@ home = Path(os.environ["CODEX_HOME"])
 home.mkdir(parents=True, exist_ok=True)
 (home / "auth.json").write_text(json.dumps({"OPENAI_API_KEY": os.environ["OPENAI_API_KEY"]}))
 PY"""
-    await checked(environment, command, env=env)
+    await agent._checked(environment, command, env=env)

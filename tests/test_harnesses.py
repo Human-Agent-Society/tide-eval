@@ -14,7 +14,6 @@ from types import SimpleNamespace
 
 import pytest
 
-from examples.harnesses.common import populate_usage_context
 from examples.harnesses.coral.config import coral_config
 from examples.harnesses.openevolve.config import openevolve_config
 
@@ -196,28 +195,48 @@ def test_coral_usage_aggregates_every_codex_turn(tmp_path):
     ]
 
 
-def test_usage_populates_harbor_context_and_cost():
+def test_base_harness_populates_context_and_cost(tmp_path):
+    pytest.importorskip("harbor")
     pytest.importorskip("litellm")
-    context = SimpleNamespace(
-        n_input_tokens=None,
-        n_cache_tokens=None,
-        n_output_tokens=None,
-        cost_usd=None,
-        metadata=None,
+    from harbor.agents.base import BaseAgent
+    from harbor.models.agent.context import AgentContext
+
+    from examples.harnesses.base import TideHarnessBase
+
+    assert issubclass(TideHarnessBase, BaseAgent)
+
+    class _UsageHarness(TideHarnessBase):
+        @staticmethod
+        def name() -> str:
+            return "usage-test"
+
+        def version(self) -> str:
+            return "test"
+
+        async def setup(self, environment) -> None:
+            pass
+
+        async def run(self, instruction, environment, context) -> None:
+            pass
+
+    harness = _UsageHarness(
+        logs_dir=tmp_path,
+        model_name="openai/gpt-5-mini",
     )
-    populate_usage_context(
+    context = AgentContext()
+    harness._populate_usage(
         context,
-        [
+        json.dumps(
             {
                 "model": "gpt-5-mini",
                 "input_tokens": 1_000,
                 "cached_input_tokens": 600,
                 "output_tokens": 200,
             }
-        ],
-        "openai/gpt-5-mini",
+        ),
     )
 
+    assert harness._model_name() == "gpt-5-mini"
     assert context.n_input_tokens == 1_000
     assert context.n_cache_tokens == 600
     assert context.n_output_tokens == 200

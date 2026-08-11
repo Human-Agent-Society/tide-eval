@@ -5,8 +5,10 @@ judge. They do not replace or wrap the scorer: every candidate still goes to
 `$JUDGE_URL/submit`, the submission limit is enforced by the task, and Harbor's
 verifier produces the final trusted reward.
 
-Each adapter also populates Harbor's standard input, cached-input, output-token,
-and USD-cost fields. Tide stores them on the episode row as
+Each adapter subclasses the shared `TideHarnessBase`, which extends Harbor's
+`BaseAgent`. The base class also populates Harbor's standard input,
+cached-input, output-token, and USD-cost fields. Tide stores them on the episode
+row as
 `n_input_tokens`, `n_cache_tokens`, `n_output_tokens`, and `cost_usd`. Cost is
 estimated from the LiteLLM pricing table bundled with the Harbor environment;
 when a model has no pricing entry, tokens are still recorded and cost remains

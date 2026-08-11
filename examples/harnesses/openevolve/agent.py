@@ -9,16 +9,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from harbor.agents.base import BaseAgent
-
-from examples.harnesses.common import (
-    REMOTE_ROOT,
-    checked,
-    model_name,
-    parse_usage_jsonl,
-    populate_usage_context,
-    require_api_key,
-)
+from examples.harnesses.base import TideHarnessBase
 from examples.harnesses.openevolve.config import openevolve_config
 
 HERE = Path(__file__).parent
@@ -26,7 +17,7 @@ HARNESS_VERSION = "0.1.0"
 OPENEVOLVE_VERSION = "0.3.2"
 
 
-class OpenEvolveHarness(BaseAgent):
+class OpenEvolveHarness(TideHarnessBase):
     """Run OpenEvolve inside the task container against Tide's judge."""
 
     def __init__(self, *args: Any, iterations: int = 100, **kwargs: Any) -> None:
@@ -41,7 +32,7 @@ class OpenEvolveHarness(BaseAgent):
         return f"{HARNESS_VERSION}+openevolve.{OPENEVOLVE_VERSION}"
 
     async def setup(self, environment) -> None:
-        await checked(
+        await self._checked(
             environment,
             f"python -m pip install --no-cache-dir openevolve=={OPENEVOLVE_VERSION}",
         )
@@ -49,8 +40,8 @@ class OpenEvolveHarness(BaseAgent):
     async def run(self, instruction, environment, context) -> None:
         del instruction
         env = self.extra_env
-        require_api_key(env)
-        model = model_name(self.model_name)
+        self._require_api_key(env)
+        model = self._model_name()
         with tempfile.TemporaryDirectory() as tmp:
             bundle = Path(tmp) / "openevolve"
             bundle.mkdir()
@@ -61,9 +52,9 @@ class OpenEvolveHarness(BaseAgent):
             (bundle / "config.yaml").write_text(json.dumps(config, indent=2))
             await environment.upload_dir(
                 source_dir=tmp,
-                target_dir=str(REMOTE_ROOT),
+                target_dir=str(self.remote_root),
             )
-        remote = REMOTE_ROOT / "openevolve"
+        remote = self.remote_root / "openevolve"
         usage_path = remote / "usage.jsonl"
         run_env = {
             **env,
@@ -71,7 +62,7 @@ class OpenEvolveHarness(BaseAgent):
             "TIDE_USAGE_FILE": str(usage_path),
         }
         try:
-            await checked(
+            await self._checked(
                 environment,
                 " ".join(
                     [
@@ -90,8 +81,4 @@ class OpenEvolveHarness(BaseAgent):
             usage = await environment.exec(
                 command=f"test -f {usage_path} && cat {usage_path} || true"
             )
-            populate_usage_context(
-                context,
-                parse_usage_jsonl(usage.stdout or ""),
-                self.model_name or model,
-            )
+            self._populate_usage(context, usage.stdout or "")

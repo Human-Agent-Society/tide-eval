@@ -9,16 +9,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from harbor.agents.base import BaseAgent
-
-from examples.harnesses.common import (
-    REMOTE_ROOT,
-    checked,
-    model_name,
-    parse_usage_jsonl,
-    populate_usage_context,
-    require_api_key,
-)
+from examples.harnesses.base import TideHarnessBase
 from examples.harnesses.coral.auth import write_codex_auth
 from examples.harnesses.coral.config import coral_config
 
@@ -28,7 +19,7 @@ CORAL_VERSION = "0.7.16"
 CODEX_VERSION = "0.147.0"
 
 
-class CoralHarness(BaseAgent):
+class CoralHarness(TideHarnessBase):
     """Run a multi-agent CORAL organization against Tide's judge."""
 
     def __init__(self, *args: Any, agents: int = 2, **kwargs: Any) -> None:
@@ -45,7 +36,7 @@ class CoralHarness(BaseAgent):
         return f"{HARNESS_VERSION}+coral.{CORAL_VERSION}"
 
     async def setup(self, environment) -> None:
-        await checked(
+        await self._checked(
             environment,
             "apt-get update && apt-get install -y --no-install-recommends git nodejs npm "
             "&& rm -rf /var/lib/apt/lists/* "
@@ -56,8 +47,8 @@ class CoralHarness(BaseAgent):
 
     async def run(self, instruction, environment, context) -> None:
         env = {**self.extra_env, "CODEX_HOME": "/tmp/tide-codex-home"}
-        require_api_key(env)
-        model = model_name(self.model_name)
+        self._require_api_key(env)
+        model = self._model_name()
         with tempfile.TemporaryDirectory() as tmp:
             bundle = Path(tmp) / "coral"
             bundle.mkdir()
@@ -85,12 +76,12 @@ class CoralHarness(BaseAgent):
             (bundle / "task.yaml").write_text(json.dumps(config, indent=2))
             await environment.upload_dir(
                 source_dir=tmp,
-                target_dir=str(REMOTE_ROOT),
+                target_dir=str(self.remote_root),
             )
-        await write_codex_auth(environment, env)
-        remote = REMOTE_ROOT / "coral"
+        await write_codex_auth(self, environment, env)
+        remote = self.remote_root / "coral"
         try:
-            await checked(
+            await self._checked(
                 environment,
                 " && ".join(
                     [
@@ -117,8 +108,4 @@ class CoralHarness(BaseAgent):
                     ]
                 )
             )
-            populate_usage_context(
-                context,
-                parse_usage_jsonl(usage.stdout or ""),
-                self.model_name or model,
-            )
+            self._populate_usage(context, usage.stdout or "")

@@ -1,4 +1,4 @@
-"""Shared utilities for Harbor harness adapters."""
+"""Shared Harbor base class for Tide harness adapters."""
 
 from __future__ import annotations
 
@@ -7,34 +7,54 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any
 
-REMOTE_ROOT = Path("/opt/tide-harness")
+from harbor.agents.base import BaseAgent
 
 
-async def checked(environment, command: str, *, env: dict[str, str] | None = None):
-    """Execute a command and raise with a useful tail when it fails."""
-    result = await environment.exec(command=command, env=env)
-    if result.return_code != 0:
-        detail = (result.stderr or result.stdout or "")[-2_000:]
-        raise RuntimeError(f"harness command failed ({result.return_code}): {detail}")
-    return result
+class TideHarnessBase(BaseAgent):
+    """Common Harbor lifecycle utilities for Tide's custom harnesses."""
+
+    remote_root = Path("/opt/tide-harness")
+
+    async def _checked(
+        self,
+        environment,
+        command: str,
+        *,
+        env: dict[str, str] | None = None,
+    ):
+        """Execute a command and raise with a useful tail when it fails."""
+        result = await environment.exec(command=command, env=env)
+        if result.return_code != 0:
+            detail = (result.stderr or result.stdout or "")[-2_000:]
+            raise RuntimeError(
+                f"harness command failed ({result.return_code}): {detail}"
+            )
+        return result
+
+    def _model_name(self) -> str:
+        """Normalize Harbor's optional provider-qualified model name."""
+        if not self.model_name:
+            raise ValueError("model_name is required for this harness")
+        return self.model_name.split("/", 1)[-1]
+
+    @staticmethod
+    def _require_api_key(env: dict[str, str]) -> None:
+        """Require the API key supplied through Harbor's environment mapping."""
+        if not env.get("OPENAI_API_KEY"):
+            raise ValueError(
+                "OPENAI_API_KEY must be passed through the Harbor agent's env field"
+            )
+
+    def _populate_usage(self, context, value: str) -> None:
+        """Populate Harbor's standard token and cost fields from JSONL output."""
+        records = _parse_usage_jsonl(value)
+        if not records:
+            return
+        default_model = self.model_name or self._model_name()
+        _populate_usage_context(context, records, default_model)
 
 
-def model_name(value: str | None) -> str:
-    """Normalize Harbor's optional provider-qualified model name."""
-    if not value:
-        raise ValueError("model_name is required for this harness")
-    return value.split("/", 1)[-1]
-
-
-def require_api_key(env: dict[str, str]) -> None:
-    """Require the API key supplied through Harbor's environment mapping."""
-    if not env.get("OPENAI_API_KEY"):
-        raise ValueError(
-            "OPENAI_API_KEY must be passed through the Harbor agent's env field"
-        )
-
-
-def parse_usage_jsonl(value: str) -> list[dict[str, Any]]:
+def _parse_usage_jsonl(value: str) -> list[dict[str, Any]]:
     """Parse normalized token-usage records from mixed command output."""
     records: list[dict[str, Any]] = []
     for line in value.splitlines():
@@ -50,7 +70,7 @@ def parse_usage_jsonl(value: str) -> list[dict[str, Any]]:
     return records
 
 
-def populate_usage_context(
+def _populate_usage_context(
     context,
     records: list[dict[str, Any]],
     default_model: str,
