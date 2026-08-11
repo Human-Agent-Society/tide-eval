@@ -10,7 +10,7 @@ import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 
 import pytest
 
@@ -244,16 +244,17 @@ def test_base_harness_populates_context_and_cost(tmp_path):
     assert context.metadata["cost_usd_is_estimate"] is True
 
 
-def test_openevolve_usage_patch_records_sdk_usage(tmp_path, monkeypatch):
+def test_openevolve_usage_tracking_records_sdk_usage(tmp_path, monkeypatch):
     pytest.importorskip("openevolve")
     usage_path = tmp_path / "usage.jsonl"
     monkeypatch.setenv("TIDE_USAGE_FILE", str(usage_path))
     spec = importlib.util.spec_from_file_location(
-        "tide_openevolve_usage_patch", OPENEVOLVE / "sitecustomize.py"
+        "tide_openevolve_usage", OPENEVOLVE / "usage.py"
     )
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    module.install_usage_tracking()
 
     module._record_usage(
         SimpleNamespace(
@@ -272,3 +273,25 @@ def test_openevolve_usage_patch_records_sdk_usage(tmp_path, monkeypatch):
         "cached_input_tokens": 50,
         "output_tokens": 20,
     }
+
+
+def test_openevolve_runner_installs_tracking_before_cli(monkeypatch):
+    pytest.importorskip("openevolve")
+    monkeypatch.syspath_prepend(str(OPENEVOLVE))
+    spec = importlib.util.spec_from_file_location(
+        "tide_openevolve_runner", OPENEVOLVE / "runner.py"
+    )
+    assert spec and spec.loader
+    runner = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(runner)
+
+    events = []
+    monkeypatch.setattr(
+        runner, "install_usage_tracking", lambda: events.append("tracking")
+    )
+    fake_cli = ModuleType("openevolve.cli")
+    fake_cli.main = lambda: events.append("cli") or 17
+    monkeypatch.setitem(sys.modules, "openevolve.cli", fake_cli)
+
+    assert runner.main() == 17
+    assert events == ["tracking", "cli"]

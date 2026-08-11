@@ -13,7 +13,7 @@ from examples.harnesses.base import TideHarnessBase
 from examples.harnesses.openevolve.config import openevolve_config
 
 HERE = Path(__file__).parent
-HARNESS_VERSION = "0.1.0"
+HARNESS_VERSION = "0.1.1"
 OPENEVOLVE_VERSION = "0.3.2"
 
 
@@ -47,7 +47,8 @@ class OpenEvolveHarness(TideHarnessBase):
             bundle.mkdir()
             shutil.copy2(HERE / "initial_program.py", bundle)
             shutil.copy2(HERE / "evaluator.py", bundle)
-            shutil.copy2(HERE / "sitecustomize.py", bundle)
+            shutil.copy2(HERE / "runner.py", bundle)
+            shutil.copy2(HERE / "usage.py", bundle)
             config = openevolve_config(model, env.get("OPENAI_BASE_URL"))
             (bundle / "config.yaml").write_text(json.dumps(config, indent=2))
             await environment.upload_dir(
@@ -58,7 +59,6 @@ class OpenEvolveHarness(TideHarnessBase):
         usage_path = remote / "usage.jsonl"
         run_env = {
             **env,
-            "PYTHONPATH": str(remote),
             "TIDE_USAGE_FILE": str(usage_path),
         }
         try:
@@ -66,7 +66,8 @@ class OpenEvolveHarness(TideHarnessBase):
                 environment,
                 " ".join(
                     [
-                        "openevolve-run",
+                        "python",
+                        shlex.quote(str(remote / "runner.py")),
                         shlex.quote(str(remote / "initial_program.py")),
                         shlex.quote(str(remote / "evaluator.py")),
                         "--config",

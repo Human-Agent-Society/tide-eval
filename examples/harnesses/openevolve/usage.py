@@ -1,9 +1,4 @@
-"""Capture usage that OpenEvolve 0.3.2 otherwise discards.
-
-The harness adds this directory to ``PYTHONPATH``, so Python imports this module
-before OpenEvolve starts. The patch stays at the model-call boundary and does
-not alter prompt construction, retries, or generated content.
-"""
+"""Capture usage that OpenEvolve 0.3.2 otherwise discards."""
 
 from __future__ import annotations
 
@@ -54,6 +49,9 @@ async def _metered_call_api(self: OpenAILLM, params: dict[str, Any]) -> str:
     return response.choices[0].message.content
 
 
-if not getattr(OpenAILLM, "_tide_usage_patch", False):
+def install_usage_tracking() -> None:
+    """Instrument OpenEvolve's model call before its CLI starts."""
+    if getattr(OpenAILLM, "_tide_usage_patch", False):
+        return
     OpenAILLM._call_api = _metered_call_api
     OpenAILLM._tide_usage_patch = True
