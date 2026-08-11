@@ -98,6 +98,32 @@ Mind the submission budget — evolutionary methods burn evaluations fast,
 so give cheap candidates a local pre-filter (your own evaluator, written
 from the instruction) and spend submissions on survivors.
 
+## Ready-to-run long-horizon harnesses
+
+[`examples/run_harness.py`](../examples/run_harness.py) supplies concrete,
+version-pinned adapters for the three long-horizon patterns above:
+
+```bash
+export OPENAI_API_KEY=...
+python examples/run_harness.py openevolve --model gpt-5-mini --iterations 100
+python examples/run_harness.py codex-goal --model gpt-5.6-terra --token-budget 40000
+python examples/run_harness.py coral --model gpt-5.6-terra --agents 2
+```
+
+- **OpenEvolve** evolves a task-specific candidate program. Its evaluator
+  executes the candidate, POSTs its JSON to Tide, and returns the judge score.
+- **Codex Goal mode** uses app-server's `thread/goal/set`, which is the same
+  persistent goal state surfaced by `/goal`, then lets Codex continue until the
+  goal is complete or blocked.
+- **CORAL** runs multiple Codex workers over a shared repository. Its packaged
+  `TaskGrader` makes `coral eval` spend one Tide submission and returns that
+  feedback to the organization.
+
+All three run inside the Harbor task environment and therefore share its time,
+submission, and network budgets. Their final reward still comes from Harbor's
+verifier. See the [harness README](../examples/harnesses/README.md) for versions,
+credentials, and adaptation notes.
+
 ## Rules of the game
 
 - **You cannot bring your own judge.** Scores come from the task's judge
