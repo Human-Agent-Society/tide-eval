@@ -55,13 +55,14 @@ pip install -e ".[harbor]"               # container runs; plain -e . covers --l
 
 tide list                                # what's runnable
 tide run autoresearch --agent oracle     # oracle = built-in agent that runs each task's reference solution
-tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2      # time: 2 hours
+tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2h     # time (2h / 30m / 90s; bare = hours)
 tide run autoresearch/tsp-tour --agent codex --model openai/gpt-5 --max-tokens 500k                # or: tokens / --max-evals / --max-cost
 tide report                              # summarize the results store
 ```
 
-`--budget` is hours; the other budget axes are `--max-tokens` (e.g. `500k`),
-`--max-evals`, and `--max-cost` (USD). See [budget](docs/components/budget.md).
+`--budget` is time (`2h` / `30m` / `90s`; a bare number is hours); the other
+budget axes are `--max-tokens` (e.g. `500k`), `--max-evals`, and `--max-cost`
+(USD). See [budget](docs/components/budget.md).
 
 #### No Docker? Develop locally, verify in containers
 
@@ -70,7 +71,7 @@ your command against it, with no containers involved:
 
 ```bash
 tide run autoresearch/circle-packing --local \
-  --command "python examples/minimal_harness_search.py" --budget 0.01
+  --command "python examples/minimal_harness_search.py" --budget 30s
 ```
 
 Your command reads `$JUDGE_URL` and `$BUDGET_SEC`, POSTs solutions to

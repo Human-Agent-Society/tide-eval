@@ -34,6 +34,21 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+_UNIT_HOURS = {"s": 1 / 3600, "m": 1 / 60, "h": 1.0, "d": 24.0}
+
+
+def parse_duration_hours(text: str) -> float:
+    """A human duration → hours: ``2h``, ``30m``, ``90s``, ``1d`` — or a bare
+    number, read as hours for back-compat (``0.5`` == ``30m``)."""
+    t = str(text).strip().lower()
+    if not t:
+        raise ValueError("empty duration")
+    if t[-1].isalpha():
+        if t[-1] not in _UNIT_HOURS:
+            raise ValueError(f"unknown duration unit {t[-1]!r} (use s/m/h/d)")
+        return float(t[:-1]) * _UNIT_HOURS[t[-1]]
+    return float(t)  # bare number = hours
+
 
 @dataclass(frozen=True)
 class Budget:
@@ -98,13 +113,18 @@ class Budget:
 
     @classmethod
     def coerce(
-        cls, value: Budget | dict[str, Any] | float | int | None
+        cls, value: Budget | dict[str, Any] | str | float | int | None
     ) -> Budget | None:
-        """Accept a Budget, a dict of its fields, or a bare number (= hours)."""
+        """Accept a Budget, a dict of its fields, a bare number (= hours), or a
+        duration string (``"30m"``, ``"2h"``)."""
         if value is None or isinstance(value, cls):
             return value
+        if isinstance(value, bool):
+            raise TypeError(f"cannot coerce {value!r} to Budget")
         if isinstance(value, (int, float)):
             return cls(time_h=float(value))
+        if isinstance(value, str):
+            return cls(time_h=parse_duration_hours(value))
         if isinstance(value, dict):
             allowed = {"time_h", "max_submissions", "max_tokens", "max_cost_usd"}
             unknown = set(value) - allowed

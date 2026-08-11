@@ -6,9 +6,9 @@ resource is scarce:
 
 | Dimension | `Budget` field | CLI flag | What it bounds |
 |---|---|---|---|
-| **Time** | `time_h` | `--budget <hours>` | wall-clock |
+| **Time** | `time_h` | `--budget <dur>` (`2h`, `30m`, `90s`; bare = hours) | wall-clock |
 | **Evals** | `max_submissions` | `--max-evals <n>` | judge scorings (submissions) |
-| **Tokens** | `max_tokens` | `--max-tokens <n>` | LLM tokens (e.g. `500k`, `2m`) |
+| **Tokens** | `max_tokens` | `--max-tokens <n>` (`500k`, `2m`) | LLM tokens |
 | **Cost** | `max_cost_usd` | `--max-cost <usd>` | dollars spent |
 
 Set the scarce one, leave the rest `None`. Comparing methods "at the same
@@ -16,7 +16,7 @@ budget" then means the same value on **whichever axis you're studying** — an
 8h-vs-2h time curve, or reward-per-million-tokens across models.
 
 ```bash
-tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2
+tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2h
 tide run autoresearch/tsp-tour --agent codex        --max-tokens 500k
 tide run autoresearch/tsp-tour --agent aider        --max-evals 50 --max-cost 3
 ```

@@ -34,7 +34,7 @@ have to, since tide records the actual spend either way.
 
 ```bash
 tide run autoresearch --agent claude-code --model anthropic/claude-opus-5
-tide run autoresearch/tsp-tour --agent codex --budget 2   # hours
+tide run autoresearch/tsp-tour --agent codex --budget 2h
 ```
 
 The instruction tells the harness the submission protocol; `--budget` sets

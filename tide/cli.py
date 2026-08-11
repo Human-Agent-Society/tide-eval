@@ -101,9 +101,10 @@ def _build_agent(args: argparse.Namespace) -> dict:
 def _build_budget(args: argparse.Namespace):
     """Assemble a Budget from the budget flags (all optional)."""
     from tide import Budget
+    from tide.budget import parse_duration_hours
 
     budget = Budget(
-        time_h=args.budget,
+        time_h=None if args.budget is None else parse_duration_hours(args.budget),
         max_submissions=args.max_evals,
         max_tokens=_parse_count(args.max_tokens),
         max_cost_usd=args.max_cost,
@@ -278,10 +279,10 @@ def main(argv: list[str] | None = None) -> int:
     p_run.add_argument("--model", default=None, help="model name for the agent")
     p_run.add_argument(
         "--budget",
-        type=float,
         default=None,
-        metavar="HOURS",
-        help="time budget in hours (HARD: sets the container timeout)",
+        metavar="DURATION",
+        help="time budget: 2h / 30m / 90s (a bare number = hours). "
+        "HARD: sets the container timeout",
     )
     p_run.add_argument(
         "--max-evals",
