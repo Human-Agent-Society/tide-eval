@@ -135,7 +135,7 @@ with the `BaseAgent` skeleton and the OpenEvolve pattern:
 |---|---|---|---|
 | [first-party](tasks/autoresearch) ↓ | 6 | this repo | `tide run autoresearch --agent <a>` |
 | [EdgeBench](tasks/edgebench) | 51 · 2–12 h budgets | [ByteDance-Seed/EdgeBench](https://github.com/ByteDance-Seed/EdgeBench) | `tide run edgebench/<task> --budget <h>` |
-| [FrontierCS](tasks/frontier-cs) | 172 algorithmic + 20 research · incl. 4 GPU kernel | [FrontierCS/Frontier-CS](https://github.com/FrontierCS/Frontier-CS) | `tide run frontier-cs/<task> --agent <a>` |
+| [FrontierCS](tasks/frontier-cs) | 188 algorithmic + 20 research · incl. 4 GPU kernel | [FrontierCS/Frontier-CS](https://github.com/FrontierCS/Frontier-CS) | `tide run frontier-cs/<task> --agent <a>` |
 
 The next converters, vetted for autoresearch fit, are on the
 [roadmap](#roadmap).

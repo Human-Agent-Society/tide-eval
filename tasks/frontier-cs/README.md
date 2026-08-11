@@ -7,12 +7,12 @@ continuous partial credit, expert-curated
 ([paper](https://arxiv.org/abs/2512.15699)). Two tracks are supported,
 both generated verbatim by their official Harbor adapters:
 
-- **1.0 algorithmic track** — 172 open-ended competitive-programming
+- **1.0 algorithmic track** — 188 open-ended competitive-programming
   problems (many NP-hard variants), C++17, per-problem testlib checkers.
   Their adapter is judge-native: an HTTP judge sidecar grades submissions
   during the session (`bash /app/submit.sh`), and the final score is the
-  best of the last solution and the best graded submission. Sample
-  vendored: `frontier-cs-algorithm-1/` (Treasure Packing).
+  best of the last solution and the best graded submission. All 188
+  committed.
 - **2.0 track** — 20 open research problems (Erdős constructions,
   BBOPlace, GPU kernels …) with in-task `submit.sh` self-scoring; all 20
   committed, including four GPU kernel tasks whose judge sidecars
@@ -26,7 +26,8 @@ tide run frontier-cs/frontier-cs-algorithm-1 --agent claude-code --model anthrop
 tide run frontier-cs/frontier-cs-2-0-erdos-demo --agent oracle
 ```
 
-Generate more (ids pick the track — numeric = algorithmic, named = 2.0):
+Regenerate any task from upstream (ids pick the track — numeric =
+algorithmic, named = 2.0):
 
 ```bash
 python tasks/frontier-cs/fetch.py                       # list problem ids
