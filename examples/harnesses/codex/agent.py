@@ -6,19 +6,20 @@ from typing import Any
 
 from harbor.agents.installed.codex import Codex
 
-from examples.harnesses.base import TideHarnessSOP
+from examples.harnesses.base import TideHarnessBase
 
 CODEX_VERSION = "0.147.0"
 
 
-class CodexHarness(TideHarnessSOP, Codex):
+class CodexHarness(TideHarnessBase, Codex):
     """Use Harbor's standard non-interactive Codex agent at a fixed version.
 
-    Codex is a Harbor-native agent, so installation, auth, the
-    ``codex exec --json`` launch, and trajectory-based usage collection are
-    all Harbor's own — the SOP's ``_launch`` simply delegates to
-    ``Codex.run`` and ``_collect_usage`` needs nothing (Harbor's
-    ``populate_context_post_run`` meters usage from the native trajectory).
+    ``TideHarnessBase`` comes first so the SOP's ``run`` template wins over
+    ``Codex.run``; the ``_launch`` phase then delegates to Harbor's own
+    non-interactive agent. Installation, auth, and trajectory-based usage
+    collection are all Harbor's, so ``_collect_usage`` needs nothing
+    (Harbor's ``populate_context_post_run`` meters usage from the native
+    trajectory).
 
     ``final_artifact`` (default ``"solution.json"``, relative to the task
     image's workdir; pass ``None`` to disable) is the workspace file the

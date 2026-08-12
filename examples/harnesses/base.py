@@ -1,7 +1,7 @@
-"""Shared Harbor base classes for Tide harness adapters.
+"""Tide's one base class for benchmark harness adapters.
 
 Every Tide harness follows the same standard operating procedure (SOP),
-encoded by :class:`TideHarnessSOP`:
+encoded here as the ``run`` template:
 
 1. ``setup``          — install the pinned tool into the container
                         (Harbor's hook; native agents provide their own).
@@ -20,9 +20,10 @@ encoded by :class:`TideHarnessSOP`:
 each is best-effort — metering or fallback trouble must never mask the
 run's own outcome.
 
-Custom frameworks (OpenEvolve, CORAL) subclass :class:`TideHarnessBase`,
-which adds the command-pipeline utilities their phases share. Adapters for
-Harbor-native agents mix the SOP in instead — see ``codex.CodexHarness``.
+Custom frameworks (OpenEvolve, CORAL) subclass ``TideHarnessBase`` directly
+and use its command-pipeline utilities (``_checked``, ``_populate_usage``,
+...). Adapters for Harbor-native agents list it first and delegate their
+``_launch`` to Harbor's own agent — see ``codex.CodexHarness``.
 """
 
 from __future__ import annotations
@@ -42,8 +43,12 @@ HARNESS_FINALIZE = Path(__file__).parent / "finalize.py"
 REMOTE_FINALIZE = "/tmp/tide_finalize.py"
 
 
-class TideHarnessSOP:
-    """The SOP template shared by every Tide harness. See module docstring."""
+class TideHarnessBase(BaseAgent):
+    """The SOP template + shared helpers every Tide harness runs on."""
+
+    remote_root = Path("/opt/tide-harness")
+
+    # ------------------------------------------------------------- SOP
 
     async def run(self, instruction, environment, context) -> None:
         prepared = await self._prepare(instruction, environment)
@@ -81,11 +86,7 @@ class TideHarnessSOP:
             command=f"python3 {REMOTE_FINALIZE} {shlex.quote(artifact)}"
         )
 
-
-class TideHarnessBase(TideHarnessSOP, BaseAgent):
-    """SOP + command-pipeline utilities for Tide's custom harnesses."""
-
-    remote_root = Path("/opt/tide-harness")
+    # ------------------------------------ command-pipeline utilities
 
     async def _checked(
         self,

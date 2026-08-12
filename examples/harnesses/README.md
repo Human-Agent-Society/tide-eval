@@ -5,13 +5,14 @@ judge. They do not replace or wrap the scorer: every candidate still goes to
 `$JUDGE_URL/submit`, the submission limit is enforced by the task, and Harbor's
 verifier produces the final trusted reward.
 
-All three follow the same standard operating procedure, encoded as the
-`TideHarnessSOP` template in [`base.py`](base.py): `setup` (install the
+All three subclass the one base class, `TideHarnessBase` in
+[`base.py`](base.py), which encodes the standard operating procedure as its
+`run` template: `setup` (install the
 pinned tool) → `_prepare` (upload configs/seeds) → `_launch` (the run;
 timeout is a normal ending) → `_finalize` (submit the final artifact iff
 the judge saw zero submissions) → `_collect_usage` (meter tokens/cost).
-OpenEvolve and CORAL subclass `TideHarnessBase` (SOP + command-pipeline
-utilities for custom frameworks); Codex mixes the SOP into Harbor's
+OpenEvolve and CORAL subclass it directly and use its command-pipeline
+utilities; Codex lists it first and delegates `_launch` to Harbor's
 built-in Codex agent. All three populate Harbor's standard
 input, cached-input, output-token, and USD-cost fields. Tide stores them on the
 episode row as

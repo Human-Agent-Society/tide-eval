@@ -263,68 +263,66 @@ async def test_coral_finalize_submits_shared_repo_solution(tmp_path, monkeypatch
     assert submitted == ["/opt/tide-harness/coral/seed/solution.json"]
 
 
-class _RecordingHarness:
-    """Minimal SOP harness recording the phases it runs, in order."""
+def _recording_harness(tmp_path, events: list[str], fail_at: str | None = None):
+    """A concrete TideHarnessBase recording the SOP phases it runs, in order."""
+    pytest.importorskip("harbor")
+    from examples.harnesses.base import TideHarnessBase
 
-    def __init__(self, events: list[str], fail_at: str | None = None):
-        self.events = events
-        self.fail_at = fail_at
+    class Harness(TideHarnessBase):
+        @staticmethod
+        def name() -> str:
+            return "sop-test"
 
-    async def _prepare(self, instruction, environment):
-        self.events.append("prepare")
-        return {"prepared": True}
+        def version(self) -> str:
+            return "test"
 
-    async def _launch(self, prepared, instruction, environment, context):
-        assert prepared == {"prepared": True}
-        self.events.append("launch")
-        if self.fail_at == "launch":
-            raise TimeoutError("budget spent")
+        async def setup(self, environment) -> None:
+            pass
 
-    async def _finalize(self, environment):
-        self.events.append("finalize")
-        if self.fail_at == "finalize":
-            raise RuntimeError("judge unreachable")
+        async def _prepare(self, instruction, environment):
+            events.append("prepare")
+            return {"prepared": True}
 
-    async def _collect_usage(self, environment, context):
-        self.events.append("collect_usage")
-        if self.fail_at == "collect_usage":
-            raise RuntimeError("usage unreadable")
+        async def _launch(self, prepared, instruction, environment, context):
+            assert prepared == {"prepared": True}
+            events.append("launch")
+            if fail_at == "launch":
+                raise TimeoutError("budget spent")
+
+        async def _finalize(self, environment):
+            events.append("finalize")
+            if fail_at == "finalize":
+                raise RuntimeError("judge unreachable")
+
+        async def _collect_usage(self, environment, context):
+            events.append("collect_usage")
+            if fail_at == "collect_usage":
+                raise RuntimeError("usage unreadable")
+
+    return Harness(logs_dir=tmp_path, model_name="openai/test-model")
 
 
-async def test_sop_runs_phases_in_order():
-    from examples.harnesses.base import TideHarnessSOP
-
-    class Harness(_RecordingHarness, TideHarnessSOP):
-        pass
-
+async def test_sop_runs_phases_in_order(tmp_path):
     events: list[str] = []
-    await Harness(events).run("instruction", SimpleNamespace(), SimpleNamespace())
+    await _recording_harness(tmp_path, events).run(
+        "instruction", SimpleNamespace(), SimpleNamespace()
+    )
     assert events == ["prepare", "launch", "finalize", "collect_usage"]
 
 
-async def test_sop_finalizes_and_meters_even_when_launch_stops():
-    from examples.harnesses.base import TideHarnessSOP
-
-    class Harness(_RecordingHarness, TideHarnessSOP):
-        pass
-
+async def test_sop_finalizes_and_meters_even_when_launch_stops(tmp_path):
     events: list[str] = []
     with pytest.raises(TimeoutError):
-        await Harness(events, fail_at="launch").run(
+        await _recording_harness(tmp_path, events, fail_at="launch").run(
             "instruction", SimpleNamespace(), SimpleNamespace()
         )
     assert events == ["prepare", "launch", "finalize", "collect_usage"]
 
 
-async def test_sop_finalize_and_usage_never_mask_the_run():
-    from examples.harnesses.base import TideHarnessSOP
-
-    class Harness(_RecordingHarness, TideHarnessSOP):
-        pass
-
+async def test_sop_finalize_and_usage_never_mask_the_run(tmp_path):
     for fail_at in ("finalize", "collect_usage"):
-        events = []
-        await Harness(events, fail_at=fail_at).run(
+        events: list[str] = []
+        await _recording_harness(tmp_path, events, fail_at=fail_at).run(
             "instruction", SimpleNamespace(), SimpleNamespace()
         )
         assert events == ["prepare", "launch", "finalize", "collect_usage"]
