@@ -1,0 +1,5 @@
+{
+  "framework": null,
+  "buildCommand": "python3 -m pip install -r docs/requirements.txt && python3 -m mkdocs build",
+  "outputDirectory": "site"
+}
