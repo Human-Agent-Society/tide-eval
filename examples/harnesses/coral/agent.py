@@ -35,6 +35,10 @@ class CoralHarness(TideHarnessBase):
     def version(self) -> str:
         return f"{HARNESS_VERSION}+coral.{CORAL_VERSION}"
 
+    @property
+    def _remote(self) -> Path:
+        return self.remote_root / "coral"
+
     async def setup(self, environment) -> None:
         await self._checked(
             environment,
@@ -45,7 +49,7 @@ class CoralHarness(TideHarnessBase):
             f"&& npm install -g @openai/codex@{CODEX_VERSION}",
         )
 
-    async def run(self, instruction, environment, context) -> None:
+    async def _prepare(self, instruction, environment) -> dict[str, Any]:
         env = {**self.extra_env, "CODEX_HOME": "/tmp/tide-codex-home"}
         self._require_api_key(env)
         model = self._model_name()
@@ -79,33 +83,44 @@ class CoralHarness(TideHarnessBase):
                 target_dir=str(self.remote_root),
             )
         await write_codex_auth(self, environment, env)
-        remote = self.remote_root / "coral"
-        try:
-            await self._checked(
-                environment,
-                " && ".join(
-                    [
-                        f"cd {shlex.quote(str(remote / 'seed'))}",
-                        "git init",
-                        "git config user.name tide-harness",
-                        "git config user.email tide-harness@example.invalid",
-                        "git add .",
-                        "git commit -m seed",
-                        f"cd {shlex.quote(str(remote))}",
-                        "coral start -c task.yaml",
-                    ]
-                ),
-                env=env,
+        return {"env": env, "model": model}
+
+    async def _launch(self, prepared, instruction, environment, context) -> None:
+        await self._checked(
+            environment,
+            " && ".join(
+                [
+                    f"cd {shlex.quote(str(self._remote / 'seed'))}",
+                    "git init",
+                    "git config user.name tide-harness",
+                    "git config user.email tide-harness@example.invalid",
+                    "git add .",
+                    "git commit -m seed",
+                    f"cd {shlex.quote(str(self._remote))}",
+                    "coral start -c task.yaml",
+                ]
+            ),
+            env=prepared["env"],
+        )
+
+    async def _finalize(self, environment) -> None:
+        # CORAL workers are only *told* to `coral eval`; an organization that
+        # never did leaves the verifier an empty submission log. Same remedy
+        # as Codex: submit the shared repo's final solution, iff the judge
+        # saw zero submissions.
+        await self._submit_final_artifact(
+            environment, str(self._remote / "seed" / "solution.json")
+        )
+
+    async def _collect_usage(self, environment, context) -> None:
+        usage = await environment.exec(
+            command=" ".join(
+                [
+                    "python",
+                    shlex.quote(str(self._remote / "usage.py")),
+                    shlex.quote(str(self._remote / "results")),
+                    shlex.quote(self._model_name()),
+                ]
             )
-        finally:
-            usage = await environment.exec(
-                command=" ".join(
-                    [
-                        "python",
-                        shlex.quote(str(remote / "usage.py")),
-                        shlex.quote(str(remote / "results")),
-                        shlex.quote(model),
-                    ]
-                )
-            )
-            self._populate_usage(context, usage.stdout or "")
+        )
+        self._populate_usage(context, usage.stdout or "")

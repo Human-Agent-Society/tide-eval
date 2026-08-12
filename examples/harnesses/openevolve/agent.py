@@ -18,7 +18,11 @@ OPENEVOLVE_VERSION = "0.3.2"
 
 
 class OpenEvolveHarness(TideHarnessBase):
-    """Run OpenEvolve inside the task container against Tide's judge."""
+    """Run OpenEvolve inside the task container against Tide's judge.
+
+    No ``_finalize``: every evaluation spends a judge submission by
+    construction, so the verifier's log covers the run on its own.
+    """
 
     def __init__(self, *args: Any, iterations: int = 100, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -31,13 +35,17 @@ class OpenEvolveHarness(TideHarnessBase):
     def version(self) -> str:
         return f"{HARNESS_VERSION}+openevolve.{OPENEVOLVE_VERSION}"
 
+    @property
+    def _remote(self) -> Path:
+        return self.remote_root / "openevolve"
+
     async def setup(self, environment) -> None:
         await self._checked(
             environment,
             f"python -m pip install --no-cache-dir openevolve=={OPENEVOLVE_VERSION}",
         )
 
-    async def run(self, instruction, environment, context) -> None:
+    async def _prepare(self, instruction, environment) -> dict[str, Any]:
         del instruction
         env = self.extra_env
         self._require_api_key(env)
@@ -55,31 +63,31 @@ class OpenEvolveHarness(TideHarnessBase):
                 source_dir=tmp,
                 target_dir=str(self.remote_root),
             )
-        remote = self.remote_root / "openevolve"
+        remote = self._remote
         usage_path = remote / "usage.jsonl"
-        run_env = {
-            **env,
-            "TIDE_USAGE_FILE": str(usage_path),
+        return {
+            "command": " ".join(
+                [
+                    "python",
+                    shlex.quote(str(remote / "runner.py")),
+                    shlex.quote(str(remote / "initial_program.py")),
+                    shlex.quote(str(remote / "evaluator.py")),
+                    "--config",
+                    shlex.quote(str(remote / "config.yaml")),
+                    "--iterations",
+                    str(self.iterations),
+                ]
+            ),
+            "run_env": {**env, "TIDE_USAGE_FILE": str(usage_path)},
+            "usage_path": usage_path,
         }
-        try:
-            await self._checked(
-                environment,
-                " ".join(
-                    [
-                        "python",
-                        shlex.quote(str(remote / "runner.py")),
-                        shlex.quote(str(remote / "initial_program.py")),
-                        shlex.quote(str(remote / "evaluator.py")),
-                        "--config",
-                        shlex.quote(str(remote / "config.yaml")),
-                        "--iterations",
-                        str(self.iterations),
-                    ]
-                ),
-                env=run_env,
-            )
-        finally:
-            usage = await environment.exec(
-                command=f"test -f {usage_path} && cat {usage_path} || true"
-            )
-            self._populate_usage(context, usage.stdout or "")
+
+    async def _launch(self, prepared, instruction, environment, context) -> None:
+        await self._checked(environment, prepared["command"], env=prepared["run_env"])
+
+    async def _collect_usage(self, environment, context) -> None:
+        usage_path = self._remote / "usage.jsonl"
+        usage = await environment.exec(
+            command=f"test -f {usage_path} && cat {usage_path} || true"
+        )
+        self._populate_usage(context, usage.stdout or "")

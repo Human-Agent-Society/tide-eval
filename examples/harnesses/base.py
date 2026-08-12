@@ -1,17 +1,89 @@
-"""Shared Harbor base class for Tide harness adapters."""
+"""Shared Harbor base classes for Tide harness adapters.
+
+Every Tide harness follows the same standard operating procedure (SOP),
+encoded by :class:`TideHarnessSOP`:
+
+1. ``setup``          — install the pinned tool into the container
+                        (Harbor's hook; native agents provide their own).
+2. ``_prepare``       — upload configs/seeds/graders. Runs before the
+                        ``try``: a preparation failure fails the trial.
+3. ``_launch``        — the long-horizon run itself. A timeout here is a
+                        normal ending, not a failure.
+4. ``_finalize``      — make sure the verifier has something to grade:
+                        submit the run's final artifact iff the judge saw
+                        zero submissions. Default: nothing.
+5. ``_collect_usage`` — meter tokens/cost into Harbor's ``AgentContext``.
+                        Default: nothing.
+
+``run`` is the template and is not overridden: phases 4–5 run in a
+``finally`` because a stopped run still left artifacts and spent money, and
+each is best-effort — metering or fallback trouble must never mask the
+run's own outcome.
+
+Custom frameworks (OpenEvolve, CORAL) subclass :class:`TideHarnessBase`,
+which adds the command-pipeline utilities their phases share. Adapters for
+Harbor-native agents mix the SOP in instead — see ``codex.CodexHarness``.
+"""
 
 from __future__ import annotations
 
 import json
+import logging
+import shlex
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any
 
 from harbor.agents.base import BaseAgent
 
+logger = logging.getLogger(__name__)
 
-class TideHarnessBase(BaseAgent):
-    """Common Harbor lifecycle utilities for Tide's custom harnesses."""
+HARNESS_FINALIZE = Path(__file__).parent / "finalize.py"
+REMOTE_FINALIZE = "/tmp/tide_finalize.py"
+
+
+class TideHarnessSOP:
+    """The SOP template shared by every Tide harness. See module docstring."""
+
+    async def run(self, instruction, environment, context) -> None:
+        prepared = await self._prepare(instruction, environment)
+        try:
+            await self._launch(prepared, instruction, environment, context)
+        finally:
+            await self._best_effort("finalize", self._finalize(environment))
+            await self._best_effort(
+                "collect usage", self._collect_usage(environment, context)
+            )
+
+    async def _prepare(self, instruction, environment) -> Any:
+        """Bundle and upload everything the launch needs. May raise."""
+
+    async def _launch(self, prepared, instruction, environment, context) -> None:
+        """Run the framework against the task. Timeout is a normal ending."""
+        raise NotImplementedError
+
+    async def _finalize(self, environment) -> None:
+        """Guarantee the verifier a result (e.g. final-artifact fallback)."""
+
+    async def _collect_usage(self, environment, context) -> None:
+        """Record measured tokens/cost onto Harbor's AgentContext."""
+
+    async def _best_effort(self, phase: str, coro) -> None:
+        try:
+            await coro
+        except Exception:
+            logger.warning("harness %s phase failed; continuing", phase, exc_info=True)
+
+    async def _submit_final_artifact(self, environment, artifact: str) -> None:
+        """Submit ``artifact`` to the judge iff it saw zero submissions."""
+        await environment.upload_file(HARNESS_FINALIZE, REMOTE_FINALIZE)
+        await environment.exec(
+            command=f"python3 {REMOTE_FINALIZE} {shlex.quote(artifact)}"
+        )
+
+
+class TideHarnessBase(TideHarnessSOP, BaseAgent):
+    """SOP + command-pipeline utilities for Tide's custom harnesses."""
 
     remote_root = Path("/opt/tide-harness")
 

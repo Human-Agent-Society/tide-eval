@@ -123,7 +123,7 @@ def test_codex_harness_reuses_version_pinned_harbor_agent(tmp_path):
 
 def _load_codex_finalize():
     spec = importlib.util.spec_from_file_location(
-        "tide_codex_finalize", ROOT / "examples" / "harnesses" / "codex" / "finalize.py"
+        "tide_codex_finalize", ROOT / "examples" / "harnesses" / "finalize.py"
     )
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
@@ -204,12 +204,10 @@ async def test_codex_fallback_submits_final_artifact_after_run(tmp_path, monkeyp
     environment = _FakeEnvironment()
     await harness.run("pack circles", environment, SimpleNamespace())
 
-    assert [target for _, target in environment.uploads] == [
-        "/tmp/tide_codex_finalize.py"
-    ]
+    assert [target for _, target in environment.uploads] == ["/tmp/tide_finalize.py"]
     assert environment.commands == [
         "pwd",
-        "python3 /tmp/tide_codex_finalize.py /app/solution.json",
+        "python3 /tmp/tide_finalize.py /app/solution.json",
     ]
 
 
@@ -234,7 +232,7 @@ async def test_codex_fallback_survives_agent_crash_and_env_failure(
     environment = _FakeEnvironment()
     with pytest.raises(TimeoutError):
         await harness.run("pack circles", environment, SimpleNamespace())
-    assert any("tide_codex_finalize" in command for command in environment.commands)
+    assert any("tide_finalize" in command for command in environment.commands)
 
     # ...a broken environment never turns the fallback into a trial failure...
     monkeypatch.setattr(Codex, "run", fake_run_noop)
@@ -248,6 +246,88 @@ async def test_codex_fallback_survives_agent_crash_and_env_failure(
     disabled_env = _FakeEnvironment()
     await harness_no_fallback.run("pack circles", disabled_env, SimpleNamespace())
     assert disabled_env.commands == []
+
+
+async def test_coral_finalize_submits_shared_repo_solution(tmp_path, monkeypatch):
+    pytest.importorskip("harbor")
+    from examples.harnesses.coral.agent import CoralHarness
+
+    harness = CoralHarness(logs_dir=tmp_path, model_name="openai/test-model")
+    submitted: list[str] = []
+
+    async def fake_submit(environment, artifact):
+        submitted.append(artifact)
+
+    monkeypatch.setattr(harness, "_submit_final_artifact", fake_submit)
+    await harness._finalize(SimpleNamespace())
+    assert submitted == ["/opt/tide-harness/coral/seed/solution.json"]
+
+
+class _RecordingHarness:
+    """Minimal SOP harness recording the phases it runs, in order."""
+
+    def __init__(self, events: list[str], fail_at: str | None = None):
+        self.events = events
+        self.fail_at = fail_at
+
+    async def _prepare(self, instruction, environment):
+        self.events.append("prepare")
+        return {"prepared": True}
+
+    async def _launch(self, prepared, instruction, environment, context):
+        assert prepared == {"prepared": True}
+        self.events.append("launch")
+        if self.fail_at == "launch":
+            raise TimeoutError("budget spent")
+
+    async def _finalize(self, environment):
+        self.events.append("finalize")
+        if self.fail_at == "finalize":
+            raise RuntimeError("judge unreachable")
+
+    async def _collect_usage(self, environment, context):
+        self.events.append("collect_usage")
+        if self.fail_at == "collect_usage":
+            raise RuntimeError("usage unreadable")
+
+
+async def test_sop_runs_phases_in_order():
+    from examples.harnesses.base import TideHarnessSOP
+
+    class Harness(_RecordingHarness, TideHarnessSOP):
+        pass
+
+    events: list[str] = []
+    await Harness(events).run("instruction", SimpleNamespace(), SimpleNamespace())
+    assert events == ["prepare", "launch", "finalize", "collect_usage"]
+
+
+async def test_sop_finalizes_and_meters_even_when_launch_stops():
+    from examples.harnesses.base import TideHarnessSOP
+
+    class Harness(_RecordingHarness, TideHarnessSOP):
+        pass
+
+    events: list[str] = []
+    with pytest.raises(TimeoutError):
+        await Harness(events, fail_at="launch").run(
+            "instruction", SimpleNamespace(), SimpleNamespace()
+        )
+    assert events == ["prepare", "launch", "finalize", "collect_usage"]
+
+
+async def test_sop_finalize_and_usage_never_mask_the_run():
+    from examples.harnesses.base import TideHarnessSOP
+
+    class Harness(_RecordingHarness, TideHarnessSOP):
+        pass
+
+    for fail_at in ("finalize", "collect_usage"):
+        events = []
+        await Harness(events, fail_at=fail_at).run(
+            "instruction", SimpleNamespace(), SimpleNamespace()
+        )
+        assert events == ["prepare", "launch", "finalize", "collect_usage"]
 
 
 def test_generated_configs_keep_tide_as_the_scorer():
@@ -323,7 +403,7 @@ def test_base_harness_populates_context_and_cost(tmp_path):
         async def setup(self, environment) -> None:
             pass
 
-        async def run(self, instruction, environment, context) -> None:
+        async def _launch(self, prepared, instruction, environment, context) -> None:
             pass
 
     harness = _UsageHarness(

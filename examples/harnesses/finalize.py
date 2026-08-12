@@ -1,14 +1,15 @@
-"""Best-effort final-artifact submission for the Codex harness.
+"""Best-effort final-artifact submission — the SOP's ``_finalize`` step.
 
 Under Tide's judge protocol the verifier's only input is the judge's
 submission log — the final reward is the best submission, and zero
 submissions score 0.0 no matter what the agent left in the workspace.
-OpenEvolve and CORAL submit structurally (every evaluation spends one);
-Codex is only *told* to submit by the instruction. This script closes that
-gap: when the judge saw zero submissions, spend one on the agent's final
-artifact. When the agent already submitted, best-of semantics cover the run
-and there is nothing to do — no budget is spent and no score the agent
-never confirmed enters the trace.
+Harnesses whose feedback hook submits structurally (OpenEvolve's evaluator)
+are covered by construction; harnesses that are only *told* to submit
+(Codex via the instruction, CORAL workers via AGENTS.md) are not. This
+script closes that gap: when the judge saw zero submissions, spend one on
+the run's final artifact. When the run already submitted, best-of semantics
+cover it and there is nothing to do — no budget is spent and no score the
+agent never confirmed enters the trace.
 
 Never fails: any error (no ``JUDGE_URL``, no artifact, budget exhausted,
 judge unreachable) just skips the submission, so the trial is unaffected.

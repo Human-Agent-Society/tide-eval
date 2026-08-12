@@ -5,11 +5,18 @@ judge. They do not replace or wrap the scorer: every candidate still goes to
 `$JUDGE_URL/submit`, the submission limit is enforced by the task, and Harbor's
 verifier produces the final trusted reward.
 
-OpenEvolve and CORAL subclass the shared `TideHarnessBase`; Codex directly
-subclasses Harbor's built-in Codex agent. All three populate Harbor's standard
+All three follow the same standard operating procedure, encoded as the
+`TideHarnessSOP` template in [`base.py`](base.py): `setup` (install the
+pinned tool) → `_prepare` (upload configs/seeds) → `_launch` (the run;
+timeout is a normal ending) → `_finalize` (submit the final artifact iff
+the judge saw zero submissions) → `_collect_usage` (meter tokens/cost).
+OpenEvolve and CORAL subclass `TideHarnessBase` (SOP + command-pipeline
+utilities for custom frameworks); Codex mixes the SOP into Harbor's
+built-in Codex agent. All three populate Harbor's standard
 input, cached-input, output-token, and USD-cost fields. Tide stores them on the
 episode row as
-`n_input_tokens`, `n_cache_tokens`, `n_output_tokens`, and `cost_usd`. Cost is
+`used_n_input_tokens`, `used_n_cache_tokens`, `used_n_output_tokens`, and
+`used_cost_usd`. Cost is
 estimated from the LiteLLM pricing table bundled with the Harbor environment;
 when a model has no pricing entry, tokens are still recorded and cost remains
 unset instead of being reported as zero.
