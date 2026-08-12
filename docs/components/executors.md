@@ -12,7 +12,7 @@ class Executor(Protocol):
 ```
 
 `EpisodeSpec` = `(task, agent, overrides)` · `EpisodeResult` =
-`(rewards, uri, trace, error)`. Three rules:
+`(rewards, uri, trace, error, usage)`. Four rules:
 
 1. **Return, don't raise, on task-level failure.** A timeout or agent crash
    is a *result* (`error=…`, possibly empty rewards) — the episode row must
@@ -21,14 +21,18 @@ class Executor(Protocol):
 2. **`rewards` must be trusted** by the backend's own standard (Harbor: the
    isolated verifier). Untrusted numbers belong in `trace`.
 3. **`uri` must make the result auditable** — point it at logs/artifacts.
+4. **`usage` is measured, not a reward.** Harbor adapters populate standard
+   token and cost fields; the Lab exposes them as episode columns without
+   mixing them into the verifier-backed score.
 
 ## Shipped
 
 - **`HarborExecutor(trials_dir)`** — the benchmark run. Builds a
   `TrialConfig` (the agent dict passes to Harbor's `AgentConfig` verbatim;
   `overrides` onto `TrialConfig` fields), runs the trial with the judge as
-  a sidecar, ingests the judge's submission log into `trace`. Harbor is imported
-  lazily, so the rest of tide works without it installed.
+  a sidecar, ingests the judge's submission log into `trace`, and carries the
+  agent's token/cost totals into `usage`. Harbor is imported lazily, so the rest
+  of tide works without it installed.
 - **`LocalExecutor(root=…)`** — the development run: starts the task's own
   `judge_server.py` as a local process, runs your `command` with
   `$JUDGE_URL` and `$BUDGET_SEC` set, and takes the judge's final verdict.

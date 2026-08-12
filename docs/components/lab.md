@@ -47,6 +47,9 @@ Four things to know about `run`:
   point judge-scored, so the curve is trusted.
 - **`**overrides` reach the executor** — for Harbor, these are
   `TrialConfig` fields (e.g. `verifier={...}`).
+- **Usage is queryable.** Metered Harbor agents add `n_input_tokens`,
+  `n_cache_tokens`, `n_output_tokens`, and `cost_usd` to the episode row;
+  these are execution metrics, not verifier rewards.
 
 ## Results accumulate
 

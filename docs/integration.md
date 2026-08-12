@@ -103,6 +103,44 @@ Mind the submission budget — evolutionary methods burn evaluations fast,
 so give cheap candidates a local pre-filter (your own evaluator, written
 from the instruction) and spend submissions on survivors.
 
+## Ready-to-run long-horizon harnesses
+
+[`examples/run_harness.py`](../examples/run_harness.py) supplies concrete,
+version-pinned adapters for the three long-horizon patterns above:
+
+```bash
+export OPENAI_API_KEY=...
+python examples/run_harness.py openevolve --model gpt-5-mini --iterations 100
+python examples/run_harness.py codex --model gpt-5.6-terra
+python examples/run_harness.py coral --model gpt-5.6-terra --agents 2
+```
+
+- **OpenEvolve** evolves a task-specific candidate program. Its evaluator
+  executes the candidate, POSTs its JSON to Tide, and returns the judge score.
+- **Codex** subclasses Harbor's built-in Codex agent and pins the CLI version.
+  Harbor runs the task through standard non-interactive `codex exec --json`
+  and retains its trajectory and usage metrics. Because the verifier grades
+  the judge's submission log, a best-effort fallback submits the final
+  `solution.json` after the agent stops when the run never submitted —
+  an agent that did submit is left untouched under best-of semantics.
+- **CORAL** runs multiple Codex workers over a shared repository. Its packaged
+  `TaskGrader` makes `coral eval` spend one Tide submission and returns that
+  feedback to the organization.
+
+All three adapters record actual model usage in Harbor's standard agent result:
+input tokens (including cache), cached input tokens, and output tokens. Tide
+copies those totals plus the LiteLLM price-table estimate into episode columns
+`used_n_input_tokens`, `used_n_cache_tokens`, `used_n_output_tokens`, and
+`used_cost_usd`. Harbor
+extracts Codex usage from its native session trajectory, CORAL sums every
+worker's Codex JSONL turn usage, and OpenEvolve meters each successful SDK
+response.
+
+All three run inside the Harbor task environment and therefore share its time,
+submission, and network budgets. Their final reward still comes from Harbor's
+verifier. See the [harness README](../examples/harnesses/README.md) for versions,
+credentials, and adaptation notes.
+
 ## Rules of the game
 
 - **You cannot bring your own judge.** Scores come from the task's judge

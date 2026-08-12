@@ -17,6 +17,7 @@ from typing import Any
 
 Tags = dict[str, Any]
 Rewards = dict[str, float | int]
+Usage = dict[str, float | int]
 
 
 @dataclass(frozen=True)
@@ -61,8 +62,9 @@ class EpisodeResult:
 
     ``usage`` is what the episode actually spent — the *measured* side of a
     budget: ``n_input_tokens`` / ``n_output_tokens`` / ``n_cache_tokens`` /
-    ``cost_usd`` (reported by the harness's own accounting, so as accurate as
-    the provider's bill) and ``n_submissions`` (evals used). Every key is
+    ``cost_usd`` (measured token counts and model-cost estimates from the
+    agent adapter, reported by the harness's own accounting, so as accurate
+    as the provider's bill) and ``n_submissions`` (evals used). Every key is
     optional; the Lab records whatever is present as ``used_*`` columns.
     """
 
@@ -70,7 +72,7 @@ class EpisodeResult:
     uri: str | None = None
     trace: tuple[TracePoint, ...] = ()
     error: str | None = None
-    usage: dict[str, float] = field(default_factory=dict)
+    usage: Usage = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

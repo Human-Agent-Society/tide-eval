@@ -89,3 +89,27 @@ async def test_error_recorded_in_tags(tmp_path):
     lab = Lab(tmp_path / "lab", executor=FailingExec())
     row = await lab.run("t/x", {"name": "nop"})
     assert "AgentTimeoutError" in row.tags["error"]
+
+
+async def test_usage_is_recorded_as_episode_metrics(tmp_path):
+    from tide.types import EpisodeResult
+
+    class MeteredExec:
+        async def execute(self, spec):
+            return EpisodeResult(
+                rewards={"reward": 0.8},
+                usage={
+                    "n_input_tokens": 1_000,
+                    "n_cache_tokens": 600,
+                    "n_output_tokens": 200,
+                    "cost_usd": 0.0042,
+                },
+            )
+
+    lab = Lab(tmp_path / "lab", executor=MeteredExec())
+    row = await lab.run("t/x", {"name": "metered"})
+    assert row.rewards == {"reward": 0.8}
+    assert row.tags["used_n_input_tokens"] == 1_000
+    assert row.tags["used_n_cache_tokens"] == 600
+    assert row.tags["used_n_output_tokens"] == 200
+    assert row.tags["used_cost_usd"] == 0.0042

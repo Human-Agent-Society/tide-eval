@@ -114,7 +114,8 @@ metrics.scaling(lab.df("episode"))  # 更多预算买到多少分?
 |---|---|
 | 主流 harness(`claude-code`、`codex`、`aider` 等) | `--agent <名字> --model <模型>`,零代码 |
 | 你自己的 harness | 一个 `BaseAgent` 子类,用 `import_path` 引用——可运行的模板:[`examples/minimal_harness.py`](examples/minimal_harness.py) |
-| 根本不是 "agent" 的方法(OpenEvolve 式搜索、求解器) | 把候选解 POST 到 `$JUDGE_URL/submit`,收到 429 就停——约 20 行 |
+| OpenEvolve、Codex 或 CORAL | 版本固定的可运行适配器:[`examples/run_harness.py`](examples/run_harness.py) |
+| 其他根本不是 "agent" 的方法(进化搜索、求解器) | 把候选解 POST 到 `$JUDGE_URL/submit`,收到 429 就停——约 20 行 |
 
 所有任务的协议完全一致,一次接入覆盖全套。唯一不能自带的是 judge。完整
 指南(`BaseAgent` 骨架 + OpenEvolve 接法):
