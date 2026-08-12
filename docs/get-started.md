@@ -62,12 +62,21 @@ equivalent, `agent.extra_allowed_hosts`, is reachable from the CLI as
 import asyncio
 from tide import Lab
 
-HOSTS = [  # install: apt / nvm / node / npm          # API: codex
-    "deb.debian.org", "security.debian.org",           "chatgpt.com",
-    "raw.githubusercontent.com", "github.com",          "auth.openai.com",
-    "codeload.github.com", "nodejs.org",               "api.openai.com",
+INSTALL_HOSTS = [  # setup phase: apt / nvm / node / npm
+    "deb.debian.org",
+    "security.debian.org",
+    "raw.githubusercontent.com",
+    "github.com",
+    "codeload.github.com",
+    "nodejs.org",
     "registry.npmjs.org",
 ]
+API_HOSTS = [  # agent phase: codex talking to OpenAI
+    "chatgpt.com",
+    "auth.openai.com",
+    "api.openai.com",
+]
+
 
 async def main():
     lab = Lab("runs/codex")
@@ -78,9 +87,10 @@ async def main():
             "model_name": "openai/gpt-5.6-sol",  # any codex model slug
             "override_setup_timeout_sec": 1200,  # npm install can be slow
         },
-        environment={"extra_allowed_hosts": HOSTS},
+        environment={"extra_allowed_hosts": INSTALL_HOSTS + API_HOSTS},
     )
-    print(row.rewards)   # e.g. {'reward': 0.796...}; oracle baseline is 0.75
+    print(row.rewards)  # e.g. {'reward': 0.796...}; oracle baseline is 0.75
+
 
 asyncio.run(main())
 ```
