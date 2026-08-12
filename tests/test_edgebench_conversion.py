@@ -1,24 +1,24 @@
-"""EdgeBench converter tests against a real published spec.
+"""EdgeBench conversion tests against a real published spec.
 
 The fixtures are unmodified files from the EdgeBench HuggingFace dataset
 (``ann_vector_search_qps.json`` + ``BENCHMARK.yaml``), so these tests pin the
-converter to the actual published format, not our idea of it.
+conversion to the actual published format, not our idea of it.
 """
 
 from pathlib import Path
 
 import pytest
 
-yaml = pytest.importorskip("yaml", reason="converters extra not installed")
+yaml = pytest.importorskip("yaml", reason="PyYAML not installed")
 
-from tide.converters import convert_edgebench_task  # noqa: E402
+from tasks.edgebench.convert import convert_task  # noqa: E402
 
 FIXTURES = Path(__file__).parent / "fixtures" / "edgebench"
 
 
 @pytest.fixture()
 def task_dir(tmp_path):
-    return convert_edgebench_task(
+    return convert_task(
         FIXTURES / "ann_vector_search_qps.json",
         FIXTURES / "BENCHMARK.yaml",
         tmp_path,
@@ -81,7 +81,7 @@ def test_test_sh_runs_eval_cmd_and_checks_submission(task_dir):
     assert "parse_score.py" in sh
 
 
-def test_parse_score_extracts_both_formats(task_dir, tmp_path, monkeypatch):
+def test_parse_score_extracts_both_formats(task_dir):
     import importlib.util
 
     spec = importlib.util.spec_from_file_location(

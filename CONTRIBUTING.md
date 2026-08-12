@@ -15,8 +15,8 @@ reviewed against a short list of design rules more than against style.
 3. **Abstractions are earned.** A helper enters the library when the same
    shape has appeared in at least two real scripts. Until then it lives in
    `examples/`.
-4. **Dependency direction.** Converters depend on published formats
-   and tide's public types only. Metrics import pandas, never tide.
+4. **Dependency direction.** Catalog conversion scripts depend on published
+   formats, never tide's runtime internals. Metrics import pandas, never tide.
 5. **Trust boundaries are tested, not asserted.** Anything claiming to be an
    anti-cheating measure needs a test that actually cheats and fails — see
    the cheat cases in `tests/test_task_suite.py` for the pattern.
