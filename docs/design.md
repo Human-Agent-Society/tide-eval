@@ -10,9 +10,10 @@ An autoresearch task is an open-ended optimization problem with three
 properties that break a pass/fail harness:
 
 - **continuous score** — "how good", not "did it pass";
-- **a budget, not a finish line** — the agent works until time runs out,
-  and being stopped at the deadline is a normal ending that must still
-  produce a grade;
+- **a budget, not a finish line** — the agent works until the budget runs
+  out (time, evals, tokens, or cost — see
+  [components/budget.md](components/budget.md)), and being stopped at the
+  deadline is a normal ending that must still produce a grade;
 - **iteration in the loop** — the agent tries many candidates and needs
   feedback on them, and any feedback machinery it can reach it can also
   tamper with.

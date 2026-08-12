@@ -109,7 +109,7 @@ async def test_usage_is_recorded_as_episode_metrics(tmp_path):
     lab = Lab(tmp_path / "lab", executor=MeteredExec())
     row = await lab.run("t/x", {"name": "metered"})
     assert row.rewards == {"reward": 0.8}
-    assert row.tags["n_input_tokens"] == 1_000
-    assert row.tags["n_cache_tokens"] == 600
-    assert row.tags["n_output_tokens"] == 200
-    assert row.tags["cost_usd"] == 0.0042
+    assert row.tags["used_n_input_tokens"] == 1_000
+    assert row.tags["used_n_cache_tokens"] == 600
+    assert row.tags["used_n_output_tokens"] == 200
+    assert row.tags["used_cost_usd"] == 0.0042

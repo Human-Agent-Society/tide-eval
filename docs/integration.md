@@ -21,6 +21,11 @@ hidden tests, if the task has one). Everything else — how you search, what
 you evaluate locally, whether you build your own scorer — is your
 business; tide places no constraints on the agent's side.
 
+If the run set a [budget](components/budget.md) beyond time, the container
+also carries `TIDE_MAX_SUBMISSIONS`, `TIDE_MAX_TOKENS`, and/or
+`TIDE_MAX_COST_USD`. Reading them lets your method pace itself; you don't
+have to, since tide records the actual spend either way.
+
 ## Level 1 — a supported harness (zero code)
 
 `claude-code`, `codex`, `aider`, `cursor-cli`, `terminus-2`, … plus
@@ -29,7 +34,7 @@ business; tide places no constraints on the agent's side.
 
 ```bash
 tide run autoresearch --agent claude-code --model anthropic/claude-opus-5
-tide run autoresearch/tsp-tour --agent codex --budget 2   # hours
+tide run autoresearch/tsp-tour --agent codex --budget 2h
 ```
 
 The instruction tells the harness the submission protocol; `--budget` sets
@@ -122,7 +127,8 @@ python examples/run_harness.py coral --model gpt-5.6-terra --agents 2
 All three adapters record actual model usage in Harbor's standard agent result:
 input tokens (including cache), cached input tokens, and output tokens. Tide
 copies those totals plus the LiteLLM price-table estimate into episode columns
-`n_input_tokens`, `n_cache_tokens`, `n_output_tokens`, and `cost_usd`. Harbor
+`used_n_input_tokens`, `used_n_cache_tokens`, `used_n_output_tokens`, and
+`used_cost_usd`. Harbor
 extracts Codex usage from its native session trajectory, CORAL sums every
 worker's Codex JSONL turn usage, and OpenEvolve meters each successful SDK
 response.

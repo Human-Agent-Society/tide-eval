@@ -28,8 +28,6 @@ Issues = "https://github.com/Human-Agent-Society/tide-eval/issues"
 # The Harbor executor. Kept optional so the core (store, metrics, fakes)
 # works without Harbor's heavy dependency tree.
 harbor = ["harbor==0.20.0"]
-# Benchmark converters (EdgeBench spec parsing).
-converters = ["pyyaml>=6"]
 
 [dependency-groups]
 dev = ["pytest>=8", "pytest-asyncio>=0.24", "pyyaml>=6"]
@@ -48,8 +46,13 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 88
 target-version = "py312"
-# Fixtures include third-party generated task code (FrontierCS export).
-extend-exclude = ["tests/fixtures", "tasks/frontier-cs", "tasks/edgebench"]
+# Fixtures and imported task instructions include third-party code.
+extend-exclude = [
+    "tests/fixtures",
+    "tasks/frontier-cs",
+    "tasks/edgebench/*/instruction.md",
+    "tasks/edgebench/*/tests",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]

@@ -24,6 +24,7 @@ from typing import Any
 
 import pandas as pd
 
+from tide.budget import Budget
 from tide.executors import Executor, HarborExecutor
 from tide.types import EpisodeSpec, Row, Tags
 
@@ -55,6 +56,7 @@ class Lab:
         agent: dict[str, Any],
         *,
         tags: Tags | None = None,
+        budget: Budget | dict[str, Any] | float | int | None = None,
         key: str | None = None,
         **overrides: Any,
     ) -> Row:
@@ -65,9 +67,32 @@ class Lab:
         already has a stored row, that row is returned and nothing runs.
         ``overrides`` pass through to the executor (for Harbor: TrialConfig
         fields such as ``verifier=...`` or ``timeout_multiplier=...``).
+
+        ``budget`` bounds the run across any of four dimensions — time,
+        submissions (evals), tokens, cost — see :class:`tide.budget.Budget`.
+        A bare number is hours. It sets the timeout, hands the agent
+        ``TIDE_*`` budget-signal env vars, and tags the episode with its
+        budget so runs group and pivot by it. What was actually spent comes
+        back as ``used_*`` columns.
         """
         tags = dict(tags or {})
-        spec = EpisodeSpec(task=task, agent=dict(agent), overrides=dict(overrides))
+        agent = dict(agent)
+        overrides = dict(overrides)
+        budget = Budget.coerce(budget)
+        if budget is not None and not budget.is_empty:
+            tags = {**budget.to_tags(), **tags}
+            if budget.timeout_sec() is not None:
+                agent.setdefault("override_timeout_sec", budget.timeout_sec())
+            env = budget.to_env()
+            if env:
+                agent["env"] = {**env, **agent.get("env", {})}  # local + exec delivery
+                env_cfg = dict(overrides.get("environment") or {})
+                env_cfg["env"] = {
+                    **env,
+                    **(env_cfg.get("env") or {}),
+                }  # container startup
+                overrides["environment"] = env_cfg
+        spec = EpisodeSpec(task=task, agent=agent, overrides=overrides)
         key = key or self._default_key(spec, tags)
 
         if (existing := self.store.get(key)) is not None:
@@ -92,15 +117,12 @@ class Lab:
                 )
             )
 
+        used = {f"used_{k}": v for k, v in result.usage.items()}
         row = Row(
             key=key,
             kind="episode",
             task=task,
-            tags={
-                **tags,
-                **result.usage,
-                **({"error": result.error} if result.error else {}),
-            },
+            tags={**tags, **used, **({"error": result.error} if result.error else {})},
             rewards=dict(result.rewards),
             uri=result.uri,
         )

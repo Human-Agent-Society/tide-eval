@@ -57,9 +57,15 @@ class EpisodeResult:
 
     ``rewards`` is the trusted verdict (from Harbor's verifier, or a fake in
     tests). ``trace`` is the untrusted score log recovered from the
-    episode's artifacts. ``usage`` carries measured token counts and model-cost
-    estimates from the agent adapter. ``uri`` points at the provenance (the
-    Harbor trial directory) so every stored number stays auditable.
+    episode's artifacts. ``uri`` points at the provenance (the Harbor trial
+    directory) so every stored number stays auditable.
+
+    ``usage`` is what the episode actually spent — the *measured* side of a
+    budget: ``n_input_tokens`` / ``n_output_tokens`` / ``n_cache_tokens`` /
+    ``cost_usd`` (measured token counts and model-cost estimates from the
+    agent adapter, reported by the harness's own accounting, so as accurate
+    as the provider's bill) and ``n_submissions`` (evals used). Every key is
+    optional; the Lab records whatever is present as ``used_*`` columns.
     """
 
     rewards: Rewards

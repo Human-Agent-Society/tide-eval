@@ -78,26 +78,41 @@ class HarborExecutor:
             if result.exception_info is not None
             else None
         )
-        input_tokens, cache_tokens, output_tokens, cost_usd = (
-            result.compute_token_cost_totals()
-        )
-        usage = {
-            key: value
-            for key, value in {
-                "n_input_tokens": input_tokens,
-                "n_cache_tokens": cache_tokens,
-                "n_output_tokens": output_tokens,
-                "cost_usd": cost_usd,
-            }.items()
-            if value is not None
-        }
+        trace = tuple(load_trace(trial.paths.trial_dir))
         return EpisodeResult(
             rewards=dict(rewards),
             uri=result.trial_uri,
-            trace=tuple(load_trace(trial.paths.trial_dir)),
+            trace=trace,
             error=error,
-            usage=usage,
+            usage=_harbor_usage(result.agent_result, len(trace)),
         )
+
+
+def _harbor_usage(agent_result: Any, n_submissions: int) -> dict[str, float]:
+    """Pull the harness's own token/cost accounting off Harbor's AgentContext.
+
+    These numbers come from each adapter parsing its harness's usage report
+    (claude-code / codex / qwen trajectories), so they are as accurate as the
+    provider's bill — the right signal even for closed models. Absent fields
+    are simply omitted.
+    """
+    usage: dict[str, float] = {"n_submissions": float(n_submissions)}
+    if agent_result is None:
+        return usage
+    fields = {
+        "n_input_tokens": "n_input_tokens",
+        "n_output_tokens": "n_output_tokens",
+        "n_cache_tokens": "n_cache_tokens",
+        "cost_usd": "cost_usd",
+    }
+    for out_key, attr in fields.items():
+        value = getattr(agent_result, attr, None)
+        if value:
+            usage[out_key] = float(value)
+    tok = usage.get("n_input_tokens", 0) + usage.get("n_output_tokens", 0)
+    if tok:
+        usage["n_total_tokens"] = tok
+    return usage
 
 
 class LocalExecutor:
@@ -173,6 +188,8 @@ class LocalExecutor:
                         **os.environ,
                         "JUDGE_URL": judge_url,
                         "BUDGET_SEC": str(budget),
+                        # Budget signals (TIDE_MAX_TOKENS, ...) the command may pace on.
+                        **spec.agent.get("env", {}),
                     },
                     timeout=float(budget),
                     capture_output=True,
@@ -198,6 +215,7 @@ class LocalExecutor:
             uri=f"local://{workdir}",
             trace=tuple(TracePoint(t=e["t"], score=e["score"]) for e in submissions),
             error=error,
+            usage={"n_submissions": float(len(submissions))},
         )
 
 
