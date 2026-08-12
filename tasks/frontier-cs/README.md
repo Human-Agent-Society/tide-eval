@@ -17,7 +17,7 @@ both generated verbatim by their official Harbor adapters:
   BBOPlace, GPU kernels …) with in-task `submit.sh` self-scoring; all 20
   committed, including four GPU kernel tasks whose judge sidecars
   demonstrate the compose-overlay wiring from
-  [docs/components/tasks.md](../../docs/components/tasks.md).
+  [docs/guides/authoring-tasks.md](../../docs/guides/authoring-tasks.md).
 
 Run any task:
 

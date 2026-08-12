@@ -11,15 +11,22 @@ theme:
 
 nav:
   - Home: index.md
-  - Get started: get-started.md
-  - Design: design.md
-  - Integration: integration.md
-  - Components:
-      - Tasks: components/tasks.md
-      - Lab: components/lab.md
-      - Budget: components/budget.md
-      - Executors: components/executors.md
-      - Metrics: components/metrics.md
+  - Introduction:
+      - Get started: introduction/get-started.md
+      - Design: introduction/design.md
+  - Guides:
+      - Evaluating your agent: guides/integration.md
+      - Authoring tasks & benchmarks: guides/authoring-tasks.md
+  - API:
+      - Lab & store: api/lab.md
+      - Budget: api/budget.md
+      - Executors: api/executors.md
+      - Metrics: api/metrics.md
+  - Tasks:
+      - Overview: tasks/index.md
+  - Development:
+      - GitHub: https://github.com/Human-Agent-Society/tide-eval
+      - Contributing: https://github.com/Human-Agent-Society/tide-eval/blob/main/CONTRIBUTING.md
 
 markdown_extensions:
   - admonition

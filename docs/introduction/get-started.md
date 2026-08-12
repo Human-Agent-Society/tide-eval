@@ -4,7 +4,7 @@ Zero to a real agent score on `autoresearch/circle-packing`, including the
 two things that actually go wrong on a first run: agent authentication and
 network egress. For the concepts behind the pipeline see
 [design.md](design.md); for integrating your own method see
-[integration.md](integration.md).
+[integration.md](../guides/integration.md).
 
 ## Prerequisites
 

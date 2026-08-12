@@ -21,7 +21,7 @@ hidden tests, if the task has one). Everything else — how you search, what
 you evaluate locally, whether you build your own scorer — is your
 business; tide places no constraints on the agent's side.
 
-If the run set a [budget](components/budget.md) beyond time, the container
+If the run set a [budget](../api/budget.md) beyond time, the container
 also carries `TIDE_MAX_SUBMISSIONS`, `TIDE_MAX_TOKENS`, and/or
 `TIDE_MAX_COST_USD`. Reading them lets your method pace itself; you don't
 have to, since tide records the actual spend either way.
@@ -75,7 +75,7 @@ row = await lab.run(
 )
 ```
 
-Runnable version: [`examples/minimal_harness.py`](../examples/minimal_harness.py)
+Runnable version: [`examples/minimal_harness.py`](../../examples/minimal_harness.py)
 — a ~25-line adapter around a random-search loop, no LLM, no keys.
 
 Two placements for your method, both fine:
@@ -87,15 +87,15 @@ Two placements for your method, both fine:
   systems (CORAL-style).
 - **In-container** — upload your method and launch it; it talks to the
   judge directly. LLM calls from inside need the task's network policy
-  opened: add your API host to the `[agent]` phase allowlist — see
-  [network policy](components/tasks.md#network-policy).
+   opened: add your API host to the `[agent]` phase allowlist — see
+   [network policy](authoring-tasks.md#network-policy).
 
 ## Level 3 — your method isn't an "agent" at all
 
 An evolutionary search, a solver portfolio, a bare sampling loop — the
 whole integration is: read `$JUDGE_URL`, POST candidates worth scoring,
 stop at 429. The minimal version is ~20 lines
-([`examples/minimal_harness_search.py`](../examples/minimal_harness_search.py)).
+([`examples/minimal_harness_search.py`](../../examples/minimal_harness_search.py)).
 
 An OpenEvolve-style loop plugs in the same way: its `evaluate()` function
 POSTs the candidate to `$JUDGE_URL/submit` and returns the judge's score.
@@ -105,7 +105,7 @@ from the instruction) and spend submissions on survivors.
 
 ## Ready-to-run long-horizon harnesses
 
-[`examples/run_harness.py`](../examples/run_harness.py) supplies concrete,
+[`examples/run_harness.py`](../../examples/run_harness.py) supplies concrete,
 version-pinned adapters for the three long-horizon patterns above:
 
 ```bash
@@ -138,14 +138,14 @@ response.
 
 All three run inside the Harbor task environment and therefore share its time,
 submission, and network budgets. Their final reward still comes from Harbor's
-verifier. See the [harness README](../examples/harnesses/README.md) for versions,
+verifier. See the [harness README](../../examples/harnesses/README.md) for versions,
 credentials, and adaptation notes.
 
 ## Rules of the game
 
 - **You cannot bring your own judge.** Scores come from the task's judge
-  or they don't exist. Different scoring rule = a new task
-  ([`tasks/_template`](../tasks/_template)), not a new judge for an
+   or they don't exist. Different scoring rule = a new task
+   ([`tasks/_template`](../../tasks/_template)), not a new judge for an
   existing one.
 - **Compare methods at the same `budget` tag**, on the same tasks. All
   scores are judge-computed, so the curve comparison is as trustworthy as

@@ -42,11 +42,11 @@ picks up where it crashed, but a crashed 12-hour episode itself starts
 over.
 
 Full design — trust model, task conventions, data model, extensibility:
-**[docs/design.md](docs/design.md)**.
+**[docs/introduction/design.md](docs/introduction/design.md)**.
 
 ## Using tide
 
-First run? **[docs/get-started.md](docs/get-started.md)** walks from install
+First run? **[docs/introduction/get-started.md](docs/introduction/get-started.md)** walks from install
 to a real agent score, including agent auth and network-egress gotchas.
 
 ### Run
@@ -65,7 +65,7 @@ tide report                              # summarize the results store
 
 `--budget` is time (`2h` / `30m` / `90s`; a bare number is hours); the other
 budget axes are `--max-tokens` (e.g. `500k`), `--max-evals`, and `--max-cost`
-(USD). See [budget](docs/components/budget.md).
+(USD). See [budget](docs/api/budget.md).
 
 #### No Docker? Develop locally, verify in containers
 
@@ -130,8 +130,8 @@ metrics.efficiency(
 ```
 
 Re-running any script resumes it. Reference:
-[lab](docs/components/lab.md) · [budget](docs/components/budget.md) ·
-[metrics](docs/components/metrics.md) · [executors](docs/components/executors.md).
+[lab](docs/api/lab.md) · [budget](docs/api/budget.md) ·
+[metrics](docs/api/metrics.md) · [executors](docs/api/executors.md).
 
 ### Evaluate your own agent
 
@@ -149,7 +149,7 @@ are identical — so numbers stay comparable across methods:
 The protocol is identical across every task, so one integration covers
 the suite. The only thing you cannot bring is your own judge. Full guide
 with the `BaseAgent` skeleton and the OpenEvolve pattern:
-**[docs/integration.md](docs/integration.md)**.
+**[docs/guides/integration.md](docs/guides/integration.md)**.
 
 ## Tasks
 
@@ -186,7 +186,7 @@ and replace one `TODO(task)` piece at a time: the instruction, one
 `score.py` the judge runs on every submission, the submission budget, the
 cheat cases, the reference solution — and optionally a `final.py` with
 hidden tests, run once on the best submission. GPU tasks add two lines of
-config. Guide: **[docs/components/tasks.md](docs/components/tasks.md)**.
+config. Guide: **[docs/guides/authoring-tasks.md](docs/guides/authoring-tasks.md)**.
 
 ## Roadmap
 
@@ -205,7 +205,7 @@ config. Guide: **[docs/components/tasks.md](docs/components/tasks.md)**.
 - [ ] Regenerate the EdgeBench conversion onto the judge protocol
 - [ ] Hosted results viewer
 - [ ] Beyond autoresearch: continual-learning streams and live tasks — as
-  [extensions](docs/design.md#extensibility), not rewrites
+  [extensions](docs/introduction/design.md#extensibility), not rewrites
 
 ## Development & contributing
 

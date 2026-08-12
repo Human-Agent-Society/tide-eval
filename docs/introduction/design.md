@@ -1,8 +1,8 @@
 # Design
 
 How tide evaluates autoresearch, and why it is shaped the way it is.
-For the module-by-module reference see [components/](components/); for
-integrating an agent see [integration.md](integration.md).
+For the module-by-module reference see the [API](../api/lab.md); for
+integrating an agent see [integration.md](../guides/integration.md).
 
 ## What an autoresearch task is
 
@@ -12,7 +12,7 @@ properties that break a pass/fail harness:
 - **continuous score** — "how good", not "did it pass";
 - **a budget, not a finish line** — the agent works until the budget runs
   out (time, evals, tokens, or cost — see
-  [components/budget.md](components/budget.md)), and being stopped at the
+  [budget](../api/budget.md)), and being stopped at the
   deadline is a normal ending that must still produce a grade;
 - **iteration in the loop** — the agent tries many candidates and needs
   feedback on them, and any feedback machinery it can reach it can also
@@ -62,7 +62,7 @@ Three decisions carry the model:
   best submission, when the verifier calls `GET /final`. That call locks
   the session: later submissions are refused and repeat calls return the
   cached verdict, so an agent that peeks early ends its own run.
-  [symbolic-regression](../tasks/autoresearch/symbolic-regression) is the
+   [symbolic-regression](../../tasks/autoresearch/symbolic-regression) is the
   reference: session feedback on training points, final grade on held-out
   points that no submission budget can probe.
 
@@ -124,7 +124,7 @@ test): every task here also runs standalone under `harbor trial start`, and
 Harbor registry ids run here unchanged. tide's own surface stays small on
 purpose — roughly: `Lab` (orchestration + store), an `Executor` protocol
 with Harbor and local implementations, submission-log ingestion, and pure-pandas
-metrics. See [components/](components/) for each module's invariants.
+metrics. See the [API reference](../api/lab.md) for each module's invariants.
 
 ## Extensibility
 
@@ -143,7 +143,7 @@ points are structural rather than speculative:
 This is how continual-learning task streams and live infinite-horizon
 tasks would land: as additions around the same store, not rewrites of
 it. What is actually on deck lives in the
-[README's roadmap](../README.md#roadmap).
+[README's roadmap](../../README.md#roadmap).
 
 ## Design rules
 

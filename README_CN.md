@@ -39,7 +39,7 @@ agent 适配器生态——tide 正是把它当库来用。而 autoresearch 在�
 一半的 12 小时 episode 本身要重来。
 
 完整设计——信任模型、任务约定、数据模型、扩展性:
-**[docs/design.md](docs/design.md)**(英文)。
+**[docs/introduction/design.md](docs/introduction/design.md)**(英文)。
 
 ## 使用 tide
 
@@ -102,8 +102,8 @@ metrics.scaling(lab.df("episode"))  # 更多预算买到多少分?
 ```
 
 重跑任何脚本都会自动续跑。参考:
-[lab](docs/components/lab.md) · [metrics](docs/components/metrics.md) ·
-[executors](docs/components/executors.md)。
+[lab](docs/api/lab.md) · [metrics](docs/api/metrics.md) ·
+[executors](docs/api/executors.md)。
 
 ### 接入你自己的 agent
 
@@ -119,7 +119,7 @@ metrics.scaling(lab.df("episode"))  # 更多预算买到多少分?
 
 所有任务的协议完全一致,一次接入覆盖全套。唯一不能自带的是 judge。完整
 指南(`BaseAgent` 骨架 + OpenEvolve 接法):
-**[docs/integration.md](docs/integration.md)**。
+**[docs/guides/integration.md](docs/guides/integration.md)**。
 
 ## 任务目录
 
@@ -154,7 +154,7 @@ pytest tests/test_task_suite.py          # 自动被识别——而且直接是�
 `TODO(task)` 标记的部分:题面、judge 对每次提交运行的那一份 `score.py`、
 提交额度、作弊用例、参考解——可选地再加一个 `final.py`(hidden tests,只
 在最优提交上跑一次)。GPU 任务只多两行配置。指南:
-**[docs/components/tasks.md](docs/components/tasks.md)**。
+**[docs/guides/authoring-tasks.md](docs/guides/authoring-tasks.md)**。
 
 ## Roadmap
 
@@ -171,7 +171,7 @@ pytest tests/test_task_suite.py          # 自动被识别——而且直接是�
 - [ ] 把 EdgeBench 转换重新生成到 judge 协议上
 - [ ] 托管的结果查看器
 - [ ] autoresearch 之外:持续学习任务流与在线任务——以
-  [扩展](docs/design.md#extensibility)的形式落地,而不是重写
+  [扩展](docs/introduction/design.md#extensibility)的形式落地,而不是重写
 
 ## 开发与贡献
 
