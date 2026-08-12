@@ -1,5 +1,6 @@
 {
   "framework": null,
-  "buildCommand": "python3 -m pip install -r docs/requirements.txt && python3 -m mkdocs build",
-  "outputDirectory": "site"
+  "buildCommand": "python3 -m venv .venv-docs && .venv-docs/bin/python -m pip install -r docs/requirements.txt && .venv-docs/bin/python -m mkdocs build",
+  "outputDirectory": "site",
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- docs mkdocs.yml vercel.json"
 }
