@@ -28,14 +28,21 @@ class _Judge(BaseHTTPRequestHandler):
         length = int(self.headers["Content-Length"])
         solution = json.loads(self.rfile.read(length))
         self.submissions.append(solution)
-        body = json.dumps(
+        self._reply(
             {
                 "score": 0.75,
                 "best": 0.75,
                 "remaining": 9,
                 "reason": "valid",
             }
-        ).encode()
+        )
+
+    def do_GET(self):
+        assert self.path == "/status"
+        self._reply({"used": len(self.submissions), "remaining": None})
+
+    def _reply(self, payload: dict):
+        body = json.dumps(payload).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
@@ -112,6 +119,135 @@ def test_codex_harness_reuses_version_pinned_harbor_agent(tmp_path):
             model_name="openai/test-model",
             version="different-version",
         )
+
+
+def _load_codex_finalize():
+    spec = importlib.util.spec_from_file_location(
+        "tide_codex_finalize", ROOT / "examples" / "harnesses" / "codex" / "finalize.py"
+    )
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_codex_finalize_submits_artifact_when_judge_saw_nothing(tmp_path, monkeypatch):
+    server = _judge_server()
+    artifact = tmp_path / "solution.json"
+    artifact.write_text(json.dumps({"circles": [[0.5, 0.5, 0.5]]}))
+    try:
+        monkeypatch.setenv("JUDGE_URL", f"http://127.0.0.1:{server.server_port}")
+        result = _load_codex_finalize().finalize(artifact)
+    finally:
+        server.shutdown()
+        server.server_close()
+
+    assert result["score"] == 0.75
+    assert _Judge.submissions == [{"circles": [[0.5, 0.5, 0.5]]}]
+
+
+def test_codex_finalize_stays_out_when_agent_already_submitted(tmp_path, monkeypatch):
+    server = _judge_server()
+    artifact = tmp_path / "solution.json"
+    artifact.write_text(json.dumps({"circles": []}))
+    try:
+        monkeypatch.setenv("JUDGE_URL", f"http://127.0.0.1:{server.server_port}")
+        _Judge.submissions.append({"circles": [[0.25, 0.25, 0.25]]})
+        result = _load_codex_finalize().finalize(artifact)
+    finally:
+        server.shutdown()
+        server.server_close()
+
+    # Best-of semantics already cover the run: no extra submission is spent.
+    assert result is None
+    assert len(_Judge.submissions) == 1
+
+
+def test_codex_finalize_skips_without_judge_or_artifact(tmp_path, monkeypatch):
+    finalize = _load_codex_finalize().finalize
+    monkeypatch.delenv("JUDGE_URL", raising=False)
+    assert finalize(tmp_path / "solution.json") is None
+
+    monkeypatch.setenv("JUDGE_URL", "http://127.0.0.1:1")
+    assert finalize(tmp_path / "missing.json") is None
+
+
+class _FakeEnvironment:
+    def __init__(self, *, workdir: str = "/app", fail: bool = False):
+        self.workdir = workdir
+        self.fail = fail
+        self.uploads: list[tuple] = []
+        self.commands: list[str] = []
+
+    async def upload_file(self, source_path, target_path):
+        self.uploads.append((Path(source_path), target_path))
+
+    async def exec(self, command, **kwargs):
+        self.commands.append(command)
+        if self.fail:
+            raise RuntimeError("environment down")
+        stdout = f"{self.workdir}\n" if command == "pwd" else ""
+        return SimpleNamespace(stdout=stdout, return_code=0)
+
+
+async def test_codex_fallback_submits_final_artifact_after_run(tmp_path, monkeypatch):
+    pytest.importorskip("harbor")
+    from harbor.agents.installed.codex import Codex
+
+    from examples.harnesses.codex.agent import CodexHarness
+
+    async def fake_run(self, instruction, environment, context):
+        return None
+
+    monkeypatch.setattr(Codex, "run", fake_run)
+    harness = CodexHarness(logs_dir=tmp_path, model_name="openai/test-model")
+    environment = _FakeEnvironment()
+    await harness.run("pack circles", environment, SimpleNamespace())
+
+    assert [target for _, target in environment.uploads] == [
+        "/tmp/tide_codex_finalize.py"
+    ]
+    assert environment.commands == [
+        "pwd",
+        "python3 /tmp/tide_codex_finalize.py /app/solution.json",
+    ]
+
+
+async def test_codex_fallback_survives_agent_crash_and_env_failure(
+    tmp_path, monkeypatch
+):
+    pytest.importorskip("harbor")
+    from harbor.agents.installed.codex import Codex
+
+    from examples.harnesses.codex.agent import CodexHarness
+
+    async def crashing_run(self, instruction, environment, context):
+        raise TimeoutError("budget spent")
+
+    async def fake_run_noop(self, instruction, environment, context):
+        return None
+
+    monkeypatch.setattr(Codex, "run", crashing_run)
+    harness = CodexHarness(logs_dir=tmp_path, model_name="openai/test-model")
+
+    # A timeout is a normal ending: the fallback still runs afterwards...
+    environment = _FakeEnvironment()
+    with pytest.raises(TimeoutError):
+        await harness.run("pack circles", environment, SimpleNamespace())
+    assert any("tide_codex_finalize" in command for command in environment.commands)
+
+    # ...a broken environment never turns the fallback into a trial failure...
+    monkeypatch.setattr(Codex, "run", fake_run_noop)
+    broken = _FakeEnvironment(fail=True)
+    await harness.run("pack circles", broken, SimpleNamespace())
+
+    # ...and final_artifact=None disables the fallback entirely.
+    harness_no_fallback = CodexHarness(
+        logs_dir=tmp_path, model_name="openai/test-model", final_artifact=None
+    )
+    disabled_env = _FakeEnvironment()
+    await harness_no_fallback.run("pack circles", disabled_env, SimpleNamespace())
+    assert disabled_env.commands == []
 
 
 def test_generated_configs_keep_tide_as_the_scorer():

@@ -119,7 +119,10 @@ python examples/run_harness.py coral --model gpt-5.6-terra --agents 2
   executes the candidate, POSTs its JSON to Tide, and returns the judge score.
 - **Codex** subclasses Harbor's built-in Codex agent and pins the CLI version.
   Harbor runs the task through standard non-interactive `codex exec --json`
-  and retains its trajectory and usage metrics.
+  and retains its trajectory and usage metrics. Because the verifier grades
+  the judge's submission log, a best-effort fallback submits the final
+  `solution.json` after the agent stops when the run never submitted —
+  an agent that did submit is left untouched under best-of semantics.
 - **CORAL** runs multiple Codex workers over a shared repository. Its packaged
   `TaskGrader` makes `coral eval` spend one Tide submission and returns that
   feedback to the organization.

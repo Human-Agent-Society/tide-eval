@@ -35,7 +35,7 @@ adapting those harnesses to a new solution format.
 | Adapter | Integration | Pinned version |
 |---|---|---|
 | [OpenEvolve](https://github.com/algorithmicsuperintelligence/openevolve) | evolves `initial_program.py`; its evaluator executes the candidate and returns the Tide judge score | adapter 0.1.1 + OpenEvolve 0.3.2 |
-| [Codex](https://developers.openai.com/codex/noninteractive/) | reuses Harbor's built-in `codex exec --json` agent, including trajectory and usage collection | Codex CLI 0.147.0 |
+| [Codex](https://developers.openai.com/codex/noninteractive/) | reuses Harbor's built-in `codex exec --json` agent, including trajectory and usage collection; after the agent stops, submits the final `solution.json` to the judge if the run never submitted (otherwise the verifier grades an empty log) | Codex CLI 0.147.0 |
 | [CORAL](https://github.com/Human-Agent-Society/CORAL) | launches a two-agent organization; `coral eval` calls a packaged `TaskGrader` that submits `solution.json` to Tide | adapter 0.1.0 + CORAL 0.7.16 |
 
 The adapters deliberately pin their tool versions so a benchmark record has a
