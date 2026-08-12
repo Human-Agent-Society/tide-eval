@@ -1,0 +1,32 @@
+site_name: tide
+site_description: Evaluate agents on autoresearch tasks — continuous scores, budget semantics, trusted results.
+repo_url: https://github.com/Human-Agent-Society/tide-eval
+docs_dir: docs
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Get started: get-started.md
+  - Design: design.md
+  - Integration: integration.md
+  - Components:
+      - Tasks: components/tasks.md
+      - Lab: components/lab.md
+      - Budget: components/budget.md
+      - Executors: components/executors.md
+      - Metrics: components/metrics.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
