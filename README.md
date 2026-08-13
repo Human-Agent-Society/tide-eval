@@ -52,7 +52,7 @@ to a real agent score, including agent auth and network-egress gotchas.
 ### Run
 
 ```bash
-# from source, until the PyPI release lands (see Roadmap):
+# from source, until the PyPI release lands:
 git clone https://github.com/Human-Agent-Society/tide-eval && cd tide-eval
 pip install -e ".[harbor]"               # container runs; plain -e . covers --local and the API
 
@@ -159,8 +159,8 @@ with the `BaseAgent` skeleton and the OpenEvolve pattern:
 | [EdgeBench](tasks/edgebench) | 51 · 2–12 h budgets | [ByteDance-Seed/EdgeBench](https://github.com/ByteDance-Seed/EdgeBench) | `tide run edgebench/<task> --budget <h>` |
 | [FrontierCS](tasks/frontier-cs) | 188 algorithmic + 20 research · incl. 4 GPU kernel | [FrontierCS/Frontier-CS](https://github.com/FrontierCS/Frontier-CS) | `tide run frontier-cs/<task> --agent <a>` |
 
-The next converters, vetted for autoresearch fit, are on the
-[roadmap](#roadmap).
+The next converters, vetted for autoresearch fit, are tracked in the
+[roadmap](https://github.com/Human-Agent-Society/tide-eval/issues/19).
 
 Each first-party task teaches one hard part of the category
 (oracle-verified in real containers, cheat cases re-tested in CI):
@@ -187,25 +187,6 @@ and replace one `TODO(task)` piece at a time: the instruction, one
 cheat cases, the reference solution — and optionally a `final.py` with
 hidden tests, run once on the best submission. GPU tasks add two lines of
 config. Guide: **[docs/guides/authoring-tasks.md](docs/guides/authoring-tasks.md)**.
-
-## Roadmap
-
-- [ ] PyPI release (`tide-eval` — name reserved, not yet published)
-- [ ] GPU exemplar task, oracle-gated in CI
-- [ ] Harbor pin-upgrade workflow
-- [ ] [Frontier-Eng](https://arxiv.org/abs/2604.12290) support — 47 engineering tasks whose
-  interaction-budget loop maps directly onto the submission budget.
-  Their [repo](https://github.com/EinsiaLab/Frontier-Engineering) currently has no license, so tasks cannot be
-  vendored: support means fetch-time conversion on the user's machine,
-  starting from the curated 10-task `v1-lite` subset
-- [ ] [SOL-ExecBench](https://github.com/nvidia/sol-execbench) support — 235 real CUDA kernels scored
-  against Speed-of-Light hardware bounds (fixed targets, so timing stops
-  being hardware-relative). Apache-2.0, so tasks can be vendored;
-  validation needs NVIDIA Blackwell GPUs
-- [ ] Regenerate the EdgeBench conversion onto the judge protocol
-- [ ] Hosted results viewer
-- [ ] Beyond autoresearch: continual-learning streams and live tasks — as
-  [extensions](docs/introduction/design.md#extensibility), not rewrites
 
 ## Contributing
 

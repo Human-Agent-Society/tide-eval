@@ -46,7 +46,7 @@ agent 适配器生态——tide 正是把它当库来用。而 autoresearch 在�
 ### 跑起来
 
 ```bash
-# PyPI 发布前(见 Roadmap),先从源码安装:
+# PyPI 发布前,先从源码安装:
 git clone https://github.com/Human-Agent-Society/tide-eval && cd tide-eval
 pip install -e ".[harbor]"               # 容器模式需要;仅 --local 和 API 的话 -e . 即可
 
@@ -129,7 +129,8 @@ metrics.scaling(lab.df("episode"))  # 更多预算买到多少分?
 | [EdgeBench](tasks/edgebench) | 51 · 2–12 小时预算 | [ByteDance-Seed/EdgeBench](https://github.com/ByteDance-Seed/EdgeBench) | `tide run edgebench/<task> --budget <h>` |
 | [FrontierCS](tasks/frontier-cs) | 188 算法赛道 + 20 研究赛道 · 含 4 个 GPU kernel | [FrontierCS/Frontier-CS](https://github.com/FrontierCS/Frontier-CS) | `tide run frontier-cs/<task> --agent <a>` |
 
-下一批转换目标(已按 autoresearch 契合度筛过)见 [Roadmap](#roadmap)。
+下一批转换目标(已按 autoresearch 契合度筛过)在
+[Roadmap](https://github.com/Human-Agent-Society/tide-eval/issues/19) 里跟踪。
 
 每个第一方任务教会这个类别里的一个难点(oracle 在真容器中验证过,作弊用例
 在 CI 中持续复测):
@@ -155,23 +156,6 @@ pytest tests/test_task_suite.py          # 自动被识别——而且直接是�
 提交额度、作弊用例、参考解——可选地再加一个 `final.py`(hidden tests,只
 在最优提交上跑一次)。GPU 任务只多两行配置。指南:
 **[docs/guides/authoring-tasks.md](docs/guides/authoring-tasks.md)**。
-
-## Roadmap
-
-- [ ] 发布 PyPI(`tide-eval`,名字已预留,尚未发布)
-- [ ] GPU 示例任务,在 CI 中以 oracle 把关
-- [ ] Harbor 版本升级的安全流程
-- [ ] [Frontier-Eng](https://arxiv.org/abs/2604.12290) 支持——47 个工程任务,其 interaction budget
-  循环与提交额度直接对应。其[仓库](https://github.com/EinsiaLab/Frontier-Engineering)目前没有 license,任务不能搬运
-  入库:支持形式是在用户机器上 fetch 时转换,从官方精选的 10 题
-  `v1-lite` 子集做起
-- [ ] [SOL-ExecBench](https://github.com/nvidia/sol-execbench) 支持——235 个真实 CUDA kernel,对照硬件
-  Speed-of-Light 理论极限打分(固定靶标,计时不再依赖相对基线)。
-  Apache-2.0,任务可全量搬运入库;验证需要 NVIDIA Blackwell GPU
-- [ ] 把 EdgeBench 转换重新生成到 judge 协议上
-- [ ] 托管的结果查看器
-- [ ] autoresearch 之外:持续学习任务流与在线任务——以
-  [扩展](docs/introduction/design.md#extensibility)的形式落地,而不是重写
 
 ## 贡献
 

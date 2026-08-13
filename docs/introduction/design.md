@@ -143,7 +143,7 @@ points are structural rather than speculative:
 This is how continual-learning task streams and live infinite-horizon
 tasks would land: as additions around the same store, not rewrites of
 it. What is actually on deck lives in the
-[README's roadmap](../../README.md#roadmap).
+[roadmap issue](https://github.com/Human-Agent-Society/tide-eval/issues/19).
 
 ## Design rules
 
