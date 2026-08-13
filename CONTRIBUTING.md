@@ -27,8 +27,8 @@ reviewed against a short list of design rules more than against style.
 7. **The two READMEs move together.** A PR that changes `README.md` updates
    `README_CN.md` in the same commit.
 8. **Unbuilt work lives in the roadmap.** Docs state what exists; where a
-   gap must be mentioned, link the README roadmap item instead of writing
-   "not built yet" in place.
+   gap must be mentioned, link the [roadmap issue](https://github.com/Human-Agent-Society/tide-eval/issues/19)
+   instead of writing "not built yet" in place.
 
 ## What's welcome
 
