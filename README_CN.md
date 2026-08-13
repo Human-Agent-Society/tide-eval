@@ -173,7 +173,13 @@ pytest tests/test_task_suite.py          # 自动被识别——而且直接是�
 - [ ] autoresearch 之外:持续学习任务流与在线任务——以
   [扩展](docs/introduction/design.md#extensibility)的形式落地,而不是重写
 
-## 开发与贡献
+## 贡献
+
+最受欢迎的贡献是新任务:复制模板、逐个替换 `TODO(task)` 标记,测试套件
+会自动完成任务校验——见上文[定义新任务](#定义新任务)和指南
+**[docs/guides/authoring-tasks.md](docs/guides/authoring-tasks.md)**。
+
+benchmark 转换器、指标和运行时的改动,从源码 checkout 开发:
 
 ```bash
 git clone https://github.com/Human-Agent-Society/tide-eval && cd tide-eval
@@ -182,5 +188,4 @@ uv venv --python 3.12 && uv pip install -e . pytest pytest-asyncio ruff
 .venv/bin/ruff check . && .venv/bin/ruff format --check .
 ```
 
-欢迎贡献——尤其欢迎新任务。PR 遵循的设计规则见
-[CONTRIBUTING.md](CONTRIBUTING.md)。许可证:[Apache-2.0](LICENSE)
+PR 遵循的设计规则见 [CONTRIBUTING.md](CONTRIBUTING.md)。
