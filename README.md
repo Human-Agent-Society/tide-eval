@@ -207,7 +207,14 @@ config. Guide: **[docs/guides/authoring-tasks.md](docs/guides/authoring-tasks.md
 - [ ] Beyond autoresearch: continual-learning streams and live tasks — as
   [extensions](docs/introduction/design.md#extensibility), not rewrites
 
-## Development & contributing
+## Contributing
+
+New tasks are the most welcome contribution: copy the template, work the
+`TODO(task)` markers, and the suite validates the task for you — see
+[define a new task](#define-a-new-task) above and the guide
+**[docs/guides/authoring-tasks.md](docs/guides/authoring-tasks.md)**.
+
+For benchmark converters, metrics, and runtime work, use a dev checkout:
 
 ```bash
 git clone https://github.com/Human-Agent-Society/tide-eval && cd tide-eval
@@ -216,6 +223,5 @@ uv venv --python 3.12 && uv pip install -e . pytest pytest-asyncio ruff
 .venv/bin/ruff check . && .venv/bin/ruff format --check .
 ```
 
-Contributions are welcome — new tasks especially. The design rules PRs
-are reviewed against are in [CONTRIBUTING.md](CONTRIBUTING.md).
-License: [Apache-2.0](LICENSE)
+PRs are reviewed against the design rules in
+[CONTRIBUTING.md](CONTRIBUTING.md).
