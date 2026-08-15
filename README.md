@@ -8,27 +8,32 @@
 
 **English** | [中文](README_CN.md)
 
-tide evaluates agents that improve — two regimes on one substrate:
+tide evaluates agents that get better with experience, in two modes.
 
-- **Autoresearch** — the kind of work DeepMind's
-  [AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/)
-  and [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) do:
-  open-ended optimization problems with hours of budget, a continuous
-  score, and an agent iterating toward a better solution the whole way.
-  There is no "passed" — only *how good, by when*.
-- **Continual learning** — a [stream](docs/api/streams.md) of tasks
-  (the [AgentStream](https://arxiv.org/abs/2608.00155) setting;
-  terminal-bench-style pass/fail Harbor tasks run as-is) under one agent
-  that carries its memory from episode to episode. There is no single
-  score — only *does experience accumulate*.
-
-The first is learning *within* a task, measured by the anytime curve of
-judge-scored submissions; the second is learning *across* tasks, measured
-by the learning curve over stream positions. tide evaluates both honestly:
+**Autoresearch** — the kind of work DeepMind's
+[AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/)
+and [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) do:
+open-ended optimization problems with hours of budget, a continuous
+score, and an agent working toward a better solution the whole way.
+There is no "passed" — only *how good, by when*. The learning happens
+**inside one task**:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-hero-dark.svg">
   <img src="docs/assets/readme-hero-light.svg" alt="The agent searches however it likes and submits what is worth scoring, within a submission limit. The judge holds all scoring code and data and scores every submission into a log. An optional final judge with hidden tests runs once on the best submission and locks the session. The reward and the submission log land in one table shared by every run, where agents can be compared." width="100%">
+</picture>
+
+**Continual learning** — one agent works through a
+[stream](docs/api/streams.md) of tasks in order (the
+[AgentStream](https://arxiv.org/abs/2608.00155) setting;
+terminal-bench-style pass/fail Harbor tasks work as they are), carrying
+its memory from task to task. What matters is not the score on any one
+task — it is *whether experience adds up*. The learning happens
+**across tasks**:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-stream-dark.svg">
+  <img src="docs/assets/readme-stream-light.svg" alt="One agent works through a stream of tasks in order. Each task runs in its own fresh container and is scored on its own, but the agent's memory directory is carried from task to task, with a snapshot kept at every step. Every task's reward lands in the same table as every other run, so the learning curve over the stream is a single query." width="100%">
 </picture>
 
 Tasks are 100% stock Harbor tasks (enforced by test). Agents are anything
@@ -38,13 +43,13 @@ that can work inside a container — including your own harness or method.
 
 Harbor solves the hard infrastructure — the task format, running agents
 against containers, the ecosystem of agent adapters — and tide uses it as
-a library for exactly that. These two regimes need five things on top,
-and they are the reason tide exists:
+a library for exactly that. Both modes need five things on top, and they
+are the reason tide exists:
 
 | What you want | Plain Harbor | tide |
 |---|---|---|
 | **The whole score trajectory, not just the endpoint** | One reward number per trial; how the agent got there is lost | The judge records every submission, so the anytime curve, its AUC, and time-to-threshold are one query each — and every point is trusted |
-| **Learning across tasks, not only within one** | Every trial starts from zero | A [`Stream`](docs/api/streams.md) carries the agent's state directory across episodes and snapshots it per position — learning curves, transfer, and forgetting are queries |
+| **Learning across tasks, not only within one** | Every trial starts from zero | A [`Stream`](docs/api/streams.md) carries the agent's memory (a state directory) from task to task, with a snapshot at every step — learning curves, transfer, and forgetting are queries |
 | **Compare across budgets** ("what does 8 h buy over 2 h?") | Statistics live inside a single job (pass@k) | Budget is an ordinary tag, so scaling curves are a pivot over any set of runs |
 | **Resume from failure on long, multi-day sweeps** | A crash throws the whole job away; covering a suite × variance × budgets is days of compute to lose | Re-run the same script and finished episodes are skipped — only the unfinished work re-runs |
 | **Compare agents across many runs** | Each run is a throwaway job directory | Every run lands in one table, so comparing agents is a single query — `tide report` reads it |
@@ -72,7 +77,7 @@ tide list                                # what's runnable
 tide run autoresearch --agent oracle     # oracle = built-in agent that runs each task's reference solution
 tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2h     # time (2h / 30m / 90s; bare = hours)
 tide run autoresearch/tsp-tour --agent codex --model openai/gpt-5 --max-tokens 500k                # or: tokens / --max-evals / --max-cost
-tide stream week1 autoresearch --agent claude-code --model anthropic/claude-opus-5 --budget 30m    # continual: state carried across tasks
+tide stream week1 autoresearch --agent claude-code --model anthropic/claude-opus-5 --budget 30m    # continual learning: memory carried across tasks
 tide report                              # summarize the results store
 ```
 
@@ -149,10 +154,10 @@ Re-running any script resumes it. Reference:
 
 ### Continual learning: task streams
 
-A `Stream` runs an ordered task list under one agent, bind-mounting a
-state directory (`$TIDE_STATE_DIR`) into every episode's container — the
-agent's memory, skill library, or evolved harness rides along, and
-whether that helps is the measurement:
+A `Stream` runs an ordered task list under one agent. Every task's
+container gets the same state directory mounted in (`$TIDE_STATE_DIR`),
+so the agent's memory, skill library, or evolved harness rides along from
+task to task — and whether that helps is exactly what gets measured:
 
 ```python
 from tide import Lab, Stream, metrics
@@ -170,13 +175,13 @@ metrics.forgetting(df)  # did the revisited task degrade?
 metrics.transfer(df, baseline_df)  # vs the same tasks run isolated (plain lab.run)
 ```
 
-Each position is one ordinary Harbor trial in its own container; the state
-is reset from the previous position's snapshot before every episode and
-snapshotted after it, so crashes resume honestly and every episode's input
-is auditable. Appending tasks extends a finished stream; editing earlier
-positions re-runs what followed. Pass/fail benchmarks (terminal-bench-style)
-work unchanged — a pass is a 0-or-1 reward in the same table. Full
-semantics: **[docs/api/streams.md](docs/api/streams.md)**.
+Every task in the stream is an ordinary Harbor trial in its own
+container. Before each one, the memory is reset to the snapshot from the
+previous step; after it, a new snapshot is kept — so a crashed stream
+picks up where it left off, and what the agent knew at every step can be
+checked later. Adding tasks to the end continues a finished stream;
+changing an earlier task re-runs everything after it. Full details:
+**[docs/api/streams.md](docs/api/streams.md)**.
 
 ### Evaluate your own agent
 
@@ -196,7 +201,9 @@ the suite. The only thing you cannot bring is your own judge. Full guide
 with the `BaseAgent` skeleton and the OpenEvolve pattern:
 **[docs/guides/integration.md](docs/guides/integration.md)**.
 
-## Tasks
+## Benchmarks
+
+### Autoresearch
 
 | Benchmark | Tasks | Upstream | Run |
 |---|---|---|---|
@@ -207,7 +214,21 @@ with the `BaseAgent` skeleton and the OpenEvolve pattern:
 The next converters, vetted for autoresearch fit, are tracked in the
 [roadmap](https://github.com/Human-Agent-Society/tide-eval/issues/19).
 
-Each first-party task teaches one hard part of the category
+### Continual learning
+
+A stream takes any ordered list of Harbor tasks, so nothing needs
+converting — pass/fail benchmarks work as they are, and every catalog
+above can also be run as a stream:
+
+| Stream of | Where the tasks come from | Run |
+|---|---|---|
+| [terminal-bench](https://github.com/laude-institute/terminal-bench) and other pass/fail benchmarks | Harbor registry ids, used as-is | `tide stream week1 <task-id> … --agent <a>` |
+| any catalog above (6 + 51 + 208 tasks) | this repo | `tide stream week1 autoresearch --agent <a>` |
+| your own mix, repeats allowed (that's how forgetting is measured) | task dirs and registry ids together | `Stream("week1", [...])` — see [streams](docs/api/streams.md) |
+
+### What each first-party task teaches
+
+Each first-party task teaches one hard part of the autoresearch category
 (oracle-verified in real containers, cheat cases re-tested in CI):
 
 | Task | Teaches |

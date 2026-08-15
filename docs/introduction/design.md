@@ -115,7 +115,7 @@ Every row's `uri` points at the Harbor trial directory that produced it —
 logs, the judge's submission log, the verifier's output — so any number in any
 table can be audited back to its evidence.
 
-## The second regime: task streams
+## The second mode: task streams
 
 Autoresearch measures learning *within* one episode. A
 [**stream**](../api/streams.md) measures it *across* episodes: an ordered
@@ -134,7 +134,7 @@ skill library, an evolved harness. Whether carrying that state helps is
 the measurement — the learning curve over positions, transfer against the
 isolated control arm, forgetting on revisited tasks.
 
-Three decisions carry the regime:
+Three decisions carry the mode:
 
 - **Deterministic starting state.** Before an episode runs, the live state
   directory is reset from the previous position's snapshot; after it runs,

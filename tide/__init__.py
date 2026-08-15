@@ -8,7 +8,7 @@ One primitive:
   agent gave itself along the way (its score log) are recorded as untrusted
   ``trace`` rows next to the trusted one.
 
-Two regimes over it:
+Two modes over it:
 
 - **autoresearch** — one open-ended episode, measured *within*: the anytime
   curve of judge-scored submissions;
