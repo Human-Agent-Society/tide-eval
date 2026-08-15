@@ -4,6 +4,7 @@
     tide run tasks/autoresearch/circle-packing --agent oracle
     tide run autoresearch --agent claude-code --model anthropic/claude-opus-5
     tide run edgebench/ann_vector_search_qps --agent codex --budget 2
+    tide stream week1 autoresearch --agent claude-code  # continual: carried state
     tide report                                         # summarize the results store
 
 Targets resolve in order: an explicit task directory → every task inside a
@@ -218,6 +219,52 @@ def cmd_run(args: argparse.Namespace) -> int:
     return 1 if failures else 0
 
 
+def cmd_stream(args: argparse.Namespace) -> int:
+    if args.local and not args.command:
+        raise SystemExit(
+            "--local runs your own command: add --command '<shell command>'"
+        )
+    if args.command and not args.local:
+        raise SystemExit("--command only works with --local")
+    if args.local:
+        args.agent = args.agent or "local-command"
+    elif not args.agent:
+        raise SystemExit("--agent is required (or use --local with --command)")
+
+    tasks_root = _find_tasks_root(args.tasks_dir)
+    targets = resolve_targets(args.targets, tasks_root)
+    agent = _build_agent(args)
+    if args.command:
+        agent["command"] = args.command
+    tags = _parse_tags(args.tag)
+    budget = _build_budget(args)
+
+    from tide import Stream
+
+    stream = Stream(args.name, targets)
+    lab = _make_lab(args)
+    print(
+        f"stream '{args.name}': {len(targets)} task(s) in order, "
+        f"agent '{args.agent}', state carried between episodes -> {args.lab}"
+    )
+    print(f"state: {stream.state_root(lab, agent, tags=tags, budget=budget)}")
+    rows = asyncio.run(stream.run(lab, agent, tags=tags, budget=budget))
+
+    failures = 0
+    for row in rows:
+        reward = row.rewards.get("reward")
+        error = row.tags.get("error")
+        marker = "OK " if reward is not None and not error else "ERR"
+        if marker == "ERR":
+            failures += 1
+        name = row.task.rstrip("/").split("/")[-1]
+        print(
+            f"  {marker} [{row.tags.get('position'):>3}] {name}: {row.rewards or error}"
+        )
+    print(f"\nresults stored in {args.lab} — `tide report --lab {args.lab}`")
+    return 1 if failures else 0
+
+
 def cmd_report(args: argparse.Namespace) -> int:
     from tide import Lab
 
@@ -269,71 +316,85 @@ def main(argv: list[str] | None = None) -> int:
     p_list = sub.add_parser("list", help="list runnable tasks")
     p_list.set_defaults(func=cmd_list)
 
+    def add_shared_flags(p: argparse.ArgumentParser) -> None:
+        p.add_argument(
+            "--agent",
+            default=None,
+            help="Harbor agent name (e.g. oracle, claude-code)",
+        )
+        p.add_argument("--model", default=None, help="model name for the agent")
+        p.add_argument(
+            "--budget",
+            default=None,
+            metavar="DURATION",
+            help="time budget: 2h / 30m / 90s (a bare number = hours). "
+            "HARD: sets the container timeout",
+        )
+        p.add_argument(
+            "--max-evals",
+            type=int,
+            default=None,
+            metavar="N",
+            help="submission/eval budget (agent signal; judge caps at the "
+            "task's own limit)",
+        )
+        p.add_argument(
+            "--max-tokens",
+            default=None,
+            metavar="N",
+            help="token budget, e.g. 500k or 2m (soft: signalled to the agent, "
+            "actuals recorded)",
+        )
+        p.add_argument(
+            "--max-cost",
+            type=float,
+            default=None,
+            metavar="USD",
+            help="cost budget in USD (soft: signalled to the agent, actuals recorded)",
+        )
+        p.add_argument("--lab", default="runs/cli", help="results directory")
+        p.add_argument(
+            "--tag", action="append", metavar="K=V", help="extra tags (repeatable)"
+        )
+        p.add_argument(
+            "--agent-arg",
+            action="append",
+            metavar="K=V",
+            help="extra AgentConfig fields (repeatable)",
+        )
+        p.add_argument(
+            "--fake",
+            action="store_true",
+            help="use the offline fake executor (no Docker; smoke tests)",
+        )
+        p.add_argument(
+            "--local",
+            action="store_true",
+            help="run --command on this machine against the real scorer and grader"
+            " (no Docker; scores are not isolation-backed)",
+        )
+        p.add_argument(
+            "--command",
+            default=None,
+            metavar="CMD",
+            help="the shell command --local runs; it reads $JUDGE_URL and $BUDGET_SEC",
+        )
+
     p_run = sub.add_parser("run", help="run tasks/folders/registry ids")
     p_run.add_argument("targets", nargs="+")
-    p_run.add_argument(
-        "--agent",
-        default=None,
-        help="Harbor agent name (e.g. oracle, claude-code)",
-    )
-    p_run.add_argument("--model", default=None, help="model name for the agent")
-    p_run.add_argument(
-        "--budget",
-        default=None,
-        metavar="DURATION",
-        help="time budget: 2h / 30m / 90s (a bare number = hours). "
-        "HARD: sets the container timeout",
-    )
-    p_run.add_argument(
-        "--max-evals",
-        type=int,
-        default=None,
-        metavar="N",
-        help="submission/eval budget (agent signal; judge caps at the task's own limit)",
-    )
-    p_run.add_argument(
-        "--max-tokens",
-        default=None,
-        metavar="N",
-        help="token budget, e.g. 500k or 2m (soft: signalled to the agent, actuals recorded)",
-    )
-    p_run.add_argument(
-        "--max-cost",
-        type=float,
-        default=None,
-        metavar="USD",
-        help="cost budget in USD (soft: signalled to the agent, actuals recorded)",
-    )
+    add_shared_flags(p_run)
     p_run.add_argument("--attempts", "-n", type=int, default=1)
     p_run.add_argument("--concurrent", type=int, default=4)
-    p_run.add_argument("--lab", default="runs/cli", help="results directory")
-    p_run.add_argument(
-        "--tag", action="append", metavar="K=V", help="extra tags (repeatable)"
-    )
-    p_run.add_argument(
-        "--agent-arg",
-        action="append",
-        metavar="K=V",
-        help="extra AgentConfig fields (repeatable)",
-    )
-    p_run.add_argument(
-        "--fake",
-        action="store_true",
-        help="use the offline fake executor (no Docker; smoke tests)",
-    )
-    p_run.add_argument(
-        "--local",
-        action="store_true",
-        help="run --command on this machine against the real scorer and grader"
-        " (no Docker; scores are not isolation-backed)",
-    )
-    p_run.add_argument(
-        "--command",
-        default=None,
-        metavar="CMD",
-        help="the shell command --local runs; it reads $JUDGE_URL and $BUDGET_SEC",
-    )
     p_run.set_defaults(func=cmd_run)
+
+    p_stream = sub.add_parser(
+        "stream",
+        help="run tasks as one continual-learning stream (carried agent state)",
+    )
+    p_stream.add_argument("name", help="stream name — part of every episode's key")
+    p_stream.add_argument("targets", nargs="+")
+    add_shared_flags(p_stream)
+    p_stream.set_defaults(func=cmd_stream, concurrent=1)
 
     p_report = sub.add_parser("report", help="summarize a results store")
     p_report.add_argument("--lab", default="runs/cli")

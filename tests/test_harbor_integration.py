@@ -34,6 +34,29 @@ def test_trial_config_assembly_matches_executor():
     assert config.verifier.disable is True
 
 
+def test_state_mount_maps_onto_trial_config():
+    """A stream's state_dir override must assemble into valid Harbor config:
+    a bind mount on the main service plus TIDE_STATE_DIR on both sides."""
+    from harbor.models.trial.config import TaskConfig, TrialConfig
+
+    from tide.executors import STATE_TARGET, apply_state_mount
+
+    agent, overrides = apply_state_mount({"name": "nop"}, {}, "/host/streams/s1/state")
+    config = TrialConfig.model_validate(
+        {
+            "task": TaskConfig.model_validate({"name": "org/some-task"}).model_dump(),
+            "trials_dir": "trials",
+            "agent": agent,
+            **overrides,
+        }
+    )
+    assert config.environment.mounts == [
+        {"type": "bind", "source": "/host/streams/s1/state", "target": STATE_TARGET}
+    ]
+    assert config.environment.env["TIDE_STATE_DIR"] == STATE_TARGET
+    assert config.agent.env["TIDE_STATE_DIR"] == STATE_TARGET
+
+
 def test_exemplar_task_is_valid_stock_harbor(request):
     """The shipped autoresearch exemplar must parse under Harbor's TaskConfig
     schema — the 'tasks stay 100% stock harbor' promise, enforced."""

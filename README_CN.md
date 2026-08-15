@@ -4,15 +4,25 @@
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
 
-**基于 [Harbor](https://github.com/laude-institute/harbor) 任务标准的 autoresearch 评测框架。**
+**基于 [Harbor](https://github.com/laude-institute/harbor) 任务标准的 autoresearch 与 continual learning 评测框架。**
 
 [English](README.md) | **中文**
 
-Autoresearch 任务——DeepMind 的
-[AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/)
-和 [Karpathy 的 autoresearch](https://github.com/karpathy/autoresearch) 做的就是这类工作——是开放式优化
-问题:数小时的预算、连续的分数、一个持续迭代逼近更优解的 agent。这里没有
-"通过/不通过",只有*多好、多快*。tide 把这种形态的评测做扎实:
+tide 评测的是"会进步的 agent"——同一套底座上的两种形态:
+
+- **Autoresearch**——DeepMind 的
+  [AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/)
+  和 [Karpathy 的 autoresearch](https://github.com/karpathy/autoresearch)
+  做的就是这类工作:开放式优化问题,数小时的预算、连续的分数、一个持续
+  迭代逼近更优解的 agent。这里没有"通过/不通过",只有*多好、多快*。
+- **Continual learning**——一条任务[流](docs/api/streams.md)
+  ([AgentStream](https://arxiv.org/abs/2608.00155) 的设定;
+  terminal-bench 那类通过/不通过的 Harbor 任务原样可用),同一个 agent
+  带着自己的记忆从一个 episode 走到下一个。这里没有单一分数,只有
+  *经验有没有积累起来*。
+
+前者是任务*内*的学习,量的是 judge 逐次打分的 anytime 曲线;后者是任务
+*间*的学习,量的是沿任务流位置的学习曲线。两种形态 tide 都把评测做扎实:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-hero-dark.svg">
@@ -25,12 +35,13 @@ Autoresearch 任务——DeepMind 的
 ## 为什么不直接用 Harbor?
 
 Harbor 解决的是最难的基础设施——任务格式、让 agent 对着容器运行、现成的
-agent 适配器生态——tide 正是把它当库来用。而 autoresearch 在此之上还需要四
+agent 适配器生态——tide 正是把它当库来用。而这两种形态在此之上还需要五
 样东西,它们就是 tide 存在的理由:
 
 | 直接用 Harbor | tide |
 |---|---|
 | 每次 trial 只有一个 reward 数字,过程信息丢了 | judge 给每次提交打分并记录在案:anytime 曲线、AUC、到达阈值的时间各是一个查询,而且每个点都可信 |
+| 每次 trial 都从零开始 | [`Stream`](docs/api/streams.md) 把 agent 的状态目录带过一个个 episode,并按位置快照——学习曲线、迁移、遗忘各是一个查询 |
 | 统计只在单个 job 内部(pass@k) | 预算是普通标签,"8 小时比 2 小时多买到多少分"是跨任意 run 集合的一个查询 |
 | 一个任务一次运行——而覆盖全套件、重复取方差、扫预算档会把它放大成几天的机器时间,一次崩溃全部报废 | 重跑同一个脚本,已完成的 episode 自动跳过,只有没跑完的部分重新执行 |
 | 每次运行是一个一次性 job 目录 | 所有运行落进同一张表,跨运行比较不同 agent 只是一个查询,`tide report` 直接读 |
@@ -52,7 +63,8 @@ pip install -e ".[harbor]"               # 容器模式需要;仅 --local 和 AP
 
 tide list                                # 有哪些任务可跑
 tide run autoresearch --agent oracle     # oracle = 内置 agent,运行每个任务的参考解
-tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2   # 小时
+tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2h  # 时间(2h / 30m / 90s;裸数字 = 小时)
+tide stream week1 autoresearch --agent claude-code --model anthropic/claude-opus-5 --budget 30m # continual:状态跨任务传递
 tide report                              # 汇总结果库
 ```
 
@@ -102,8 +114,37 @@ metrics.scaling(lab.df("episode"))  # 更多预算买到多少分?
 ```
 
 重跑任何脚本都会自动续跑。参考:
-[lab](docs/api/lab.md) · [metrics](docs/api/metrics.md) ·
-[executors](docs/api/executors.md)。
+[lab](docs/api/lab.md) · [streams](docs/api/streams.md) ·
+[metrics](docs/api/metrics.md) · [executors](docs/api/executors.md)。
+
+### Continual learning:任务流
+
+`Stream` 让同一个 agent 按顺序跑一列任务,每个 episode 的容器里都
+bind-mount 同一个状态目录(`$TIDE_STATE_DIR`)——agent 的记忆、技能库、
+自我演化出的 harness 随流携带,而"带着它到底有没有用"正是被测的东西:
+
+```python
+from tide import Lab, Stream, metrics
+
+lab = Lab("runs/cl")
+stream = Stream(
+    "week1",  # 有序任务列表;任务目录或 Harbor registry id,允许重复出现
+    ["tasks/autoresearch/tsp-tour", "tasks/autoresearch/bin-packing", "tasks/autoresearch/tsp-tour"],
+)
+rows = await stream.run(lab, agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"}, budget="30m")
+
+df = lab.df("episode")
+metrics.learning_curve(df, by=["stream"])  # 经验积累起来了吗?
+metrics.forgetting(df)  # 重访的任务退步了吗?
+metrics.transfer(df, baseline_df)  # 对比同一批任务的孤立运行(普通 lab.run)
+```
+
+每个位置就是一次普通的 Harbor trial、一个独立容器;每个 episode 开始前
+状态从上一位置的快照重置、结束后再快照,所以崩溃后续跑是诚实的,每个
+episode 的输入都可审计。在末尾追加任务是继续一条已跑完的流;修改中间的
+任务会让其后的位置重测。通过/不通过类 benchmark(terminal-bench 一类)
+原样可用——"通过"就是同一张表里的 0/1 reward。完整语义:
+**[docs/api/streams.md](docs/api/streams.md)**(英文)。
 
 ### 接入你自己的 agent
 

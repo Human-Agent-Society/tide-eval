@@ -4,16 +4,27 @@
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
 
-**Autoresearch evaluation on the [Harbor](https://github.com/laude-institute/harbor) task standard.**
+**Autoresearch and continual-learning evaluation on the [Harbor](https://github.com/laude-institute/harbor) task standard.**
 
 **English** | [中文](README_CN.md)
 
-Autoresearch tasks — the kind of work DeepMind's
-[AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/)
-and [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) do — are open-ended optimization
-problems: hours of budget, a continuous score, and an agent iterating
-toward a better solution the whole way. There is no "passed" — only *how
-good, by when*. tide evaluates that regime honestly:
+tide evaluates agents that improve — two regimes on one substrate:
+
+- **Autoresearch** — the kind of work DeepMind's
+  [AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/)
+  and [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) do:
+  open-ended optimization problems with hours of budget, a continuous
+  score, and an agent iterating toward a better solution the whole way.
+  There is no "passed" — only *how good, by when*.
+- **Continual learning** — a [stream](docs/api/streams.md) of tasks
+  (the [AgentStream](https://arxiv.org/abs/2608.00155) setting;
+  terminal-bench-style pass/fail Harbor tasks run as-is) under one agent
+  that carries its memory from episode to episode. There is no single
+  score — only *does experience accumulate*.
+
+The first is learning *within* a task, measured by the anytime curve of
+judge-scored submissions; the second is learning *across* tasks, measured
+by the learning curve over stream positions. tide evaluates both honestly:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-hero-dark.svg">
@@ -27,12 +38,13 @@ that can work inside a container — including your own harness or method.
 
 Harbor solves the hard infrastructure — the task format, running agents
 against containers, the ecosystem of agent adapters — and tide uses it as
-a library for exactly that. Autoresearch needs four things on top, and
-they are the reason tide exists:
+a library for exactly that. These two regimes need five things on top,
+and they are the reason tide exists:
 
 | What you want | Plain Harbor | tide |
 |---|---|---|
 | **The whole score trajectory, not just the endpoint** | One reward number per trial; how the agent got there is lost | The judge records every submission, so the anytime curve, its AUC, and time-to-threshold are one query each — and every point is trusted |
+| **Learning across tasks, not only within one** | Every trial starts from zero | A [`Stream`](docs/api/streams.md) carries the agent's state directory across episodes and snapshots it per position — learning curves, transfer, and forgetting are queries |
 | **Compare across budgets** ("what does 8 h buy over 2 h?") | Statistics live inside a single job (pass@k) | Budget is an ordinary tag, so scaling curves are a pivot over any set of runs |
 | **Resume from failure on long, multi-day sweeps** | A crash throws the whole job away; covering a suite × variance × budgets is days of compute to lose | Re-run the same script and finished episodes are skipped — only the unfinished work re-runs |
 | **Compare agents across many runs** | Each run is a throwaway job directory | Every run lands in one table, so comparing agents is a single query — `tide report` reads it |
@@ -60,6 +72,7 @@ tide list                                # what's runnable
 tide run autoresearch --agent oracle     # oracle = built-in agent that runs each task's reference solution
 tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2h     # time (2h / 30m / 90s; bare = hours)
 tide run autoresearch/tsp-tour --agent codex --model openai/gpt-5 --max-tokens 500k                # or: tokens / --max-evals / --max-cost
+tide stream week1 autoresearch --agent claude-code --model anthropic/claude-opus-5 --budget 30m    # continual: state carried across tasks
 tide report                              # summarize the results store
 ```
 
@@ -130,8 +143,40 @@ metrics.efficiency(
 ```
 
 Re-running any script resumes it. Reference:
-[lab](docs/api/lab.md) · [budget](docs/api/budget.md) ·
-[metrics](docs/api/metrics.md) · [executors](docs/api/executors.md).
+[lab](docs/api/lab.md) · [streams](docs/api/streams.md) ·
+[budget](docs/api/budget.md) · [metrics](docs/api/metrics.md) ·
+[executors](docs/api/executors.md).
+
+### Continual learning: task streams
+
+A `Stream` runs an ordered task list under one agent, bind-mounting a
+state directory (`$TIDE_STATE_DIR`) into every episode's container — the
+agent's memory, skill library, or evolved harness rides along, and
+whether that helps is the measurement:
+
+```python
+from tide import Lab, Stream, metrics
+
+lab = Lab("runs/cl")
+stream = Stream(
+    "week1",  # ordered tasks; task dirs or Harbor registry ids, repeats allowed
+    ["tasks/autoresearch/tsp-tour", "tasks/autoresearch/bin-packing", "tasks/autoresearch/tsp-tour"],
+)
+rows = await stream.run(lab, agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"}, budget="30m")
+
+df = lab.df("episode")
+metrics.learning_curve(df, by=["stream"])  # does experience accumulate?
+metrics.forgetting(df)  # did the revisited task degrade?
+metrics.transfer(df, baseline_df)  # vs the same tasks run isolated (plain lab.run)
+```
+
+Each position is one ordinary Harbor trial in its own container; the state
+is reset from the previous position's snapshot before every episode and
+snapshotted after it, so crashes resume honestly and every episode's input
+is auditable. Appending tasks extends a finished stream; editing earlier
+positions re-runs what followed. Pass/fail benchmarks (terminal-bench-style)
+work unchanged — a pass is a 0-or-1 reward in the same table. Full
+semantics: **[docs/api/streams.md](docs/api/streams.md)**.
 
 ### Evaluate your own agent
 

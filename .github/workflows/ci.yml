@@ -28,6 +28,7 @@ jobs:
         run: |
           uv run tide list
           uv run tide run autoresearch --agent oracle --fake --lab runs/ci-smoke
+          uv run tide stream ci-week autoresearch --agent oracle --fake --lab runs/ci-smoke
           uv run tide report --lab runs/ci-smoke
       - name: Local mode (real scoring, no Docker)
         run: |

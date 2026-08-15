@@ -83,6 +83,47 @@ def test_improvements_grouped():
     assert out.loc["b", "improvement_rate"] == pytest.approx(1 / 3)
 
 
+def test_learning_curve_cum_and_rolling_mean():
+    df = pd.DataFrame(
+        {
+            "stream": ["s", "s", "s", "t", "t"],
+            "position": [0, 1, 2, 0, 1],
+            "reward": [0.0, 1.0, 1.0, 1.0, 0.0],
+        }
+    )
+    out = metrics.learning_curve(df, by=["stream"], window=2)
+    s = out[out.stream == "s"]
+    assert s["cum_mean"].tolist() == pytest.approx([0.0, 0.5, 2 / 3])
+    assert s["rolling_mean"].tolist() == pytest.approx([0.0, 0.5, 1.0])
+    assert out[out.stream == "t"]["cum_mean"].tolist() == pytest.approx([1.0, 0.5])
+
+
+def test_transfer_against_isolated_baseline():
+    stream = pd.DataFrame({"task": ["a", "b", "c"], "reward": [0.8, 0.4, 0.5]})
+    isolated = pd.DataFrame(
+        {"task": ["a", "a", "b"], "reward": [0.5, 0.7, 0.4]}  # no baseline for c
+    )
+    out = metrics.transfer(stream, isolated).set_index("task")
+    assert out.loc["a", "transfer"] == pytest.approx(0.2)  # 0.8 - mean(0.5, 0.7)
+    assert out.loc["b", "transfer"] == pytest.approx(0.0)
+    assert pd.isna(out.loc["c", "transfer"])
+
+
+def test_forgetting_on_revisits():
+    df = pd.DataFrame(
+        {
+            "task": ["a", "b", "a", "b", "c"],
+            "position": [0, 1, 2, 3, 4],
+            "reward": [0.9, 0.3, 0.6, 0.8, 1.0],  # a degraded, b improved
+        }
+    )
+    out = metrics.forgetting(df).set_index("task")
+    assert out.loc["a", "forgetting"] == pytest.approx(0.3)
+    assert out.loc["b", "forgetting"] == pytest.approx(-0.5)
+    assert "c" not in out.index  # visited once — excluded
+    assert (out.loc["a", "first"], out.loc["a", "last"]) == (0, 2)
+
+
 def test_rescale_linear_and_anchored():
     s = pd.Series([0.0, 5.0, 10.0, 15.0])
     lin = metrics.rescale_linear(s, lo=0, hi=10)

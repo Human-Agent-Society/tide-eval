@@ -11,6 +11,13 @@ anything else later.
   local process, no containers.
 - :class:`FakeExecutor` — deterministic, instant, dependency-free. Used by
   the test suite and the quickstart demo.
+
+Executors recognize one tide-level override, ``state_dir`` — a host
+directory a :class:`tide.stream.Stream` carries across episodes. Harbor
+bind-mounts it into the agent's container at :data:`STATE_TARGET` and
+points ``$TIDE_STATE_DIR`` there; ``--local`` hands the host path itself.
+The state never reaches the judge or verifier, so it extends what the
+agent remembers, not what anyone trusts.
 """
 
 from __future__ import annotations
@@ -37,6 +44,30 @@ class Executor(Protocol):
     async def execute(self, spec: EpisodeSpec) -> EpisodeResult: ...
 
 
+STATE_TARGET = "/tide/state"
+"""Where a stream's state directory appears inside the agent's container."""
+
+
+def apply_state_mount(
+    agent: dict[str, Any], overrides: dict[str, Any], state_dir: str
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Map a stream's host state directory onto Harbor trial config.
+
+    Bind-mounts *state_dir* into the agent's container (compose ``main``
+    service) at :data:`STATE_TARGET` and points ``$TIDE_STATE_DIR`` there —
+    delivered both at container startup and through the agent adapter,
+    mirroring how budget signals are delivered. Existing mounts and env are
+    preserved; explicit values win over the injected ones.
+    """
+    mount = {"type": "bind", "source": state_dir, "target": STATE_TARGET}
+    env_cfg = dict(overrides.get("environment") or {})
+    env_cfg["mounts"] = [*(env_cfg.get("mounts") or []), mount]
+    env_cfg["env"] = {"TIDE_STATE_DIR": STATE_TARGET, **(env_cfg.get("env") or {})}
+    agent = dict(agent)
+    agent["env"] = {"TIDE_STATE_DIR": STATE_TARGET, **agent.get("env", {})}
+    return agent, {**overrides, "environment": env_cfg}
+
+
 class HarborExecutor:
     """Runs episodes as Harbor trials.
 
@@ -60,12 +91,16 @@ class HarborExecutor:
             if Path(spec.task).exists()
             else {"name": spec.task}
         )
+        agent, overrides = dict(spec.agent), dict(spec.overrides)
+        if state_dir := overrides.pop("state_dir", None):
+            Path(state_dir).mkdir(parents=True, exist_ok=True)
+            agent, overrides = apply_state_mount(agent, overrides, str(state_dir))
         config = TrialConfig.model_validate(
             {
                 "task": TaskConfig.model_validate(task_field).model_dump(),
                 "trials_dir": self.trials_dir,
-                "agent": dict(spec.agent),
-                **spec.overrides,
+                "agent": agent,
+                **overrides,
             }
         )
 
@@ -161,6 +196,11 @@ class LocalExecutor:
             config = tomllib.loads((task_dir / "task.toml").read_text())
             budget = config.get("agent", {}).get("timeout_sec", 600.0)
 
+        state_env: dict[str, str] = {}
+        if state_dir := spec.overrides.get("state_dir"):
+            Path(state_dir).mkdir(parents=True, exist_ok=True)
+            state_env["TIDE_STATE_DIR"] = str(state_dir)
+
         workdir = Path(tempfile.mkdtemp(prefix=f"{task_dir.name}-", dir=self.root))
         port = _free_port()
         judge = subprocess.Popen(
@@ -188,6 +228,7 @@ class LocalExecutor:
                         **os.environ,
                         "JUDGE_URL": judge_url,
                         "BUDGET_SEC": str(budget),
+                        **state_env,  # a stream's carried state, if any
                         # Budget signals (TIDE_MAX_TOKENS, ...) the command may pace on.
                         **spec.agent.get("env", {}),
                     },

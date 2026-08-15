@@ -41,6 +41,21 @@ async def test_local_no_submissions_scores_zero(tmp_path):
     assert row.rewards == {"reward": 0.0}
 
 
+async def test_local_delivers_stream_state_dir(tmp_path):
+    """Under --local the carried state is the host path itself — no mount."""
+    state = tmp_path / "state"
+    lab = Lab(tmp_path / "lab", executor=LocalExecutor(root=tmp_path))
+    await lab.run(
+        TEMPLATE,
+        {
+            "command": 'echo remembered > "$TIDE_STATE_DIR/note"',
+            "override_timeout_sec": 10,
+        },
+        state_dir=str(state),
+    )
+    assert (state / "note").read_text().strip() == "remembered"
+
+
 async def test_local_rejects_non_template_tasks(tmp_path):
     (tmp_path / "not-a-task").mkdir()
     lab = Lab(tmp_path / "lab", executor=LocalExecutor(root=tmp_path))
