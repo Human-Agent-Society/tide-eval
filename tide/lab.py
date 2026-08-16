@@ -47,6 +47,13 @@ class Lab:
         self.store = Store(self.root / "results.sqlite")
         self.executor: Executor = executor or HarborExecutor(self.root / "trials")
         self._semaphore = asyncio.Semaphore(concurrency)
+        # In-flight episode deduplication: the first caller for a key runs the
+        # executor; concurrent callers with the same key await its result
+        # instead of racing on a second execution and a duplicate insert.
+        # One asyncio task == one thread, so the claim check-and-set below is
+        # atomic as long as it stays await-free; the lock documents that.
+        self._inflight: dict[str, asyncio.Future[Row]] = {}
+        self._inflight_lock = asyncio.Lock()
 
     # ------------------------------------------------------------- episodes
 
@@ -99,35 +106,67 @@ class Lab:
             logger.info("skip %s (already recorded)", key)
             return existing
 
-        async with self._semaphore:
-            # A retried episode may have left trace rows behind; clear them so
-            # the trace is never double-recorded.
-            self.store.delete_prefix(f"{key}#")
-            result = await self.executor.execute(spec)
+        # Claim leadership for this key. Only the leader executes; identical
+        # concurrent callers find the in-flight future and await it, so the
+        # executor runs exactly once and every caller gets the same Row.
+        async with self._inflight_lock:
+            in_flight = self._inflight.get(key)
+            if in_flight is None:
+                leader = True
+                in_flight = asyncio.get_running_loop().create_future()
+                self._inflight[key] = in_flight
+            else:
+                leader = False
 
-        for i, point in enumerate(result.trace):
-            self.store.put(
-                Row(
-                    key=f"{key}#t{i}",
-                    kind="trace",
-                    task=task,
-                    tags={**tags, "t": point.t, **point.data},
-                    rewards={"score": point.score},
-                    uri=result.uri,
+        if not leader:
+            return await in_flight
+
+        try:
+            async with self._semaphore:
+                # A retried episode may have left trace rows behind; clear them so
+                # the trace is never double-recorded.
+                self.store.delete_prefix(f"{key}#")
+                result = await self.executor.execute(spec)
+
+            for i, point in enumerate(result.trace):
+                self.store.put(
+                    Row(
+                        key=f"{key}#t{i}",
+                        kind="trace",
+                        task=task,
+                        tags={**tags, "t": point.t, **point.data},
+                        rewards={"score": point.score},
+                        uri=result.uri,
+                    )
                 )
-            )
 
-        used = {f"used_{k}": v for k, v in result.usage.items()}
-        row = Row(
-            key=key,
-            kind="episode",
-            task=task,
-            tags={**tags, **used, **({"error": result.error} if result.error else {})},
-            rewards=dict(result.rewards),
-            uri=result.uri,
-        )
-        self.store.put(row)
-        return row
+            used = {f"used_{k}": v for k, v in result.usage.items()}
+            row = Row(
+                key=key,
+                kind="episode",
+                task=task,
+                tags={
+                    **tags,
+                    **used,
+                    **({"error": result.error} if result.error else {}),
+                },
+                rewards=dict(result.rewards),
+                uri=result.uri,
+            )
+            self.store.put(row)
+            in_flight.set_result(row)
+            return row
+        except BaseException as exc:
+            # Executor failure or cancellation: surface the same outcome to
+            # every waiter and release the claim so a later call can retry.
+            # Nothing has been stored, so the store stays duplicate-free.
+            if not in_flight.done():
+                in_flight.set_exception(exc)
+            raise
+        finally:
+            # Single await-free dict op — atomic in one asyncio task, and
+            # safe to run even while unwinding a cancellation.
+            self._inflight.pop(key, None)
 
     async def run_many(self, calls: list[dict[str, Any]]) -> list[Row]:
         """Run many episodes concurrently (bounded by the Lab's concurrency).
