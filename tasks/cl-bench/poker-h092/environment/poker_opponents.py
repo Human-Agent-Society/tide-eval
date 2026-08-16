@@ -1,3 +1,4 @@
+# ruff: noqa — vendored upstream code, kept verbatim
 # Vendored verbatim from CL-Bench (pgasawa/continual-learning-bench,
 # Apache-2.0), commit 5f8c50eb: src/tasks/exploitable_poker/opponents.py.
 # Do not edit except to track upstream.

@@ -36,7 +36,7 @@ def _smooth_dist(survival: float) -> tuple[float, float]:
 
 def _binary_kl(p_true: tuple[float, float], p_pred: tuple[float, float]) -> float:
     kl = 0.0
-    for pt, pp in zip(p_true, p_pred):
+    for pt, pp in zip(p_true, p_pred, strict=False):
         if pt > 0:
             kl += pt * math.log2(pt / pp)
     return max(0.0, kl)
@@ -45,7 +45,7 @@ def _binary_kl(p_true: tuple[float, float], p_pred: tuple[float, float]) -> floa
 def _cohort_kl(true_survs, pred_survs) -> float:
     kls = [
         _binary_kl(_smooth_dist(t), _smooth_dist(p))
-        for t, p in zip(true_survs, pred_survs)
+        for t, p in zip(true_survs, pred_survs, strict=False)
     ]
     return sum(kls) / len(kls)
 
@@ -89,9 +89,7 @@ def score(raw_text: str, truth: dict) -> dict:
         if pred is not None:
             n_estimated += 1
         # Upstream also falls back per-field on falsy values via `or`.
-        pred = tuple(
-            (pred[i] if pred and pred[i] else reference[i]) for i in range(3)
-        )
+        pred = tuple((pred[i] if pred and pred[i] else reference[i]) for i in range(3))
         kl = _cohort_kl(true_survs, pred)
         ref_kl = _cohort_kl(true_survs, reference)
         kls.append(kl)

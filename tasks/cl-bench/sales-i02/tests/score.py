@@ -23,7 +23,7 @@ DETAILS_PATH = "/logs/verifier/scoring.json"
 
 
 def wape_skill(y_true: list[float], y_pred: list[float]) -> float:
-    num = sum(abs(p - t) for p, t in zip(y_pred, y_true))
+    num = sum(abs(p - t) for p, t in zip(y_pred, y_true, strict=False))
     den = sum(abs(t) for t in y_true)
     if den == 0.0:
         return 1.0 if num == 0.0 else float("-inf")
