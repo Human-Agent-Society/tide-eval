@@ -25,6 +25,10 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from tide import Budget, Lab
 
 
 def _find_tasks_root(tasks_dir: str | None) -> Path | None:
@@ -99,7 +103,7 @@ def _build_agent(args: argparse.Namespace) -> dict:
     return agent
 
 
-def _build_budget(args: argparse.Namespace):
+def _build_budget(args: argparse.Namespace) -> Budget | None:
     """Assemble a Budget from the budget flags (all optional)."""
     from tide import Budget
     from tide.budget import parse_duration_hours
@@ -135,9 +139,11 @@ def _parse_tags(pairs: list[str] | None) -> dict:
     return tags
 
 
-def _make_lab(args: argparse.Namespace):
+def _make_lab(args: argparse.Namespace) -> Lab:
     from tide import FakeExecutor, Lab, LocalExecutor
+    from tide.executors import Executor
 
+    executor: Executor | None
     if getattr(args, "fake", False):
         executor = FakeExecutor()
     elif getattr(args, "local", False):

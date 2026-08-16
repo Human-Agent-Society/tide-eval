@@ -40,14 +40,14 @@ def fetch_pinned_tasks(
         _git(tmp, "remote", "add", "origin", git_url)
         _git(tmp, "fetch", "-q", "--depth", "1", "--filter=blob:none", "origin", commit)
 
-        names = set()
+        found: set[str] = set()
         for line in _git(tmp, "ls-tree", "-r", "--name-only", commit).splitlines():
             if not line.startswith(prefix):
                 continue
             rest = line[len(prefix) :]
             if rest.count("/") == 1 and rest.endswith("/task.toml"):
-                names.add(rest.split("/", 1)[0])
-        names = sorted(names)
+                found.add(rest.split("/", 1)[0])
+        names = sorted(found)
         if not names:
             raise RuntimeError(
                 f"no task folders under '{subdir or '.'}' at {git_url}@{commit[:12]}"

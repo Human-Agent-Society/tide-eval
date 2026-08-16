@@ -19,6 +19,8 @@ jobs:
         run: |
           uv run ruff check .
           uv run ruff format --check .
+      - name: Type check
+        run: uv run mypy
       - name: Test (core — harbor-dependent tests skip)
         run: uv run pytest tests/ -q
       - name: Examples run offline
