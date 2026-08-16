@@ -82,10 +82,7 @@ def execute_sql(sql: str) -> str:
     elif sql.startswith(".schema"):
         parts = sql.split()
         if len(parts) > 1:
-            sql = (
-                "SELECT sql FROM sqlite_master WHERE name = "
-                + repr(parts[1])
-            )
+            sql = "SELECT sql FROM sqlite_master WHERE name = " + repr(parts[1])
         else:
             sql = "SELECT sql FROM sqlite_master WHERE sql IS NOT NULL"
     first_word = sql.split()[0].upper() if sql.split() else ""
@@ -96,9 +93,7 @@ def execute_sql(sql: str) -> str:
         )
     conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
     deadline = time.monotonic() + SQL_QUERY_TIMEOUT_SECONDS
-    conn.set_progress_handler(
-        lambda: 1 if time.monotonic() > deadline else 0, 10_000
-    )
+    conn.set_progress_handler(lambda: 1 if time.monotonic() > deadline else 0, 10_000)
     try:
         cursor = conn.execute(sql)
         columns = [d[0] for d in cursor.description] if cursor.description else []
@@ -160,9 +155,7 @@ class Handler(BaseHTTPRequestHandler):
                 if not _state["done"]:
                     _finalize(False, "")
                     _state["verdict"]["note"] = "no answer submitted"
-                return self._reply(
-                    {"reward": _state["reward"], **_state["verdict"]}
-                )
+                return self._reply({"reward": _state["reward"], **_state["verdict"]})
         return self._reply({"error": "unknown endpoint"}, 404)
 
     def do_POST(self):

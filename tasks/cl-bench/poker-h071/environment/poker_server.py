@@ -19,6 +19,7 @@ is finished check/fold · ``GET /health``.
 import json
 import os
 import random
+import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -27,7 +28,8 @@ from texasholdem import TexasHoldEm
 from texasholdem.game.action_type import ActionType
 from texasholdem.game.player_state import PlayerState
 
-import poker_opponents
+sys.path.insert(0, str(Path(__file__).parent))
+import poker_opponents  # noqa: E402 — lives beside this file in the judge image
 
 JUDGE_DIR = Path(os.environ.get("JUDGE_DIR", Path(__file__).parent))
 PORT = int(os.environ.get("PORT", "8082"))
@@ -98,7 +100,9 @@ class Hand:
         try:
             if action == ActionType.RAISE:
                 if amount is None:
-                    return "Invalid poker action: RAISE needs an amount (raise TO total)"
+                    return (
+                        "Invalid poker action: RAISE needs an amount (raise TO total)"
+                    )
                 self.game.validate_move(0, action, total=int(amount), throws=True)
             else:
                 self.game.validate_move(0, action, throws=True)
@@ -164,9 +168,7 @@ class Hand:
         bot_bet = game.player_bet_amount(1)
         if player.state == PlayerState.TO_CALL:
             verb = "raised to" if game.player_bet_amount(0) > 0 else "bet"
-            situation = (
-                f"Opponent {verb} {bot_bet} (you need {chips_to_call} to call)"
-            )
+            situation = f"Opponent {verb} {bot_bet} (you need {chips_to_call} to call)"
         elif self.bot_actions and self.bot_actions[-1] == "CALL":
             situation = (
                 f"Opponent called your bet of {game.player_bet_amount(1)} "
