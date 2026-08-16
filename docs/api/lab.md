@@ -55,20 +55,20 @@ Four things to know about `run`:
 
 Every `run`, from any script, any day, the CLI or the API, appends a row
 to the same `results.sqlite`, tagged with whatever dimensions you chose.
-Monday's claude-code runs, Thursday's prompt tweak, and next week's codex
-run are not three job directories; they are rows in one table that differ
-only in their tags. Comparing them is a query, not archaeology:
+Runs from different days, scripts, and agents are not separate job
+directories; they are rows in one table that differ only in their tags,
+and comparing them is a single query:
 
 ```python
 lab.df("episode").groupby(["model", "task"])["reward"].mean()
 ```
 
-Accumulation and resume are the same mechanism: re-running Thursday's
-crashed script finds most of its rows already in the table and only runs
-what's missing. And nothing about where a number came from is lost:
+Accumulation and resume are the same mechanism: re-running a crashed
+script finds most of its rows already in the table and only runs what's
+missing. And nothing about where a number came from is lost:
 every row's `uri` still points at the full Harbor trial directory. Harbor
-treats each run as a printed report; a Lab is the notebook they are all
-recorded in.
+produces a standalone result per run; a Lab is the shared record they
+all accumulate in.
 
 ## The row model
 

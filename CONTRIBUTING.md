@@ -35,7 +35,7 @@ reviewed against a short list of design rules more than against style.
   stock-Harbor validation) with zero test code written.
 - **Benchmark converters**. A converter PR should include: the conversion
   script, one converted sample task checked in as a test fixture, and a
-  catalog row update with honest status.
+  catalog row update with accurate status.
 - **Metrics**: one pure function + docstring declaring expected columns +
   a small-frame test. That's the whole checklist.
 - **Executors** for new backends, implementing the `Executor` protocol.

@@ -20,7 +20,7 @@ Your final score is your best submission (re-scored by a final judge with
 hidden tests, if the task has one). The final evaluation runs on a
 **separate verifier port** behind a per-session token; the agent cannot
 trigger or observe it. Everything else (how you search, what you
-evaluate locally, whether you build your own scorer) is your business;
+evaluate locally, whether you build your own scorer) is up to you;
 tide places no constraints on the agent's side.
 
 If the run set a [budget](../api/budget.md) beyond time, the container

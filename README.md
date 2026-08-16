@@ -50,10 +50,10 @@ are the reason tide exists:
 | **The whole score trajectory, not just the endpoint** | One reward number per trial; how the agent got there is lost | The judge records every submission, so the anytime curve, its AUC, and time-to-threshold are one query each, and every point is trusted |
 | **Learning across tasks, not only within one** | Every trial starts from zero | A [`Stream`](docs/api/streams.md) carries the agent's memory (a state directory) from task to task, with a snapshot at every step; learning curves, transfer, and forgetting are queries |
 | **Compare across budgets** ("what does 8 h buy over 2 h?") | Statistics live inside a single job (pass@k) | Budget is an ordinary tag, so scaling curves are a pivot over any set of runs |
-| **Resume from failure on long, multi-day sweeps** | A crash throws the whole job away; covering a suite × variance × budgets is days of compute to lose | Re-run the same script and finished episodes are skipped; only the unfinished work re-runs |
+| **Resume from failure on long, multi-day sweeps** | A crash throws the whole job away, and covering a suite × variance × budgets takes days of compute | Re-run the same script and finished episodes are skipped; only the unfinished work re-runs |
 | **Compare agents across many runs** | Each run is a throwaway job directory | Every run lands in one table, so comparing agents is a single query that `tide report` reads |
 
-One honest limit: resume works at episode granularity. A batch of runs
+One known limit: resume works at episode granularity. A batch of runs
 picks up where it crashed, but a crashed 12-hour episode itself starts
 over.
 
@@ -63,7 +63,7 @@ Full design (trust model, task conventions, data model, extensibility):
 ## Using tide
 
 First run? **[docs/introduction/get-started.md](docs/introduction/get-started.md)** walks from install
-to a real agent score, including agent auth and network-egress gotchas.
+to a real agent score, including agent auth and network egress setup.
 
 ### Run
 
@@ -97,11 +97,11 @@ tide run autoresearch/circle-packing --local \
 Your command reads `$JUDGE_URL` and `$BUDGET_SEC`, POSTs solutions to
 `$JUDGE_URL/submit`, and the judge's verdict is the result, from the same
 judge code that runs as a sidecar in containers. Note that local mode has
-no protection at all: everything, including any hidden tests, is readable
-on your own machine, which is fine because you would only be cheating
-yourself. The container run is where the judge is actually out of reach,
-so local rows carry a `local://` uri: develop locally, report container
-numbers. (`python examples/quickstart.py`
+no isolation: everything, including any hidden tests, is readable on
+your own machine. That is acceptable for development, because local
+scores are never treated as trusted results; the container run is where
+the judge is actually out of reach, and local rows carry a `local://`
+uri to mark the difference. Develop locally, report container numbers. (`python examples/quickstart.py`
 and `--fake` still work with zero setup, but their scores are simulated.)
 
 When you have Docker, `python examples/run_circle_packing.py` proves the
@@ -155,7 +155,7 @@ Re-running any script resumes it. Reference:
 
 A `Stream` runs an ordered task list under one agent. Every task's
 container gets the same state directory mounted in (`$TIDE_STATE_DIR`),
-so the agent's memory, skill library, or evolved harness rides along from
+so the agent's memory, skill library, or evolved harness is carried from
 task to task, and whether that helps is what gets measured:
 
 ```python
