@@ -238,6 +238,14 @@ def cmd_stream(args: argparse.Namespace) -> int:
         agent["command"] = args.command
     tags = _parse_tags(args.tag)
     budget = _build_budget(args)
+    if args.shuffle is not None:
+        # AgentStream's interleaved protocol: seeded shuffle of the union,
+        # task set fixed. The seed becomes a tag, so each seed is its own
+        # stream (own state, own keys) and results pivot by `shuffle_seed`.
+        import random
+
+        random.Random(args.shuffle).shuffle(targets)
+        tags = {**tags, "shuffle_seed": args.shuffle}
 
     from tide import Stream
 
@@ -394,6 +402,14 @@ def main(argv: list[str] | None = None) -> int:
     p_stream.add_argument("name", help="stream name — part of every episode's key")
     p_stream.add_argument("targets", nargs="+")
     add_shared_flags(p_stream)
+    p_stream.add_argument(
+        "--shuffle",
+        type=int,
+        default=None,
+        metavar="SEED",
+        help="deterministically shuffle the task order with this seed "
+        "(interleaved streams; the seed is recorded as a shuffle_seed tag)",
+    )
     p_stream.set_defaults(func=cmd_stream, concurrent=1)
 
     p_report = sub.add_parser("report", help="summarize a results store")

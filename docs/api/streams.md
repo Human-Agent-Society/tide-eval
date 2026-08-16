@@ -43,10 +43,45 @@ tide stream week1 terminal-bench --agent claude-code --model anthropic/claude-op
 ```
 
 The supported stream benchmarks are [terminal-bench 2.0](../../tasks/terminal-bench)
-(v2.0 only — 1.x predates the Harbor task format) and
-[SWE-bench Verified](../../tasks/swebench-verified), the hardest of
+(v2.0 only — 1.x predates the Harbor task format),
+[SWE-bench Verified](../../tasks/swebench-verified) — the hardest of
 [AgentStream](https://arxiv.org/abs/2608.00155)'s six benchmarks with a
-published Harbor version.
+published Harbor version — and [CL-bench](../../tasks/cl-bench), whose
+sequential per-context turns stream in order under the carried memory
+(its rubric judge needs an LLM API key at verify time).
+
+## Ordering: sequential and interleaved streams
+
+Task order changes continual-learning results, so it is never implicit —
+a stream runs exactly the list you give it, and the episode keys pin that
+order (reordering is a new measurement). The
+[AgentStream](https://arxiv.org/abs/2608.00155) scenarios map directly:
+
+- **isolated** — plain `tide run` over the same tasks: the control arm
+  `metrics.transfer` compares against;
+- **sequential** — benchmark-blocked, like the paper's fixed
+  AppWorld → … → Tau2 order: list the folders in order, and
+  `tide stream s1 terminal-bench swebench-verified --agent <a>` runs all
+  of one benchmark, then the next (within a folder: name order, held
+  constant);
+- **interleaved** — `--shuffle SEED` deterministically shuffles the union
+  and records the seed as a `shuffle_seed` tag. Each seed is its own
+  stream — own carried state, own keys, own resume — so the paper's
+  three-seeds-and-average protocol is three runs and one groupby:
+
+  ```bash
+  for seed in 1 2 3; do
+    tide stream mix terminal-bench swebench-verified --shuffle $seed \
+      --agent claude-code --model anthropic/claude-opus-5
+  done
+  ```
+
+  ```python
+  metrics.learning_curve(lab.df("episode"), by=["shuffle_seed"])
+  ```
+
+In the Python API the order is just the list you build — shuffle it with
+`random.Random(seed).shuffle(tasks)` and put the seed in `tags`.
 
 ## How state is carried
 

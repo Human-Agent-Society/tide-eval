@@ -8,6 +8,7 @@ site/
 # fetched (never vendored) stream benchmarks — see each folder's README
 tasks/terminal-bench/*/
 tasks/swebench-verified/*/
+tasks/cl-bench/*/
 dist/
 build/
 .DS_Store

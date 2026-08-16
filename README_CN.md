@@ -192,12 +192,17 @@ metrics.transfer(df, baseline_df)  # 对比同一批任务的孤立运行(普通
 |---|---|---|---|
 | [terminal-bench](tasks/terminal-bench) | 89 · **只支持 v2.0**(不含 1.x) | [terminal-bench-2](https://github.com/laude-institute/terminal-bench-2)(Apache-2.0) | `tide fetch terminal-bench`,然后 `tide stream week1 terminal-bench --agent <a>` |
 | [SWE-bench Verified](tasks/swebench-verified) | 500 | [harbor-datasets](https://github.com/laude-institute/harbor-datasets) | `tide fetch swebench-verified --limit 50`,然后 `tide stream week1 swebench-verified --agent <a>` |
+| [CL-bench](tasks/cl-bench) | 1,899(500 个 context) | [clbench.com](https://www.clbench.com)(仅限评测用途) | `tide fetch cl-bench --contexts 5`,然后 `tide stream week1 cl-bench --agent <a>` |
 
 放 SWE-bench Verified 是因为 [AgentStream](https://arxiv.org/abs/2608.00155)
 的任务流由六个 benchmark 组成,而它是其中已有 Harbor 版本的最难的一个
 ——论文里测出最难的两个(HLE 和 BrowseComp-Plus)目前还没有 Harbor 版。
-stream 也接受你自己排的任意任务列表,允许重复出现(重复正是测"遗忘"的
-方式)——见 [streams](docs/api/streams.md)。
+[CL-bench](tasks/cl-bench) 测的是从上下文材料(规则书、操作规程、实验
+数据)里学新知识的能力(前沿模型只解出约 17%),超过一半的任务是同一
+context 的连续轮次——转换后每个 context 的轮次在携带记忆下按序成流,由
+官方 rubric judge 判分(判分时需要 LLM API key)。stream 也接受你自己排
+的任意任务列表,允许重复出现(重复正是测"遗忘"的方式)——见
+[streams](docs/api/streams.md)。
 
 ### 每个第一方任务教什么
 
