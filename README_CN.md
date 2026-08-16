@@ -4,19 +4,35 @@
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
 
-**基于 [Harbor](https://github.com/laude-institute/harbor) 任务标准的 autoresearch 评测框架。**
+**基于 [Harbor](https://github.com/laude-institute/harbor) 任务标准的 autoresearch 与 continual learning 评测框架。**
 
 [English](README.md) | **中文**
 
-Autoresearch 任务——DeepMind 的
+tide 评测的是"随经验变强的 agent",支持两种模式。
+
+**Autoresearch**——DeepMind 的
 [AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/)
-和 [Karpathy 的 autoresearch](https://github.com/karpathy/autoresearch) 做的就是这类工作——是开放式优化
-问题:数小时的预算、连续的分数、一个持续迭代逼近更优解的 agent。这里没有
-"通过/不通过",只有*多好、多快*。tide 把这种形态的评测做扎实:
+和 [Karpathy 的 autoresearch](https://github.com/karpathy/autoresearch)
+做的就是这类工作:开放式优化问题,数小时的预算、连续的分数、一个持续
+迭代逼近更优解的 agent。这里没有"通过/不通过",只有*多好、多快*。学习
+发生在**单个任务内部**:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-hero-dark.svg">
   <img src="docs/assets/readme-hero-light.svg" alt="The agent searches however it likes and submits what is worth scoring, within a submission limit. The judge holds all scoring code and data and scores every submission into a log. An optional final judge with hidden tests runs once on the best submission and locks the session. The reward and the submission log land in one table shared by every run, where agents can be compared." width="100%">
+</picture>
+
+**Continual learning**——同一个 agent 按顺序做完一条任务[流](docs/api/streams.md)
+([AgentStream](https://arxiv.org/abs/2608.00155) 的设定;支持的 benchmark
+是 [terminal-bench 2.0](tasks/terminal-bench)、
+[SWE-bench Verified](tasks/swebench-verified),以及
+[CL-Bench](tasks/cl-bench) 的全部六个 domain),把自己的记忆从一个任务
+带到下一个。重要的不是任何单个任务的分数,而是*经验有没有积累起来*。
+学习发生在**任务与任务之间**:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-stream-dark.svg">
+  <img src="docs/assets/readme-stream-light.svg" alt="One agent works through a stream of tasks in order. Each task runs in its own fresh container and is scored on its own, but the agent's memory directory is carried from task to task, with a snapshot kept at every step. Every task's reward lands in the same table as every other run, so the learning curve over the stream is a single query." width="100%">
 </picture>
 
 任务是 100% 原生 Harbor 任务(有测试强制保证)。agent 是任何能在容器里工作
@@ -25,12 +41,13 @@ Autoresearch 任务——DeepMind 的
 ## 为什么不直接用 Harbor?
 
 Harbor 解决的是最难的基础设施——任务格式、让 agent 对着容器运行、现成的
-agent 适配器生态——tide 正是把它当库来用。而 autoresearch 在此之上还需要四
+agent 适配器生态——tide 正是把它当库来用。而这两种模式在此之上还需要五
 样东西,它们就是 tide 存在的理由:
 
 | 直接用 Harbor | tide |
 |---|---|
 | 每次 trial 只有一个 reward 数字,过程信息丢了 | judge 给每次提交打分并记录在案:anytime 曲线、AUC、到达阈值的时间各是一个查询,而且每个点都可信 |
+| 每次 trial 都从零开始 | [`Stream`](docs/api/streams.md) 把 agent 的记忆(一个状态目录)从一个任务带到下一个,每一步都留快照——学习曲线、迁移、遗忘各是一个查询 |
 | 统计只在单个 job 内部(pass@k) | 预算是普通标签,"8 小时比 2 小时多买到多少分"是跨任意 run 集合的一个查询 |
 | 一个任务一次运行——而覆盖全套件、重复取方差、扫预算档会把它放大成几天的机器时间,一次崩溃全部报废 | 重跑同一个脚本,已完成的 episode 自动跳过,只有没跑完的部分重新执行 |
 | 每次运行是一个一次性 job 目录 | 所有运行落进同一张表,跨运行比较不同 agent 只是一个查询,`tide report` 直接读 |
@@ -52,7 +69,8 @@ pip install -e ".[harbor]"               # 容器模式需要;仅 --local 和 AP
 
 tide list                                # 有哪些任务可跑
 tide run autoresearch --agent oracle     # oracle = 内置 agent,运行每个任务的参考解
-tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2   # 小时
+tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2h  # 时间(2h / 30m / 90s;裸数字 = 小时)
+tide stream my-stream terminal-bench --agent claude-code --model anthropic/claude-opus-5            # continual learning:记忆跨任务传递
 tide report                              # 汇总结果库
 ```
 
@@ -102,8 +120,40 @@ metrics.scaling(lab.df("episode"))  # 更多预算买到多少分?
 ```
 
 重跑任何脚本都会自动续跑。参考:
-[lab](docs/api/lab.md) · [metrics](docs/api/metrics.md) ·
-[executors](docs/api/executors.md)。
+[lab](docs/api/lab.md) · [streams](docs/api/streams.md) ·
+[metrics](docs/api/metrics.md) · [executors](docs/api/executors.md)。
+
+### Continual learning:任务流
+
+`Stream` 让同一个 agent 按顺序跑一列任务。每个任务的容器里都挂载着
+同一个状态目录(`$TIDE_STATE_DIR`),agent 的记忆、技能库、自我演化出的
+harness 就随流从一个任务带到下一个——而"带着它到底有没有用"正是被测的
+东西:
+
+```python
+from tide import Lab, Stream, metrics
+
+lab = Lab("runs/cl")
+stream = Stream(
+    "my-stream",  # 有序任务列表,允许重复出现——重访正是"遗忘"显形的地方
+    ["tasks/terminal-bench/chess-best-move", "tasks/terminal-bench/build-pmars", "tasks/terminal-bench/chess-best-move"],
+)
+rows = await stream.run(lab, agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"}, budget="30m")
+
+df = lab.df("episode")
+metrics.learning_curve(df, by=["stream"])  # 经验积累起来了吗?
+metrics.forgetting(df)  # 重访的任务退步了吗?
+metrics.transfer(df, baseline_df)  # 对比同一批任务的孤立运行(普通 lab.run)
+```
+
+`"my-stream"` 只是你给这条流起的名字:同名重跑就是续跑,换个名字就是一条
+从零记忆开始的新流,每行结果都带这个名字作为 `stream` 标签方便查询。
+
+流里的每个任务就是一次普通的 Harbor trial、一个独立容器。每个任务开始
+前,记忆重置为上一步留下的快照;结束后再存一份新快照——所以流崩溃后能
+从断点继续,agent 每一步"知道什么"事后都能查。在末尾追加任务是继续一条
+已跑完的流;修改前面的任务会让其后的部分全部重测。完整说明:
+**[docs/api/streams.md](docs/api/streams.md)**(英文)。
 
 ### 接入你自己的 agent
 
@@ -121,7 +171,9 @@ metrics.scaling(lab.df("episode"))  # 更多预算买到多少分?
 指南(`BaseAgent` 骨架 + OpenEvolve 接法):
 **[docs/guides/integration.md](docs/guides/integration.md)**。
 
-## 任务目录
+## Benchmark 目录
+
+### Autoresearch 模式
 
 | Benchmark | 任务数 | 上游 | 运行方式 |
 |---|---|---|---|
@@ -132,8 +184,37 @@ metrics.scaling(lab.df("episode"))  # 更多预算买到多少分?
 下一批转换目标(已按 autoresearch 契合度筛过)在
 [Roadmap](https://github.com/Human-Agent-Society/tide-eval/issues/19) 里跟踪。
 
-每个第一方任务教会这个类别里的一个难点(oracle 在真容器中验证过,作弊用例
-在 CI 中持续复测):
+### Continual learning 模式
+
+三个 stream benchmark。terminal-bench 和 CL-Bench 的任务已直接提交进
+本仓库(Apache-2.0),开箱即跑,配 pin 死来源的 `fetch.py` 可随时重新
+生成;SWE-bench Verified 的数据仓库没有 license,所以它的任务只能
+fetch 到你自己机器上:
+
+| Benchmark | 任务数 | 上游 | 运行方式 |
+|---|---|---|---|
+| [terminal-bench](tasks/terminal-bench) | 89 · **只支持 v2.0**(不含 1.x)· 已提交进仓库 | [terminal-bench-2](https://github.com/laude-institute/terminal-bench-2)(Apache-2.0) | `tide stream my-stream terminal-bench --agent <a>` |
+| [SWE-bench Verified](tasks/swebench-verified) | 500 · fetch 获取(上游无 license) | [harbor-datasets](https://github.com/laude-institute/harbor-datasets) | `tide fetch swebench-verified --limit 50`,然后 `tide stream my-stream swebench-verified --agent <a>` |
+| [CL-Bench](tasks/cl-bench) | 301 · **全部 6 个 domain** · 已提交进仓库 | [continual-learning-bench](https://github.com/pgasawa/continual-learning-bench)(Apache-2.0) | `tide stream my-stream tasks/cl-bench/poker-* --agent <a>` |
+
+放 SWE-bench Verified 是因为 [AgentStream](https://arxiv.org/abs/2608.00155)
+的任务流由六个 benchmark 组成,而它是其中已有 Harbor 版本的最难的一个
+——论文里测出最难的两个(HLE 和 BrowseComp-Plus)目前还没有 Harbor 版。
+[CL-Bench](tasks/cl-bench)([论文](https://arxiv.org/pdf/2606.05661))是
+严格意义上的 continual learning benchmark——同一环境的连续 instance,
+记住过去就该做得更好——它的 *gain 指标*(有状态减无状态的得分)正是
+`metrics.transfer`。**六个 domain 全部转换完毕**,即 benchmark 的全部
+301 个 instance:频谱监测、销量预测、队列研究、连续 PR 修复、限额数据库
+探索、对可利用对手的单挑德州扑克。每个 domain 都用上游原版指标判分,
+确定性、离线;有隐藏状态的 domain(扑克的牌堆、计量的数据库)放在
+judge sidecar 里,agent 只能通过 HTTP 访问。stream 也接受你自己排的任意
+任务列表,允许重复出现(重复正是测"遗忘"的方式)——见
+[streams](docs/api/streams.md)。
+
+### 每个第一方任务教什么
+
+每个第一方任务教会 autoresearch 类别里的一个难点(oracle 在真容器中验证
+过,作弊用例在 CI 中持续复测):
 
 | 任务 | 教什么 |
 |---|---|

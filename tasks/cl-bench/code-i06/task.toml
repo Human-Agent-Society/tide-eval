@@ -1,0 +1,18 @@
+version = "1.0"
+
+[metadata]
+benchmark = "cl-bench"
+domain = "codebase_adaptation"
+instance_id = "jazzband__tablib-594"
+repo = "jazzband/tablib"
+sequence_idx = 5
+license_note = "CL-Bench (pgasawa/continual-learning-bench), Apache-2.0"
+
+[verifier]
+timeout_sec = 900.0
+
+[agent]
+timeout_sec = 2400.0
+
+[environment]
+build_timeout_sec = 900.0

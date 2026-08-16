@@ -1,0 +1,19 @@
+version = "1.0"
+
+[metadata]
+benchmark = "cl-bench"
+domain = "cohort_studies"
+instance_idx = 11
+study = "MOSAIC"
+variant_id = "mosaic_suburban_s2"
+oracle_score = 0.109067
+license_note = "CL-Bench (pgasawa/continual-learning-bench), Apache-2.0"
+
+[verifier]
+timeout_sec = 300.0
+
+[agent]
+timeout_sec = 1800.0
+
+[environment]
+build_timeout_sec = 900.0

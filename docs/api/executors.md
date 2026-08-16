@@ -42,6 +42,19 @@ class Executor(Protocol):
   the test suite, `--fake`, and the offline examples. Records `calls` for
   assertions.
 
+## The one tide-level override: `state_dir`
+
+Executors recognize a single override that is not a backend field:
+`state_dir` — a host directory a [stream](streams.md) carries across
+episodes. Harbor bind-mounts it into the agent's container at
+`/tide/state` and points `$TIDE_STATE_DIR` there (delivered both at
+container startup and through the agent adapter, like budget signals);
+`LocalExecutor` hands the host path itself. The state never reaches the
+judge or verifier, so it extends what the agent remembers, not what
+anyone trusts. A new backend that wants to support streams implements the
+same contract: make `overrides["state_dir"]` durable across episodes and
+visible to the agent as `$TIDE_STATE_DIR`.
+
 ## Extend it
 
 A new backend (SSH box, cloud batch API, a simulator) is a class in *your*

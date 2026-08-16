@@ -1,6 +1,7 @@
 # Design
 
-How tide evaluates autoresearch, and why it is shaped the way it is.
+How tide evaluates autoresearch and continual-learning task streams, and
+why it is shaped the way it is.
 For the module-by-module reference see the [API](../api/lab.md); for
 integrating an agent see [integration.md](../guides/integration.md).
 
@@ -114,6 +115,44 @@ Every row's `uri` points at the Harbor trial directory that produced it —
 logs, the judge's submission log, the verifier's output — so any number in any
 table can be audited back to its evidence.
 
+## The second mode: task streams
+
+Autoresearch measures learning *within* one episode. A
+[**stream**](../api/streams.md) measures it *across* episodes: an ordered
+sequence of stock Harbor tasks run under one agent, with a state directory
+carried from episode to episode — the streaming setting of
+[AgentStream](https://arxiv.org/abs/2608.00155). Terminal-bench-style
+pass/fail tasks work as-is (a pass is just a 0-or-1 score); AgentStream's
+*isolated* scenario is a plain `lab.run` sweep, and its *sequential* and
+*interleaved* scenarios are just how you order a `Stream`'s task list.
+
+Each position is one ordinary episode — one Harbor trial, one container,
+one trusted row. The only thing connecting positions is the state
+directory, bind-mounted into the agent's container as `$TIDE_STATE_DIR`,
+where the agent keeps whatever it wants to remember: memory files, a
+skill library, an evolved harness. Whether carrying that state helps is
+the measurement — the learning curve over positions, transfer against the
+isolated control arm, forgetting on revisited tasks.
+
+Three decisions carry the mode:
+
+- **Deterministic starting state.** Before an episode runs, the live state
+  directory is reset from the previous position's snapshot; after it runs,
+  the ending state is snapshotted. Every episode's input is reproducible
+  and auditable no matter what crashed in between.
+- **Resume with honest history.** Recorded positions are skipped as
+  always, and a position's key covers the task list up to that position:
+  appending tasks extends a finished stream, while editing an earlier
+  position re-runs everything after it — a stream is one measurement, and
+  a changed history invalidates what followed.
+- **The trust model is unchanged.** The state is agent-authored and
+  untrusted; no judge or verifier ever sees it, so it can influence only
+  the agent's own future behavior.
+
+Episode rows from a stream land in the same table, tagged `stream` and
+`position`; the continual-learning metrics are queries like every other
+metric.
+
 ## Why Harbor, as a library
 
 Harbor already solved single-trial evaluation well: task format, container
@@ -140,10 +179,11 @@ points are structural rather than speculative:
 - metrics are standalone functions over the one table: a new metric is one
   function plus a docstring declaring its expected columns.
 
-This is how continual-learning task streams and live infinite-horizon
-tasks would land: as additions around the same store, not rewrites of
-it. What is actually on deck lives in the
-[roadmap issue](https://github.com/Human-Agent-Society/tide-eval/issues/19).
+This is how [streams](../api/streams.md) landed — `Stream` sequences
+ordinary episodes around the same store, the executors gained one shared
+override, and the metrics are three new functions — and it is how live
+infinite-horizon tasks would land too. What is actually on deck lives in
+the [roadmap issue](https://github.com/Human-Agent-Society/tide-eval/issues/19).
 
 ## Design rules
 

@@ -4,20 +4,37 @@
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
 
-**Autoresearch evaluation on the [Harbor](https://github.com/laude-institute/harbor) task standard.**
+**Autoresearch and continual-learning evaluation on the [Harbor](https://github.com/laude-institute/harbor) task standard.**
 
 **English** | [中文](README_CN.md)
 
-Autoresearch tasks — the kind of work DeepMind's
+tide evaluates agents that get better with experience, in two modes.
+
+**Autoresearch** — the kind of work DeepMind's
 [AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/)
-and [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) do — are open-ended optimization
-problems: hours of budget, a continuous score, and an agent iterating
-toward a better solution the whole way. There is no "passed" — only *how
-good, by when*. tide evaluates that regime honestly:
+and [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) do:
+open-ended optimization problems with hours of budget, a continuous
+score, and an agent working toward a better solution the whole way.
+There is no "passed" — only *how good, by when*. The learning happens
+**inside one task**:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-hero-dark.svg">
   <img src="docs/assets/readme-hero-light.svg" alt="The agent searches however it likes and submits what is worth scoring, within a submission limit. The judge holds all scoring code and data and scores every submission into a log. An optional final judge with hidden tests runs once on the best submission and locks the session. The reward and the submission log land in one table shared by every run, where agents can be compared." width="100%">
+</picture>
+
+**Continual learning** — one agent works through a
+[stream](docs/api/streams.md) of tasks in order (the
+[AgentStream](https://arxiv.org/abs/2608.00155) setting; the supported
+benchmarks are [terminal-bench 2.0](tasks/terminal-bench),
+[SWE-bench Verified](tasks/swebench-verified), and all six
+[CL-Bench](tasks/cl-bench) domains), carrying its memory from task to
+task. What matters is not the score on any one task — it is *whether
+experience adds up*. The learning happens **across tasks**:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-stream-dark.svg">
+  <img src="docs/assets/readme-stream-light.svg" alt="One agent works through a stream of tasks in order. Each task runs in its own fresh container and is scored on its own, but the agent's memory directory is carried from task to task, with a snapshot kept at every step. Every task's reward lands in the same table as every other run, so the learning curve over the stream is a single query." width="100%">
 </picture>
 
 Tasks are 100% stock Harbor tasks (enforced by test). Agents are anything
@@ -27,12 +44,13 @@ that can work inside a container — including your own harness or method.
 
 Harbor solves the hard infrastructure — the task format, running agents
 against containers, the ecosystem of agent adapters — and tide uses it as
-a library for exactly that. Autoresearch needs four things on top, and
-they are the reason tide exists:
+a library for exactly that. Both modes need five things on top, and they
+are the reason tide exists:
 
 | What you want | Plain Harbor | tide |
 |---|---|---|
 | **The whole score trajectory, not just the endpoint** | One reward number per trial; how the agent got there is lost | The judge records every submission, so the anytime curve, its AUC, and time-to-threshold are one query each — and every point is trusted |
+| **Learning across tasks, not only within one** | Every trial starts from zero | A [`Stream`](docs/api/streams.md) carries the agent's memory (a state directory) from task to task, with a snapshot at every step — learning curves, transfer, and forgetting are queries |
 | **Compare across budgets** ("what does 8 h buy over 2 h?") | Statistics live inside a single job (pass@k) | Budget is an ordinary tag, so scaling curves are a pivot over any set of runs |
 | **Resume from failure on long, multi-day sweeps** | A crash throws the whole job away; covering a suite × variance × budgets is days of compute to lose | Re-run the same script and finished episodes are skipped — only the unfinished work re-runs |
 | **Compare agents across many runs** | Each run is a throwaway job directory | Every run lands in one table, so comparing agents is a single query — `tide report` reads it |
@@ -60,6 +78,7 @@ tide list                                # what's runnable
 tide run autoresearch --agent oracle     # oracle = built-in agent that runs each task's reference solution
 tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2h     # time (2h / 30m / 90s; bare = hours)
 tide run autoresearch/tsp-tour --agent codex --model openai/gpt-5 --max-tokens 500k                # or: tokens / --max-evals / --max-cost
+tide stream my-stream terminal-bench --agent claude-code --model anthropic/claude-opus-5               # continual learning: memory carried across tasks
 tide report                              # summarize the results store
 ```
 
@@ -130,8 +149,44 @@ metrics.efficiency(
 ```
 
 Re-running any script resumes it. Reference:
-[lab](docs/api/lab.md) · [budget](docs/api/budget.md) ·
-[metrics](docs/api/metrics.md) · [executors](docs/api/executors.md).
+[lab](docs/api/lab.md) · [streams](docs/api/streams.md) ·
+[budget](docs/api/budget.md) · [metrics](docs/api/metrics.md) ·
+[executors](docs/api/executors.md).
+
+### Continual learning: task streams
+
+A `Stream` runs an ordered task list under one agent. Every task's
+container gets the same state directory mounted in (`$TIDE_STATE_DIR`),
+so the agent's memory, skill library, or evolved harness rides along from
+task to task — and whether that helps is exactly what gets measured:
+
+```python
+from tide import Lab, Stream, metrics
+
+lab = Lab("runs/cl")
+stream = Stream(
+    "my-stream",  # ordered tasks, repeats allowed — the revisit is how forgetting shows
+    ["tasks/terminal-bench/chess-best-move", "tasks/terminal-bench/build-pmars", "tasks/terminal-bench/chess-best-move"],
+)
+rows = await stream.run(lab, agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"}, budget="30m")
+
+df = lab.df("episode")
+metrics.learning_curve(df, by=["stream"])  # does experience accumulate?
+metrics.forgetting(df)  # did the revisited task degrade?
+metrics.transfer(df, baseline_df)  # vs the same tasks run isolated (plain lab.run)
+```
+
+`"my-stream"` is just a name you choose for the stream: re-running the
+same name resumes it, a new name starts fresh with empty memory, and
+every row carries the name as a `stream` tag for querying.
+
+Every task in the stream is an ordinary Harbor trial in its own
+container. Before each one, the memory is reset to the snapshot from the
+previous step; after it, a new snapshot is kept — so a crashed stream
+picks up where it left off, and what the agent knew at every step can be
+checked later. Adding tasks to the end continues a finished stream;
+changing an earlier task re-runs everything after it. Full details:
+**[docs/api/streams.md](docs/api/streams.md)**.
 
 ### Evaluate your own agent
 
@@ -151,7 +206,9 @@ the suite. The only thing you cannot bring is your own judge. Full guide
 with the `BaseAgent` skeleton and the OpenEvolve pattern:
 **[docs/guides/integration.md](docs/guides/integration.md)**.
 
-## Tasks
+## Benchmarks
+
+### Autoresearch
 
 | Benchmark | Tasks | Upstream | Run |
 |---|---|---|---|
@@ -162,7 +219,40 @@ with the `BaseAgent` skeleton and the OpenEvolve pattern:
 The next converters, vetted for autoresearch fit, are tracked in the
 [roadmap](https://github.com/Human-Agent-Society/tide-eval/issues/19).
 
-Each first-party task teaches one hard part of the category
+### Continual learning
+
+Three stream benchmarks. terminal-bench and CL-Bench tasks are committed
+to this repo (Apache-2.0) and run out of the box, with a pinned
+`fetch.py` to regenerate them; SWE-bench Verified's dataset repo has no
+license, so its tasks are fetched onto your machine instead:
+
+| Benchmark | Tasks | Upstream | Run |
+|---|---|---|---|
+| [terminal-bench](tasks/terminal-bench) | 89 · **v2.0 only** (1.x unsupported) · committed | [terminal-bench-2](https://github.com/laude-institute/terminal-bench-2) (Apache-2.0) | `tide stream my-stream terminal-bench --agent <a>` |
+| [SWE-bench Verified](tasks/swebench-verified) | 500 · fetched (upstream has no license) | [harbor-datasets](https://github.com/laude-institute/harbor-datasets) | `tide fetch swebench-verified --limit 50`, then `tide stream my-stream swebench-verified --agent <a>` |
+| [CL-Bench](tasks/cl-bench) | 301 · **all 6 domains** · committed | [continual-learning-bench](https://github.com/pgasawa/continual-learning-bench) (Apache-2.0) | `tide stream my-stream tasks/cl-bench/poker-* --agent <a>` |
+
+SWE-bench Verified is there because [AgentStream](https://arxiv.org/abs/2608.00155)
+builds its streams from six benchmarks, and it is the hardest of them with
+a published Harbor version — the two the paper measures as hardest, HLE
+and BrowseComp-Plus, have none yet.
+[CL-Bench](tasks/cl-bench) ([paper](https://arxiv.org/pdf/2606.05661)) is
+a continual-learning benchmark in the strict sense — sequential instances
+of one environment where remembering should help — and its *gain metric*
+(stateful minus stateless reward) is exactly `metrics.transfer`. All six
+domains are converted — the benchmark's full 301 instances: spectrum
+monitoring, sales forecasting, cohort studies, sequential PR bugfixes,
+metered database exploration, and heads-up poker against exploitable
+opponents. Scoring is the upstream metric in every domain, deterministic
+and offline; where a domain has hidden state (the poker deck, the metered
+database), it lives in a judge sidecar the agent reaches only over HTTP.
+A stream also takes any task list you build yourself, repeats allowed
+(that is how forgetting is measured) — see
+[streams](docs/api/streams.md).
+
+### What each first-party task teaches
+
+Each first-party task teaches one hard part of the autoresearch category
 (oracle-verified in real containers, cheat cases re-tested in CI):
 
 | Task | Teaches |
