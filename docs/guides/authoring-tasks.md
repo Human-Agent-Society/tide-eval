@@ -204,7 +204,7 @@ tide adds nothing:
    ```
 
 Give the **judge** service the reservation instead (or as well) when
-scoring itself needs the GPU, e.g. re-timing kernels trustably. One honest
+scoring itself needs the GPU, e.g. re-timing kernels trustably. One
 caveat for kernel-timing tasks: wall-clock speedups measured on
 shared/heterogeneous hosts are noisy. Prefer scoring against a reference
 implementation run in the same container, same session (relative speedup),

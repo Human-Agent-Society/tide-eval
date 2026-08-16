@@ -50,19 +50,19 @@ sequenceDiagram
 Three decisions carry the model:
 
 - **One scoring implementation, judge-side.** `score.py` grades every
-  submission; the agent sees only scores coming back. There is nothing on
-  the agent's side to keep honest, because there is nothing on the agent's
-  side at all. It may build its own local evaluator for its inner loop
+  submission; the agent sees only scores coming back. No scoring machinery
+  exists on the agent's side to protect. The agent may build its own local evaluator for its inner loop
   (the objective is in the instruction), and tide neither requires nor
   trusts that.
 - **The submission budget** (`judge_config.json`) bounds judge compute and
-  information leakage, the same dial Kaggle turns with daily submission
+  information leakage, the same mechanism as Kaggle's daily submission
   limits. Refused submissions are never recorded.
 - **The final judge is terminal.** `final.py` (optional) holds hidden
   tests (held-out data, stricter checks) and runs exactly once, on the
   best submission, when the verifier calls `GET /final`. That call locks
   the session: later submissions are refused and repeat calls return the
-  cached verdict, so an agent that peeks early ends its own run.
+  cached verdict, so an agent that calls it early terminates its own
+  session.
    [symbolic-regression](../../tasks/autoresearch/symbolic-regression) is the
   reference: session feedback on training points, final grade on held-out
   points that no submission budget can probe.

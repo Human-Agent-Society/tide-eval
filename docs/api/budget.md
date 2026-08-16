@@ -56,10 +56,10 @@ comparable no matter how you integrate.
    spend comes back as `used_*` columns (see below). `tide report` and every
    `metrics` query read both.
 
-## Enforcement is honest per dimension
+## Enforcement per dimension
 
-tide does not pretend a black-box harness can be interrupted mid-thought.
-What's hard vs. soft:
+A black-box harness cannot be interrupted mid-generation, so enforcement
+differs by dimension:
 
 | Dimension | Enforcement |
 |---|---|
@@ -119,7 +119,7 @@ df = lab.df("episode")
 # What does more budget buy? (any axis; pass the budget column)
 metrics.scaling(df, budget="budget_max_tokens", by=["model"])
 
-# Reward per unit actually spent: the budget's flip side
+# Reward per unit actually spent
 metrics.efficiency(
     df, spend="used_n_total_tokens", per=1000, by=["model"]
 )  # per 1k tokens

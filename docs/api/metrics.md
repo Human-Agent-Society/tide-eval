@@ -31,10 +31,10 @@ metrics.improvements(trace, by=["task"])  # how often self-eval improved
 ## The column contract
 
 The store never fixes a result schema; instead **each metric documents the
-columns it expects** and your script supplies them as tags. That is the
-entire mechanism keeping free-form tags from becoming chaos.
+columns it expects** and your script supplies them as tags. That is what
+keeps free-form tags consistent across scripts.
 
-Two more rules keep the numbers honest:
+Two more rules keep the numbers comparable:
 
 1. **Raw in the store, normalized in the view**: rescales apply at query
    time, so re-anchoring never requires re-running anything.

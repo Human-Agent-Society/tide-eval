@@ -7,7 +7,7 @@ continual-learning task streams (ordered task sequences under one agent
 that carries its memory from episode to episode).
 
 - **[Get started](introduction/get-started.md)**: install to a real agent
-  score, including auth and network gotchas.
+  score, including auth and network setup.
 - **[Design](introduction/design.md)**: the trust model, where the judge owns all
   scoring.
 - **[Evaluating your agent](guides/integration.md)**: bring your own agent
