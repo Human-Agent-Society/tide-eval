@@ -1,19 +1,15 @@
-"""Exploitable-poker judge — one deterministic hand behind a sidecar.
+"""Exploitable-poker judge: one deterministic hand behind a sidecar.
 
-Replays CL-Bench's exploitable_poker mechanics
-(pgasawa/continual-learning-bench, Apache-2.0) for a single hand: the
-deck and button are dealt exactly as upstream (global-RNG seed + burn,
-verified against the upstream harness), the opponent is the vendored
-deterministic policy, the engine is ``texasholdem==0.11.0``, and the
-reward is chip profit divided by the big blind. The deck and both hands
-live in this container only; the agent's container gets state as text
-over HTTP, so hidden information stays hidden.
+Replays CL-Bench's exploitable_poker mechanics (Apache-2.0) for a single
+hand. The deck and button are dealt exactly as upstream (global-RNG seed
+plus burn, verified against the upstream harness), the opponent is the
+vendored deterministic policy, and the reward is chip profit divided by
+the big blind. The deck and both hands live in this container only; the
+agent gets state as text over HTTP.
 
-Endpoints: ``GET /state`` — the current decision prompt (or the final
-report) · ``POST /act`` {"action": "FOLD|CALL|CHECK|RAISE", "amount": N}
-— invalid actions leave state unchanged and cost nothing, as upstream ·
-``GET /final`` — the verifier's verdict; if the hand is still running it
-is finished check/fold · ``GET /health``.
+Endpoints: ``GET /state`` — ``POST /act`` {"action", "amount"} (invalid
+actions leave state unchanged and cost nothing, as upstream) —
+``GET /final``, finishing an unfinished hand check/fold — ``GET /health``.
 """
 
 import json
@@ -31,19 +27,15 @@ from texasholdem.game.player_state import PlayerState
 sys.path.insert(0, str(Path(__file__).parent))
 import poker_opponents  # noqa: E402 — lives beside this file in the judge image
 
-JUDGE_DIR = Path(os.environ.get("JUDGE_DIR", Path(__file__).parent))
-PORT = int(os.environ.get("PORT", "8082"))
-
-CONFIG = json.loads((JUDGE_DIR / "hand_config.json").read_text())
 STARTING_CHIPS, SMALL_BLIND, BIG_BLIND = 1000, 5, 10
 
 _lock = threading.Lock()
 
 
-def deal_hand() -> TexasHoldEm:
-    """The upstream deal, exactly: seed the stage, burn earlier hands."""
-    random.seed(int(CONFIG["stage_seed"]))
-    for _ in range(int(CONFIG["burn"])):
+def deal_hand(config: dict) -> TexasHoldEm:
+    """Deal the hand exactly as upstream: seed the stage, burn earlier hands."""
+    random.seed(int(config["stage_seed"]))
+    for _ in range(int(config["burn"])):
         TexasHoldEm(
             buyin=STARTING_CHIPS,
             big_blind=BIG_BLIND,
@@ -61,9 +53,10 @@ def deal_hand() -> TexasHoldEm:
 
 
 class Hand:
-    def __init__(self):
-        self.policy = poker_opponents.get_opponent_policy(CONFIG["variant"])
-        self.game = deal_hand()
+    def __init__(self, config: dict):
+        self.config = config
+        self.policy = poker_opponents.get_opponent_policy(config["variant"])
+        self.game = deal_hand(config)
         self.bot_actions: list[str] = []
         self.agent_bet_this_street = 0
         self.finalized = False
@@ -177,9 +170,9 @@ class Hand:
         else:
             situation = "Action to you (you can check or raise)"
 
-        return f"""Hand #{CONFIG["hand_number"]} - {phase}
+        return f"""Hand #{self.config["hand_number"]} - {phase}
 Table: Heads-up Texas Hold'em (2 players)
-Opponent: {CONFIG["opponent_name"]}
+Opponent: {self.config["opponent_name"]}
 Your position: {position}
 Your hand: {hand_str}
 Board: {board}
@@ -207,16 +200,13 @@ What's your action?
             )
         return {
             "report": (
-                f"Hand {CONFIG['hand_number']} complete: You {outcome}!{showdown}\n\n"
+                f"Hand {self.config['hand_number']} complete: You {outcome}!{showdown}\n\n"
                 f"Ending stack: {self.game.players[0].chips} chips\n"
                 f"Net chip change this hand: {delta:+d} chips"
             ),
             "net_chips": delta,
             "reward": round(delta / BIG_BLIND, 6),
         }
-
-
-HAND = Hand()
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -267,4 +257,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    ThreadingHTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
+    judge_dir = Path(os.environ.get("JUDGE_DIR", Path(__file__).parent))
+    port = int(os.environ.get("PORT", "8082"))
+    HAND = Hand(json.loads((judge_dir / "hand_config.json").read_text()))
+    ThreadingHTTPServer(("0.0.0.0", port), Handler).serve_forever()

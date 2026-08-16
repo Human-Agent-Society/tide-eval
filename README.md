@@ -156,7 +156,7 @@ Re-running any script resumes it. Reference:
 A `Stream` runs an ordered task list under one agent. Every task's
 container gets the same state directory mounted in (`$TIDE_STATE_DIR`),
 so the agent's memory, skill library, or evolved harness rides along from
-task to task — and whether that helps is exactly what gets measured:
+task to task — and whether that helps is what gets measured:
 
 ```python
 from tide import Lab, Stream, metrics
@@ -245,7 +245,7 @@ and BrowseComp-Plus, have none yet.
 [CL-Bench](tasks/cl-bench) ([paper](https://arxiv.org/pdf/2606.05661)) is
 a continual-learning benchmark in the strict sense — sequential instances
 of one environment where remembering should help — and its *gain metric*
-(stateful minus stateless reward) is exactly `metrics.transfer`. All six
+(stateful minus stateless reward) is `metrics.transfer`. All six
 domains are converted — the benchmark's full 301 instances: spectrum
 monitoring, sales forecasting, cohort studies, sequential PR bugfixes,
 metered database exploration, and heads-up poker against exploitable

@@ -1,17 +1,14 @@
-"""Fetch CL-Bench domains and convert them to stock Harbor tasks, pinned.
+"""Fetch CL-Bench and convert it to Harbor tasks, pinned.
 
-    python tasks/cl-bench/fetch.py                   # every converted domain
-    python tasks/cl-bench/fetch.py bsm sales         # just these domains
-    python tasks/cl-bench/fetch.py bsm --limit 10    # first N instances per domain
+    python tasks/cl-bench/fetch.py                   # every domain
+    python tasks/cl-bench/fetch.py bsm sales         # just these
+    python tasks/cl-bench/fetch.py bsm --limit 10    # first N per domain
 
-Everything downloads from the pinned commit of
-pgasawa/continual-learning-bench (Apache-2.0); corpora that publish a
-sha256 are verified against it. Each domain's converter lives beside this
-script (``convert_<domain>.py``) and its scorer is deterministic and
-offline — no LLM judge anywhere. Then, e.g.:
-
-    tide stream my-stream tasks/cl-bench/sales-* --agent claude-code --model anthropic/claude-opus-5
-    tide stream my-stream cl-bench --agent ...     # or every domain, name-ordered
+All 301 tasks are committed to the repo; run this only to regenerate
+them. Sources download from the pinned commit of
+pgasawa/continual-learning-bench (Apache-2.0) and are verified against
+their published sha256 where one exists. Each domain's converter lives
+beside this script as ``convert_<domain>.py``.
 """
 
 import argparse
@@ -132,9 +129,10 @@ def fetch_cohort(limit: int | None) -> int:
 
 
 # The upstream default schedule's blocked issue order: tablib, then tenacity.
-CODEBASE_ORDER = [
-    *(f"jazzband__tablib-{n}" for n in (534, 540, 547, 579, 584, 594, 595, 596, 613)),
-    *(f"jd__tenacity-{n}" for n in (597, 603, 604, 606, 609, 610, 611, 614, 615, 628)),
+_TABLIB_PRS = [534, 540, 547, 579, 584, 594, 595, 596, 613]
+_TENACITY_PRS = [597, 603, 604, 606, 609, 610, 611, 614, 615, 628]
+CODEBASE_ORDER = [f"jazzband__tablib-{n}" for n in _TABLIB_PRS] + [
+    f"jd__tenacity-{n}" for n in _TENACITY_PRS
 ]
 
 

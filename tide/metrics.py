@@ -177,30 +177,25 @@ def learning_curve(
     by: list[str] | None = None,
     window: int | None = None,
 ) -> pd.DataFrame:
-    """Score over stream position — did carrying state help over the stream?
+    """Score over stream position — the continual-learning progress curve.
 
     Expects columns: *position*, *score*, plus any *by* group columns
-    (typically ``stream``, or a model tag when comparing agents). Returns
-    the input sorted by position with ``cum_mean`` — the expanding mean
-    within each group, i.e. average performance so far — and, when *window*
-    is given, a ``rolling_mean`` over that many positions.
+    (typically ``stream``). Returns the input sorted by position with a
+    ``cum_mean`` column (expanding mean within each group) and, when
+    *window* is given, a ``rolling_mean`` over that many positions.
     """
     out = df.sort_values((by or []) + [position]).copy()
-
-    def _expanding(s: pd.Series) -> pd.Series:
-        return s.expanding().mean()
-
-    def _rolling(s: pd.Series) -> pd.Series:
-        return s.rolling(window, min_periods=1).mean()
-
     if by:
-        out["cum_mean"] = out.groupby(by)[score].transform(_expanding)
+        grouped = out.groupby(by)[score]
+        out["cum_mean"] = grouped.transform(lambda s: s.expanding().mean())
         if window is not None:
-            out["rolling_mean"] = out.groupby(by)[score].transform(_rolling)
+            out["rolling_mean"] = grouped.transform(
+                lambda s: s.rolling(window, min_periods=1).mean()
+            )
     else:
-        out["cum_mean"] = _expanding(out[score])
+        out["cum_mean"] = out[score].expanding().mean()
         if window is not None:
-            out["rolling_mean"] = _rolling(out[score])
+            out["rolling_mean"] = out[score].rolling(window, min_periods=1).mean()
     return out
 
 
@@ -214,11 +209,10 @@ def transfer(
     """Forward transfer: stream performance against an isolated baseline.
 
     Expects columns *on* and *score* in both frames: *stream_df* holds
-    episodes run inside a stream, *baseline_df* the same tasks run isolated
-    (a plain ``lab.run`` sweep — the control arm). Returns one row per
-    stream task with mean ``stream`` and ``isolated`` scores and their
-    difference ``transfer`` (positive = the carried state helped); tasks
-    with no baseline get NaN.
+    episodes run inside a stream, *baseline_df* the same tasks run
+    isolated (a plain ``lab.run`` sweep). Returns one row per stream task
+    with mean ``stream`` and ``isolated`` scores and their difference
+    ``transfer``; tasks with no baseline get NaN.
     """
     s = stream_df.groupby(on)[score].mean().rename("stream").reset_index()
     b = baseline_df.groupby(on)[score].mean().rename("isolated").reset_index()
@@ -234,14 +228,13 @@ def forgetting(
     score: str = "reward",
     task: str = "task",
 ) -> pd.DataFrame:
-    """How much revisited tasks degraded — the classic forgetting measure.
+    """How much revisited tasks degraded over a stream.
 
-    Expects columns: *task*, *position*, *score*, over one stream's episode
-    rows. For each task at two or more positions: the best score among the
-    earlier visits minus the score at the last visit (positive = the agent
-    forgot). Tasks visited once are excluded — build revisits into the
-    stream's task list to measure this. Returns one row per revisited task
-    with its ``first``/``last`` positions and ``forgetting``.
+    Expects columns: *task*, *position*, *score*. For each task seen at
+    two or more positions: the best score among the earlier visits minus
+    the score at the last visit (positive means the agent forgot). Tasks
+    visited once are excluded. Returns one row per revisited task with
+    its ``first``/``last`` positions and ``forgetting``.
     """
     rows = []
     for name, g in df.sort_values(position).groupby(task):

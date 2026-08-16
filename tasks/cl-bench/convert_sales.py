@@ -1,20 +1,17 @@
-"""Convert CL-Bench sales-prediction instances into stock Harbor tasks.
+"""Convert the sales-prediction domain into Harbor tasks.
 
 Twelve yearly forecasting rounds at a fictional furniture retailer: each
 round the agent gets a fresh data room (one store's recent history plus
-the catalog, with per-store schemas that drift over the lifecycle) and
-must forecast five years of demand for 15 product-location pairs — many
-of which the visible data does not cover. Scored by WAPE-skill against
-realized sales.
+the catalog) and forecasts five years of demand for 15 product-location
+pairs. Scored by WAPE-skill against realized sales.
 
-One instance = one Harbor task named ``sales-iNN``, so name order replays
-the lifecycle. The data room is generated with the *vendored upstream
-code* (``vendor_sales.py``) from the published panel, so files are
-byte-faithful to the benchmark. Upstream keeps a persistent ``/app``
-workspace between rounds and injects prediction-vs-actual feedback; here
-the persistent workspace is the stream's ``$TIDE_STATE_DIR`` and the
-refreshed data room carries the realized numbers — the agent's memory
-holds its own past predictions, so the same feedback is self-served.
+One round = one task named ``sales-iNN``. Data rooms are generated with
+the vendored upstream code (``vendor_sales.py``), so files match the
+benchmark exactly. Upstream keeps a persistent ``/app`` workspace and
+injects prediction-vs-actual feedback; here the persistent workspace is
+``$TIDE_STATE_DIR`` and the refreshed data room carries the realized
+numbers, so the agent reconstructs the same feedback from its own saved
+predictions.
 """
 
 import importlib.util
@@ -115,6 +112,9 @@ def render_instruction(instance: dict, data_room, profile) -> str:
             "per company retention policy."
         )
 
+    files_block = "\n".join(file_lines)
+    pairs_block = "\n".join(pairs)
+
     return f"""{CANARY}
 
 You are an AI forecasting agent deployed by a high-end furniture retailer
@@ -137,7 +137,7 @@ did.
 Reference files are in `/app/data/`. You have Python 3 with Pandas, SciPy,
 and Scikit-Learn.
 
-{chr(10).join(file_lines)}
+{files_block}
 - `data/furniture.json` — product catalog ({profile.furniture_id_key}, {profile.furniture_name_key}, type, price)
 - `data/furniture_types.json` — type ID → display name mapping
 - `data/locations.json` — store locations ({profile.location_id_key}, {profile.locality_key}, state)
@@ -151,7 +151,7 @@ counts. Scoring is **composite_score**: 1.0 = perfect, 0 ≈ predicting zero
 everywhere, and the score can go negative if you significantly
 overpredict. Required entries:
 
-{chr(10).join(pairs)}
+{pairs_block}
 
 ## Submitting
 

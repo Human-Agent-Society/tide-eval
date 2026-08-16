@@ -1,16 +1,12 @@
-"""Sales-prediction scorer — runs as each converted task's verifier.
+"""Sales-prediction scorer, run as each task's verifier.
 
 The metric is CL-Bench's WAPE-skill, unchanged:
 ``1 - sum|pred - actual| / sum|actual|`` over every required
-(locality, furniture, year) entry — 1.0 is perfect, 0 is as good as
-predicting zero everywhere, and the score goes *negative* on
-catastrophic over-prediction (deliberately unclipped upstream).
-
-Parsing mirrors the upstream runtime path: a JSON object with a
-``predictions`` list (a bare list also works), duplicate entries keep the
-first, and any required entry that is missing or non-numeric counts as
-predicting 0. A file that is missing or not JSON at all scores 0.0 with a
-reason, matching upstream's invalid-format outcome.
+(locality, furniture, year) entry. 1.0 is a perfect forecast, 0 is as
+good as predicting zero everywhere, and large over-predictions go
+negative (unclipped, as upstream). Parsing mirrors the upstream runtime:
+duplicates keep the first entry, and missing or unusable entries count
+as predicting 0. A missing or non-JSON file scores 0.
 """
 
 import json

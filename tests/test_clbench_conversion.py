@@ -342,30 +342,25 @@ def test_poker_hand_specs_cover_the_default_schedule():
     }
 
 
-def test_poker_deal_matches_the_verified_upstream_table(tmp_path, monkeypatch):
+def test_poker_deal_matches_the_verified_upstream_table():
     pytest.importorskip("texasholdem")
-    monkeypatch.setenv("JUDGE_DIR", str(tmp_path))
-    (tmp_path / "question.json")  # unused; poker reads hand_config.json
-    (tmp_path / "hand_config.json").write_text(
-        json.dumps(
-            {
-                "variant": "calling_station",
-                "stage_seed": 42,
-                "burn": 3,  # hand 4 of stage seed 42
-                "opponent_name": "Tom",
-                "hand_number": 4,
-            }
-        )
-    )
     server = _load("poker_server")
-    hand = server.Hand()
+    hand = server.Hand(
+        {
+            "variant": "calling_station",
+            "stage_seed": 42,
+            "burn": 3,  # hand 4 of stage seed 42
+            "opponent_name": "Tom",
+            "hand_number": 4,
+        }
+    )
     assert [str(c) for c in hand.game.hands[0]] == ["Ac", "9s"]
     assert [str(c) for c in hand.game.hands[1]] == ["3h", "5h"]
     assert hand.game.btn_loc == 1
-    # Invalid action leaves state untouched and reports the reason.
+    # Invalid actions leave the state untouched and report a reason.
     error = hand.act("RAISE", None)
     assert error and "Invalid poker action" in error
-    # Check/call always finishes a hand; reward is chips/big-blind.
+    # Check/call always finishes a hand; reward is chips over the big blind.
     for _ in range(60):
         if hand.done:
             break

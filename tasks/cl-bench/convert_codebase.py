@@ -1,17 +1,14 @@
-"""Convert CL-Bench codebase-adaptation instances into stock Harbor tasks.
+"""Convert the codebase-adaptation domain into Harbor tasks.
 
 Nineteen real merged-PR bugfix issues — 9 in jazzband/tablib, then 10 in
-jd/tenacity (the upstream default schedule's blocked order) — each played
-against the upstream-published Docker image with the repo's full git
-history baked in. The workspace is prepared at image build time exactly
-as upstream does at runtime: checkout the task's base commit, apply the
-official test patch. The verifier replays the upstream evaluation
-(``score_codebase.py``); the gold PR patch is the reference solution, so
-the oracle scores 1.0.
+jd/tenacity, the upstream schedule's order — each built on the
+upstream-published Docker image. The workspace is prepared at image
+build time the same way upstream does at runtime: check out the base
+commit, apply the official test patch. The verifier replays the upstream
+evaluation (``score_codebase.py``), and the gold PR patch is the
+reference solution, so the oracle scores 1.0.
 
-One issue = one Harbor task named ``code-iNN``. Streaming the folder in
-name order replays the tablib→tenacity lifecycle; what transfers is the
-agent's memory of each repo's layout, test commands, and conventions.
+One issue = one task named ``code-iNN``.
 """
 
 import base64

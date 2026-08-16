@@ -1,42 +1,21 @@
-"""Task streams: continual-learning evaluation over a sequence of episodes.
+"""Task streams for continual-learning evaluation.
 
-A :class:`Stream` is an ordered list of Harbor tasks run under one agent,
-with a **state directory** carried from episode to episode. Each position
-is one ordinary episode — one Harbor trial, one container, one trusted
-row — and the only thing connecting the positions is whatever the agent
-wrote into ``$TIDE_STATE_DIR``: memory files, a skill library, an evolved
-harness. Whether accumulating that state actually helps is the
-measurement.
+A :class:`Stream` runs an ordered list of Harbor tasks under one agent and
+carries a state directory between them. Each task runs in a fresh
+container with the directory mounted at ``$TIDE_STATE_DIR``; whatever the
+agent writes there is visible in the next task. tide never reads the
+contents — an agent that ignores the directory is simply a stateless
+baseline.
 
-Mechanics per position:
+The directory is snapshotted after every task and restored before the
+next, so every task starts from a known state and a crashed stream
+resumes cleanly. Episode keys cover the task list up to each position:
+appending tasks extends a finished stream, while editing an earlier task
+re-runs everything after it.
 
-- the state directory is delivered by the executor (bind-mounted into the
-  agent's container; a host path under ``--local``) — see
-  :mod:`tide.executors`;
-- **before** the episode runs, the live state is reset from the previous
-  position's snapshot, so every episode's starting state is deterministic
-  even across crashes and re-runs;
-- **after** it runs, the state is snapshotted
-  (``<lab>/streams/<stream>-<variant>/snapshots/<position>``), which is
-  what makes resume honest and every episode's input state auditable.
-
-Episodes land in the same store as everything else, tagged ``stream`` and
-``position``; the continual-learning metrics
-(:func:`tide.metrics.learning_curve`, :func:`tide.metrics.transfer`,
-:func:`tide.metrics.forgetting`) are queries over those tags.
-
-Resume follows the Lab's rule — re-running skips recorded positions — with
-one stream-specific refinement: a position's key covers the task list *up
-to that position*. Appending tasks therefore extends a finished stream,
-while editing an earlier position re-runs everything after it: a stream is
-one measurement, and a changed history invalidates what followed.
-
-To seed a stream with pre-built state (an agent that already has a
-memory), copy it into ``<state_root>/state`` before the first run — see
-:meth:`Stream.state_root`. The seed is captured once as the ``init``
-snapshot. A stream's state is agent-authored and untrusted; it is never
-visible to any judge or verifier, so it can influence only the agent's own
-future — the trust model is unchanged.
+Rows land in the Lab's store tagged ``stream`` and ``position``. See
+:func:`tide.metrics.learning_curve`, :func:`tide.metrics.transfer`, and
+:func:`tide.metrics.forgetting` for the matching metrics.
 """
 
 from __future__ import annotations
@@ -57,7 +36,11 @@ logger = logging.getLogger("tide")
 
 
 class Stream:
-    """An ordered task sequence evaluated under one carried agent state."""
+    """An ordered task sequence run under one carried agent state.
+
+    ``name`` identifies the stream: re-running the same name (with the
+    same setup) resumes it, and a new name starts fresh with empty state.
+    """
 
     def __init__(self, name: str, tasks: Sequence[str]):
         if not tasks:
@@ -74,17 +57,17 @@ class Stream:
         budget: Budget | dict[str, Any] | float | int | str | None = None,
         **overrides: Any,
     ) -> list[Row]:
-        """Run every position in order, carrying state; one Row per position.
+        """Run every task in order, carrying state; returns one Row each.
 
-        Sequential by design: position p+1's starting state is position p's
-        ending state, so a stream is one measurement, not a batch. (Distinct
-        streams run concurrently just fine; never run the *same* stream
-        variant concurrently with itself.) Already-recorded positions are
-        skipped, and their snapshots stand in for re-execution.
+        ``agent``, ``budget``, and ``**overrides`` mean the same as on
+        :meth:`tide.lab.Lab.run` and apply to every task. ``tags`` are
+        recorded on every row, plus ``stream`` and ``position``.
 
-        ``agent``, ``budget``, and ``**overrides`` mean exactly what they
-        mean on :meth:`tide.lab.Lab.run` and apply to every position;
-        ``tags`` are recorded on every row, plus ``stream`` and ``position``.
+        Tasks run sequentially because each one's starting state is the
+        previous one's ending state. Tasks that already have a stored row
+        are skipped, with their snapshots standing in for re-execution.
+        Distinct streams can run concurrently; the same stream must not
+        run concurrently with itself.
         """
         tags = dict(tags or {})
         budget = Budget.coerce(budget)
@@ -98,7 +81,8 @@ class Stream:
         for position, task in enumerate(self.tasks):
             key = self._key(position, task, variant)
             snap = snapshots / f"{position:03d}"
-            if (existing := lab.store.get(key)) is not None:
+            existing = lab.store.get(key)
+            if existing is not None:
                 logger.info("skip %s (already recorded)", key)
                 rows.append(existing)
                 prev_snap = snap
@@ -127,17 +111,17 @@ class Stream:
         budget: Budget | dict[str, Any] | float | int | str | None = None,
         **overrides: Any,
     ) -> Path:
-        """Where this stream variant keeps its state, for the same arguments
-        you would pass to :meth:`run`: ``<state_root>/state`` is the live
-        directory (write here before the first run to seed the stream) and
-        ``<state_root>/snapshots/<position>`` is each episode's ending state.
+        """Where this stream keeps its state, given the same arguments as
+        :meth:`run`.
+
+        ``<state_root>/state`` is the live directory (write here before
+        the first run to seed the stream) and
+        ``<state_root>/snapshots/<position>`` is each task's ending state.
         """
         variant = self._variant(
             agent, dict(tags or {}), Budget.coerce(budget), overrides
         )
         return self._root(lab, variant)
-
-    # -------------------------------------------------------------- helpers
 
     def _root(self, lab: Lab, variant: str) -> Path:
         return lab.root / "streams" / f"{self.name}-{variant}"
@@ -149,8 +133,8 @@ class Stream:
         budget: Budget | None,
         overrides: dict[str, Any],
     ) -> str:
-        """One digest per distinct measurement setup, so the same stream name
-        under two agents (or budgets) keeps separate state and separate keys."""
+        """One digest per setup, so the same stream name under two agents
+        (or budgets) keeps separate state and keys."""
         from tide.lab import Lab
 
         return Lab._digest(
@@ -163,8 +147,8 @@ class Stream:
         )
 
     def _key(self, position: int, task: str, variant: str) -> str:
-        """Stable episode key covering the task list up to this position, so
-        appends extend a stream while edits invalidate their suffix."""
+        """Episode key covering the task list up to this position, so
+        appends extend a stream while edits invalidate what follows."""
         from tide.lab import Lab
 
         prefix = Lab._digest({"variant": variant, "prefix": self.tasks[: position + 1]})
@@ -173,18 +157,17 @@ class Stream:
 
     @staticmethod
     def _reset_state(live: Path, prev_snap: Path | None, *, init: Path) -> None:
-        """live := the previous position's snapshot (the seed for position 0)."""
+        """Set the live directory to the previous task's snapshot (or, for
+        position 0, to the seed captured as the init snapshot)."""
         if prev_snap is None:
-            # Position 0: whatever the live dir holds before the first run is
-            # the stream's seed state; capture it once as the init snapshot.
             if not init.is_dir():
                 live.mkdir(parents=True, exist_ok=True)
                 _copy_dir(live, init)
             prev_snap = init
         elif not prev_snap.is_dir():
-            # The previous position has a row but no snapshot: a crash in the
-            # window after its row was stored. Nothing ran since, so the live
-            # dir is exactly its ending state — recover the snapshot from it.
+            # The previous task has a row but no snapshot: the run crashed
+            # right after the row was stored. Nothing ran since, so the
+            # live directory is its ending state — recover the snapshot.
             if not live.is_dir():
                 raise RuntimeError(
                     f"cannot resume stream: snapshot {prev_snap} is missing and "
@@ -198,8 +181,8 @@ class Stream:
 
 
 def _copy_dir(src: Path, dst: Path) -> None:
-    """Copy a directory such that a crash never leaves a half-written *dst*
-    (copy to a sibling, then rename into place)."""
+    """Copy a directory via a sibling temp dir and a rename, so a crash
+    never leaves a half-written copy at *dst*."""
     tmp = dst.with_name(dst.name + ".tmp")
     if tmp.exists():
         shutil.rmtree(tmp)

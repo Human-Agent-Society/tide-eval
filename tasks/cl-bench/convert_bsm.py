@@ -1,18 +1,11 @@
-"""Convert CL-Bench blind-spectrum-monitoring scans into stock Harbor tasks.
+"""Convert the blind-spectrum-monitoring domain into Harbor tasks.
 
-CL-Bench (Continual Learning Bench, arXiv:2606.05661) publishes each
-domain as a corpus of sequential instances. This converter handles the
-blind-spectrum-monitoring domain — 90 scans of a radio band whose
-persistent transmitter layout must be inferred over time. One scan = one
-Harbor task; the prompt is assembled from the published record exactly the
-way the upstream harness renders its templates (system preamble +
-per-scan block), and the verifier is the upstream IoU scorer
-(``score_bsm.py`` beside this file). Feedback upstream is just
-"scan recorded" — no ground truth is ever revealed — so the learnable
-signal is precisely the scan history the stream's carried memory holds.
-
-Task folders are named ``bsm-sNN`` (scan number), so name order replays
-the lifecycle in sequence, drift stages and all.
+90 scans of a radio band whose persistent transmitter layout must be
+inferred over time. One scan = one task named ``bsm-sNN``, so name order
+replays the lifecycle. The prompt matches the upstream templates, and the
+verifier is the upstream IoU scorer (``score_bsm.py``). Upstream reveals
+no ground truth between scans, so the learnable signal is the scan
+history the stream's carried state holds.
 """
 
 import json

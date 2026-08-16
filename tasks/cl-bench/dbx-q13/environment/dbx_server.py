@@ -1,23 +1,15 @@
-"""Database-exploration judge — the query-metered sidecar for one question.
+"""Database-exploration judge: the query-metered sidecar for one question.
 
 Runs in the judge container with the SQLite database and the correct
-answer; the agent's container reaches it only over HTTP, so the query
-budget is enforced where the agent cannot touch it — the same trust
-model as tide's autoresearch judge.
+answer; the agent reaches it only over HTTP. Semantics are ported from
+CL-Bench's ``database_exploration/task.py`` (Apache-2.0): read-only
+queries (SELECT/WITH/EXPLAIN/PRAGMA plus ``.tables``/``.schema``),
+results capped at 50 rows, a 10-second timeout, errors consume budget,
+and the reward is ``1 - queries/15`` when the final answer is correct
+and 0 otherwise. Exceeding the 15-query budget force-fails the question.
 
-Semantics are ported from CL-Bench's ``database_exploration/task.py``
-(pgasawa/continual-learning-bench, Apache-2.0), unchanged: queries are
-read-only (SELECT/WITH/EXPLAIN/PRAGMA plus ``.tables``/``.schema``),
-results cap at 50 rows, a 10-second timeout applies, errors consume
-budget too, and the reward is ``1 − queries/15`` when the final answer is
-correct and ``0`` otherwise (the answer itself is free). Exceeding the
-budget force-fails the question. Answer checking is the upstream code:
-first integer / first float with ``max(tolerance, 1%)`` / case-insensitive
-text.
-
-Endpoints: ``POST /query`` {"sql"} · ``POST /answer`` {"answer"} —
-terminal · ``GET /final`` — the verifier's verdict, terminal ·
-``GET /health``.
+Endpoints: ``POST /query`` {"sql"} — ``POST /answer`` {"answer"},
+terminal — ``GET /final``, the verifier's verdict — ``GET /health``.
 """
 
 import json

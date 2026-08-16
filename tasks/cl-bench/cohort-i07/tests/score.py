@@ -1,19 +1,15 @@
-"""Cohort-studies scorer — runs as each converted task's verifier.
+"""Cohort-studies scorer, run as each task's verifier.
 
-Ports CL-Bench's ``src/tasks/cohort_studies/scorer.py`` faithfully
-(pgasawa/continual-learning-bench, Apache-2.0): for each of the 36
-cohorts, the mean binary KL divergence — log base 2, Dirichlet smoothing
-α = 0.01 — between the true population survival and the prediction at
-12/24/36 months; the instance score is the information gain in bits over
-the study-wide reference (the naive baseline)::
+Ported from CL-Bench's ``cohort_studies/scorer.py`` (Apache-2.0): for
+each of the 36 cohorts, the mean binary KL divergence (log base 2,
+Dirichlet smoothing alpha=0.01) between the true population survival and
+the prediction at 12/24/36 months. The score is the information gain in
+bits over the study-wide reference:
 
-    score = mean_c(KL_reference_c) − mean_c(KL_prediction_c)
+    score = mean_c(KL_reference_c) - mean_c(KL_prediction_c)
 
-Missing or unusable cohort estimates are backfilled with the reference
-survivals (scoring the same as guessing the study average), exactly as
-upstream. The per-instance ceiling — a perfect predictor's score — is
-``mean_c(KL_reference_c)``; negative scores are legitimate. Deterministic
-and offline, no LLM involved.
+Missing or unusable estimates are backfilled with the reference, exactly
+as upstream. Negative scores are legitimate. Deterministic and offline.
 """
 
 import json
