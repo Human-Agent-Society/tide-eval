@@ -1,19 +1,14 @@
-"""Convert CL-Bench database-exploration questions into stock Harbor tasks.
+"""Convert the database-exploration domain into Harbor tasks.
 
-Forty natural-language questions over an undocumented SQLite database
-(three Amazon product groups with deliberately inconsistent schemas);
-after question 20 the live database migrates and stale assumptions break.
-The reward is exploration efficiency: ``1 − exploratory_queries/15`` when
-the answer is correct, else 0 — so remembered schema knowledge is worth
-exactly what the benchmark says it is.
+Forty questions over an undocumented SQLite database; after question 20
+the database migrates and stale assumptions break. The reward is
+``1 - exploratory_queries/15`` when the answer is correct, else 0.
 
-One question = one Harbor task named ``dbx-qNN``, ordered by the
-upstream canonical schedule (run 0 of the schema-drift lifecycle). The
-database and the query meter live in a judge sidecar the agent reaches
-only over HTTP — the budget is enforced where the agent cannot touch it.
-As upstream reveals each question's correct answer afterwards, every
-instruction carries the previous question's correct answer; the agent's
-memory does the rest.
+One question = one task named ``dbx-qNN``, in the upstream canonical
+order. The database and the query meter live in a judge sidecar the
+agent reaches only over HTTP, so the budget is enforced out of the
+agent's hands. Upstream reveals each question's correct answer
+afterwards, so every instruction carries the previous question's answer.
 """
 
 import json

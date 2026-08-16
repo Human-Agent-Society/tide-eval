@@ -1,17 +1,15 @@
-"""Codebase-adaptation evaluator — runs as each converted task's verifier.
+"""Codebase-adaptation evaluator, run as each task's verifier.
 
-Replays CL-Bench's evaluation recipe (``generic_runtime.py``, Apache-2.0)
-inside the task container, in this order: capture the agent's ``git
-diff``; strip any sections touching test-owned paths (``strip_patch_paths``
-vendored verbatim); reset the repo to the base commit; re-apply the
-official test patch; apply the sanitized model patch; re-assert the
-canonical test files; run pytest on the exact FAIL_TO_PASS + PASS_TO_PASS
-node ids in collection order. Reward 1.0 iff pytest exits 0.
+Replays CL-Bench's evaluation recipe (``generic_runtime.py``,
+Apache-2.0) inside the task container: capture the agent's ``git diff``,
+strip any sections touching test-owned paths, reset the repo to the base
+commit, re-apply the official test patch, apply the sanitized model
+patch, then run pytest on the exact FAIL_TO_PASS and PASS_TO_PASS node
+ids in collection order. Reward is 1.0 iff pytest exits 0.
 
-Deviation from upstream, stated plainly: upstream shapes the reward by
-how early in a 40-step budget the patch landed (1 − (steps−1)/40);
-Harbor agents are not step-metered, so here a solved issue is 1.0 and an
-unsolved one 0.0 — the time budget bounds effort instead.
+One deviation from upstream: their reward scales with how early in a
+40-step budget the patch landed; Harbor agents are not step-metered, so
+here solved is 1.0 and unsolved is 0.0.
 """
 
 import json

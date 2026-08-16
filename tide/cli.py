@@ -239,9 +239,8 @@ def cmd_stream(args: argparse.Namespace) -> int:
     tags = _parse_tags(args.tag)
     budget = _build_budget(args)
     if args.shuffle is not None:
-        # AgentStream's interleaved protocol: seeded shuffle of the union,
-        # task set fixed. The seed becomes a tag, so each seed is its own
-        # stream (own state, own keys) and results pivot by `shuffle_seed`.
+        # The seed becomes a tag, so each seed is its own stream with its
+        # own state, keys, and resume.
         import random
 
         random.Random(args.shuffle).shuffle(targets)

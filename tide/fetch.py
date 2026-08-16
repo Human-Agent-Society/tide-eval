@@ -1,15 +1,10 @@
 """Fetch stock Harbor tasks from a benchmark's pinned git commit.
 
-The continual-learning stream benchmarks (terminal-bench 2.0, SWE-bench
-Verified) publish their tasks as ordinary Harbor task directories in a git
-repository, and the Harbor registry pins each release to one exact commit.
-Fetching is therefore not a conversion: a shallow fetch of that commit,
-then copying the wanted task folders out. The pin is what makes a fetch
-reproducible — the same ``fetch.py`` yields the same tasks, always.
-
-Blobs are fetched lazily (``--filter=blob:none``) and only the selected
-task folders are checked out, so pulling a handful of tasks from a huge
-dataset repository downloads roughly those tasks and nothing else.
+Stream benchmarks publish their tasks as ordinary Harbor task directories
+in a git repository, pinned to one commit. Fetching is a shallow fetch of
+that commit plus copying the wanted task folders out — no conversion.
+Blobs are fetched lazily, so pulling a few tasks from a large dataset
+repository downloads roughly those tasks and nothing else.
 """
 
 from __future__ import annotations
@@ -32,10 +27,10 @@ def fetch_pinned_tasks(
     """Copy the task folders published at ``git_url@commit`` into *dest*.
 
     A task folder is any directory directly under *subdir* (the repo root
-    by default) containing a ``task.toml``. ``only`` restricts the fetch to
-    the named tasks and raises on names that don't exist at the pin;
-    ``limit`` keeps the first N alphabetically. Existing copies in *dest*
-    are replaced. Returns the copied names, sorted.
+    by default) containing a ``task.toml``. ``only`` restricts the fetch
+    to the named tasks and raises on unknown names; ``limit`` keeps the
+    first N alphabetically. Existing copies in *dest* are replaced.
+    Returns the copied names, sorted.
     """
     dest = Path(dest)
     prefix = f"{subdir.rstrip('/')}/" if subdir else ""
@@ -45,16 +40,14 @@ def fetch_pinned_tasks(
         _git(tmp, "remote", "add", "origin", git_url)
         _git(tmp, "fetch", "-q", "--depth", "1", "--filter=blob:none", "origin", commit)
 
-        listing = _git(tmp, "ls-tree", "-r", "--name-only", commit)
-        names = sorted(
-            {
-                rest.split("/", 1)[0]
-                for line in listing.splitlines()
-                if line.startswith(prefix)
-                and (rest := line[len(prefix) :]).count("/") == 1
-                and rest.endswith("/task.toml")
-            }
-        )
+        names = set()
+        for line in _git(tmp, "ls-tree", "-r", "--name-only", commit).splitlines():
+            if not line.startswith(prefix):
+                continue
+            rest = line[len(prefix) :]
+            if rest.count("/") == 1 and rest.endswith("/task.toml"):
+                names.add(rest.split("/", 1)[0])
+        names = sorted(names)
         if not names:
             raise RuntimeError(
                 f"no task folders under '{subdir or '.'}' at {git_url}@{commit[:12]}"
@@ -66,15 +59,14 @@ def fetch_pinned_tasks(
                     f"unknown task(s) {unknown}; the pin has {len(names)} tasks: "
                     f"{', '.join(names[:8])}, ..."
                 )
-            wanted = set(only)
-            names = [n for n in names if n in wanted]
+            names = [n for n in names if n in set(only)]
         if limit is not None:
             names = names[:limit]
 
-        _git(tmp, "checkout", "-q", commit, "--", *(f"{prefix}{n}" for n in names))
+        _git(tmp, "checkout", "-q", commit, "--", *(prefix + n for n in names))
         dest.mkdir(parents=True, exist_ok=True)
         for name in names:
-            src = (tmp / subdir / name) if subdir else (tmp / name)
+            src = tmp / subdir / name if subdir else tmp / name
             target = dest / name
             if target.exists():
                 shutil.rmtree(target)

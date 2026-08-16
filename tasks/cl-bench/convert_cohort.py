@@ -1,20 +1,15 @@
-"""Convert CL-Bench cohort-studies instances into stock Harbor tasks.
+"""Convert the cohort-studies domain into Harbor tasks.
 
-A rolling meta-analysis of the fictional "Vardan-A Syndrome": each
-instance is one study's patient database (a SQLite file, published
-upstream), and the agent must submit population survival estimates for 36
-predefined cohorts — most of which no single study observes directly, so
-cross-study synthesis carried in memory is the whole game. Scored as
-information gain (bits) over the study-wide naive baseline; the
-per-instance ceiling is the baseline's own KL, achieved by a perfect
-predictor.
+A rolling meta-analysis of a fictional disease: each instance is one
+study's patient database (SQLite, published upstream), and the agent
+submits population survival estimates for 36 predefined cohorts, most of
+which no single study observes directly. Scored as information gain in
+bits over the study-wide baseline; a perfect predictor scores the
+per-instance ceiling, recorded as ``oracle_score``.
 
-One instance = one Harbor task named ``cohort-iNN`` (lifecycle order).
-Faithfulness note: upstream mediates exploration through a six-tool API
-with a 20-action budget; here the study database sits at
-``/app/study.db`` with full shell + Python access and no action cap — the
-information available is the same (the tools were views over this exact
-database), but exploration is not metered.
+One instance = one task named ``cohort-iNN``. One deviation from
+upstream: the six-tool exploration API with its 20-action budget becomes
+direct SQLite access under a time budget.
 """
 
 import json
@@ -106,10 +101,10 @@ def render_instruction(
     instance: dict, cohort_definitions: list[dict], total_instances: int
 ) -> str:
     study = STUDIES[instance["study_name"]]
-    cohort_lines = [
+    cohort_lines = "\n".join(
         f"- `{c['cohort_id']}` — {c['label']}: {c['criteria']}"
         for c in cohort_definitions
-    ]
+    )
     return f"""{CANARY}
 
 You are the analyst for a research consortium running a rolling
@@ -146,7 +141,7 @@ across the studies you have seen is what earns bits.
 Submit P(survival) at 12, 24, and 36 months for every cohort below —
 including cohorts this study cannot observe directly:
 
-{chr(10).join(cohort_lines)}
+{cohort_lines}
 
 ## Scoring
 

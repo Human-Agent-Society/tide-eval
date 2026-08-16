@@ -1,23 +1,16 @@
-"""Convert CL-Bench exploitable-poker hands into stock Harbor tasks.
+"""Convert the exploitable-poker domain into Harbor tasks.
 
-120 deterministic heads-up NLHE hands against three scripted opponents,
-in the upstream default schedule's five stages (calling station →
-loose-aggressive → calling station again → fit-or-fold →
-loose-aggressive again). Every hand starts from fresh 1000-chip stacks;
-the reward is chip profit in big blinds. Learning = inferring each
-opponent's exploitable pattern across hands and noticing when the
-opponent changes.
+120 deterministic heads-up hold'em hands against three scripted
+opponents, in the upstream schedule's five stages. Every hand starts
+from fresh 1000-chip stacks; the reward is chip profit in big blinds.
 
-One hand = one Harbor task named ``poker-hNNN``. The engine
+One hand = one task named ``poker-hNNN``. The engine
 (``texasholdem==0.11.0``), the vendored opponent policy, and the deck —
-dealt exactly as upstream via the verified seed-plus-burn recipe — live
-in a judge sidecar; the agent's container sees only the decision prompts
-over HTTP, so hole cards and the deck stay hidden. The reference
-solution plays check/call to showdown; its exact reward per hand is
-simulated at conversion time and recorded as ``oracle_reward``.
-
-Converting this domain needs ``texasholdem==0.11.0`` on the host (for
-the oracle simulation): ``pip install texasholdem==0.11.0``.
+dealt exactly as upstream via seed plus burn — live in a judge sidecar,
+so hole cards stay hidden. The reference solution plays check/call; its
+exact reward is simulated at conversion time and recorded as
+``oracle_reward``. Regenerating this domain needs
+``pip install texasholdem==0.11.0`` on the host.
 """
 
 import importlib.util
@@ -145,36 +138,29 @@ def hand_specs() -> list[dict]:
     return specs
 
 
+_server = None
+
+
+def _load_server():
+    global _server
+    if _server is None:
+        spec = importlib.util.spec_from_file_location(
+            "poker_server", HERE / "poker_server.py"
+        )
+        _server = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = _server
+        spec.loader.exec_module(_server)
+    return _server
+
+
 def simulate_check_call(config: dict) -> float:
-    """The reference policy's exact reward, via the real judge driver."""
-    import tempfile
-
-    with tempfile.TemporaryDirectory() as tmp:
-        (Path(tmp) / "hand_config.json").write_text(json.dumps(config))
-        import os
-
-        old = os.environ.get("JUDGE_DIR")
-        os.environ["JUDGE_DIR"] = tmp
-        try:
-            sys.path.insert(0, str(HERE))
-            spec = importlib.util.spec_from_file_location(
-                f"poker_server_sim_{config['hand_number']}", HERE / "poker_server.py"
-            )
-            module = importlib.util.module_from_spec(spec)
-            sys.modules[spec.name] = module
-            spec.loader.exec_module(module)
-        finally:
-            sys.path.remove(str(HERE))
-            if old is None:
-                os.environ.pop("JUDGE_DIR", None)
-            else:
-                os.environ["JUDGE_DIR"] = old
-    hand = module.HAND
+    """Play the reference check/call policy and return its exact reward."""
+    hand = _load_server().Hand(config)
     for _ in range(60):
         if hand.done:
             break
         if hand.act("CHECK", None) is not None and hand.act("CALL", None) is not None:
-            raise RuntimeError("check/call both invalid — engine state unexpected")
+            raise RuntimeError("check/call both invalid — unexpected engine state")
     return hand.result()["reward"]
 
 

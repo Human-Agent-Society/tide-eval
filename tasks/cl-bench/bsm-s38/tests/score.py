@@ -1,17 +1,12 @@
-"""Blind-spectrum-monitoring scorer — runs as each converted task's verifier.
+"""Blind-spectrum-monitoring scorer, run as each task's verifier.
 
-The interval math and the IoU definition are ported verbatim from
-CL-Bench's ``src/tasks/blind_spectrum_monitoring/task.py``
-(pgasawa/continual-learning-bench, Apache-2.0), so scores match the
-upstream benchmark: the ground truth is the long-run *available* spectrum
-(the complement of every persistent transmitter footprint, active or
-dormant), the report's occupied claims are complemented the same way, and
-the reward is the interval-set IoU of the two available sets.
-
-Faithful to upstream, a malformed or missing report is scored as an empty
-report (their harness treats unexpected actions the same way) — which
-still earns partial credit for whatever spectrum genuinely is available.
-Deterministic, offline, no LLM involved.
+The interval math and IoU definition are ported from CL-Bench's
+``blind_spectrum_monitoring/task.py`` (Apache-2.0): ground truth is the
+long-run available spectrum (the complement of every persistent
+transmitter footprint), the report's claims are complemented the same
+way, and the reward is the interval-set IoU of the two available sets.
+A malformed or missing report scores as an empty report, as upstream.
+Deterministic and offline.
 """
 
 import json

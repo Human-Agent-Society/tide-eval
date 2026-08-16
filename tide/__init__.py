@@ -8,17 +8,15 @@ One primitive:
   agent gave itself along the way (its score log) are recorded as untrusted
   ``trace`` rows next to the trusted one.
 
-Two modes over it:
+Two modes on top: **autoresearch** measures learning within one episode
+(the anytime curve of judge-scored submissions), and **streams** measure
+learning across episodes (a :class:`Stream` of tasks under one carried
+agent state).
 
-- **autoresearch** — one open-ended episode, measured *within*: the anytime
-  curve of judge-scored submissions;
-- **streams** — a :class:`Stream` of episodes under one carried agent
-  state, measured *across*: the learning curve over stream positions.
-
-The public surface is deliberately small: :class:`Lab` runs episodes into an
-append-only results store; :class:`Stream` sequences them with carried
-state; :mod:`tide.metrics` turns the store into curves. See the README for
-the full tour.
+The public surface is small: :class:`Lab` runs episodes into an
+append-only results store, :class:`Stream` sequences them with carried
+state, and :mod:`tide.metrics` turns the store into curves. See the
+README for the full tour.
 """
 
 from tide import metrics
