@@ -164,9 +164,17 @@ from tide import Lab, Stream, metrics
 lab = Lab("runs/cl")
 stream = Stream(
     "my-stream",  # ordered tasks, repeats allowed — the revisit is how forgetting shows
-    ["tasks/terminal-bench/chess-best-move", "tasks/terminal-bench/build-pmars", "tasks/terminal-bench/chess-best-move"],
+    [
+        "tasks/terminal-bench/chess-best-move",
+        "tasks/terminal-bench/build-pmars",
+        "tasks/terminal-bench/chess-best-move",
+    ],
 )
-rows = await stream.run(lab, agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"}, budget="30m")
+rows = await stream.run(
+    lab,
+    agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"},
+    budget="30m",
+)
 
 df = lab.df("episode")
 metrics.learning_curve(df, by=["stream"])  # does experience accumulate?

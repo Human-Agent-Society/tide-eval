@@ -45,7 +45,7 @@ reviewed against a short list of design rules more than against style.
 ## Workflow
 
 ```bash
-uv venv --python 3.12 && uv pip install -e . pytest pytest-asyncio ruff
+uv venv --python 3.12 && uv pip install -e ".[dev]"
 .venv/bin/python -m pytest tests/ -q
 .venv/bin/ruff check . && .venv/bin/ruff format .
 ```
