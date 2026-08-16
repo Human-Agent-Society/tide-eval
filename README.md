@@ -26,10 +26,11 @@ There is no "passed" — only *how good, by when*. The learning happens
 **Continual learning** — one agent works through a
 [stream](docs/api/streams.md) of tasks in order (the
 [AgentStream](https://arxiv.org/abs/2608.00155) setting; the supported
-benchmarks are [terminal-bench 2.0](tasks/terminal-bench) and
-[SWE-bench Verified](tasks/swebench-verified)), carrying its memory from
-task to task. What matters is not the score on any one task — it is
-*whether experience adds up*. The learning happens **across tasks**:
+benchmarks are [terminal-bench 2.0](tasks/terminal-bench),
+[SWE-bench Verified](tasks/swebench-verified), and all six
+[CL-Bench](tasks/cl-bench) domains), carrying its memory from task to
+task. What matters is not the score on any one task — it is *whether
+experience adds up*. The learning happens **across tasks**:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-stream-dark.svg">
@@ -230,7 +231,7 @@ Harbor format — nothing is converted:
 |---|---|---|---|
 | [terminal-bench](tasks/terminal-bench) | 89 · **v2.0 only** (1.x unsupported) | [terminal-bench-2](https://github.com/laude-institute/terminal-bench-2) (Apache-2.0) | `tide fetch terminal-bench`, then `tide stream my-stream terminal-bench --agent <a>` |
 | [SWE-bench Verified](tasks/swebench-verified) | 500 | [harbor-datasets](https://github.com/laude-institute/harbor-datasets) | `tide fetch swebench-verified --limit 50`, then `tide stream my-stream swebench-verified --agent <a>` |
-| [CL-Bench](tasks/cl-bench) | 90 (1 of 6 domains) | [continual-learning-bench](https://github.com/pgasawa/continual-learning-bench) (Apache-2.0) | `tide fetch cl-bench`, then `tide stream my-stream cl-bench --agent <a>` |
+| [CL-Bench](tasks/cl-bench) | 301 · **all 6 domains** | [continual-learning-bench](https://github.com/pgasawa/continual-learning-bench) (Apache-2.0) | `tide fetch cl-bench`, then `tide stream my-stream tasks/cl-bench/poker-* --agent <a>` |
 
 SWE-bench Verified is there because [AgentStream](https://arxiv.org/abs/2608.00155)
 builds its streams from six benchmarks, and it is the hardest of them with
@@ -239,12 +240,16 @@ and BrowseComp-Plus, have none yet.
 [CL-Bench](tasks/cl-bench) ([paper](https://arxiv.org/pdf/2606.05661)) is
 a continual-learning benchmark in the strict sense — sequential instances
 of one environment where remembering should help — and its *gain metric*
-(stateful minus stateless reward) is exactly `metrics.transfer`. The
-blind-spectrum-monitoring domain (90 scans, upstream IoU scoring, no LLM
-judge) is converted today; the five interactive domains are on the
-[roadmap](https://github.com/Human-Agent-Society/tide-eval/issues/19). A
-stream also takes any task list you build yourself, repeats allowed (that
-is how forgetting is measured) — see [streams](docs/api/streams.md).
+(stateful minus stateless reward) is exactly `metrics.transfer`. All six
+domains are converted — the benchmark's full 301 instances: spectrum
+monitoring, sales forecasting, cohort studies, sequential PR bugfixes,
+metered database exploration, and heads-up poker against exploitable
+opponents. Scoring is the upstream metric in every domain, deterministic
+and offline; where a domain has hidden state (the poker deck, the metered
+database), it lives in a judge sidecar the agent reaches only over HTTP.
+A stream also takes any task list you build yourself, repeats allowed
+(that is how forgetting is measured) — see
+[streams](docs/api/streams.md).
 
 ### What each first-party task teaches
 

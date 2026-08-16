@@ -24,8 +24,9 @@ tide 评测的是"随经验变强的 agent",支持两种模式。
 
 **Continual learning**——同一个 agent 按顺序做完一条任务[流](docs/api/streams.md)
 ([AgentStream](https://arxiv.org/abs/2608.00155) 的设定;支持的 benchmark
-是 [terminal-bench 2.0](tasks/terminal-bench) 和
-[SWE-bench Verified](tasks/swebench-verified)),把自己的记忆从一个任务
+是 [terminal-bench 2.0](tasks/terminal-bench)、
+[SWE-bench Verified](tasks/swebench-verified),以及
+[CL-Bench](tasks/cl-bench) 的全部六个 domain),把自己的记忆从一个任务
 带到下一个。重要的不是任何单个任务的分数,而是*经验有没有积累起来*。
 学习发生在**任务与任务之间**:
 
@@ -195,7 +196,7 @@ metrics.transfer(df, baseline_df)  # 对比同一批任务的孤立运行(普通
 |---|---|---|---|
 | [terminal-bench](tasks/terminal-bench) | 89 · **只支持 v2.0**(不含 1.x) | [terminal-bench-2](https://github.com/laude-institute/terminal-bench-2)(Apache-2.0) | `tide fetch terminal-bench`,然后 `tide stream my-stream terminal-bench --agent <a>` |
 | [SWE-bench Verified](tasks/swebench-verified) | 500 | [harbor-datasets](https://github.com/laude-institute/harbor-datasets) | `tide fetch swebench-verified --limit 50`,然后 `tide stream my-stream swebench-verified --agent <a>` |
-| [CL-Bench](tasks/cl-bench) | 90(6 个 domain 中的 1 个) | [continual-learning-bench](https://github.com/pgasawa/continual-learning-bench)(Apache-2.0) | `tide fetch cl-bench`,然后 `tide stream my-stream cl-bench --agent <a>` |
+| [CL-Bench](tasks/cl-bench) | 301 · **全部 6 个 domain** | [continual-learning-bench](https://github.com/pgasawa/continual-learning-bench)(Apache-2.0) | `tide fetch cl-bench`,然后 `tide stream my-stream tasks/cl-bench/poker-* --agent <a>` |
 
 放 SWE-bench Verified 是因为 [AgentStream](https://arxiv.org/abs/2608.00155)
 的任务流由六个 benchmark 组成,而它是其中已有 Harbor 版本的最难的一个
@@ -203,11 +204,13 @@ metrics.transfer(df, baseline_df)  # 对比同一批任务的孤立运行(普通
 [CL-Bench](tasks/cl-bench)([论文](https://arxiv.org/pdf/2606.05661))是
 严格意义上的 continual learning benchmark——同一环境的连续 instance,
 记住过去就该做得更好——它的 *gain 指标*(有状态减无状态的得分)正是
-`metrics.transfer`。目前转换了 blind-spectrum-monitoring 这个 domain
-(90 次扫描,上游 IoU 判分,无需 LLM judge);其余五个交互式 domain 在
-[roadmap](https://github.com/Human-Agent-Society/tide-eval/issues/19) 里
-跟踪。stream 也接受你自己排的任意任务列表,允许重复出现(重复正是测
-"遗忘"的方式)——见 [streams](docs/api/streams.md)。
+`metrics.transfer`。**六个 domain 全部转换完毕**,即 benchmark 的全部
+301 个 instance:频谱监测、销量预测、队列研究、连续 PR 修复、限额数据库
+探索、对可利用对手的单挑德州扑克。每个 domain 都用上游原版指标判分,
+确定性、离线;有隐藏状态的 domain(扑克的牌堆、计量的数据库)放在
+judge sidecar 里,agent 只能通过 HTTP 访问。stream 也接受你自己排的任意
+任务列表,允许重复出现(重复正是测"遗忘"的方式)——见
+[streams](docs/api/streams.md)。
 
 ### 每个第一方任务教什么
 

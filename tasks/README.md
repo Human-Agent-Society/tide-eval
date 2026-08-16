@@ -61,7 +61,7 @@ so vendoring is not an option there anyway).
 |---|---|---|
 | [`terminal-bench/`](terminal-bench) | [terminal-bench 2.0](https://github.com/laude-institute/terminal-bench-2) (Apache-2.0) · 89 terminal tasks · **v2.0 only, 1.x unsupported** | `tide fetch terminal-bench` |
 | [`swebench-verified/`](swebench-verified) | [SWE-bench Verified](https://github.com/SWE-bench/SWE-bench) via [harbor-datasets](https://github.com/laude-institute/harbor-datasets) (no license) · 500 issue-fixing tasks · the hardest [AgentStream](https://arxiv.org/abs/2608.00155) benchmark with a Harbor version | `tide fetch swebench-verified --limit 50` |
-| [`cl-bench/`](cl-bench) | [CL-Bench](https://www.continual-learning-bench.com) (Apache-2.0) · continual learning over sequential instances of one environment · blind-spectrum-monitoring domain converted (90 scans, upstream IoU scoring, offline — no LLM judge); 5 interactive domains on the roadmap | `tide fetch cl-bench` |
+| [`cl-bench/`](cl-bench) | [CL-Bench](https://www.continual-learning-bench.com) (Apache-2.0) · continual learning over sequential instances of one environment · **all 6 domains converted, 301 tasks** (spectrum, sales, cohorts, PR bugfixes, metered SQL, poker) · upstream metrics, deterministic and offline; hidden state lives in judge sidecars | `tide fetch cl-bench` |
 
 ## Adding a new benchmark
 

@@ -9,30 +9,70 @@ is tide's agent + carried `$TIDE_STATE_DIR`; their *gain metric*
 (stateful minus stateless reward) is exactly `metrics.transfer` — the
 stream against a plain isolated `tide run` sweep over the same tasks.
 
-**Converted today: the blind-spectrum-monitoring domain** — 90 scans of a
-radio band whose persistent transmitter layout (including dormant
-channels, with drift across three lifecycle stages) must be inferred over
-time. One scan = one Harbor task named `bsm-sNN`, so name order replays
-the published lifecycle. Upstream reveals no ground truth between scans —
-the learnable signal is the scan history itself, which is precisely what
-the stream's carried memory holds. Scoring is the upstream interval-IoU
-metric, ported verbatim ([`score_bsm.py`](score_bsm.py)): deterministic,
-offline, no LLM judge. The reference solution (derived from ground truth)
-scores exactly 1.0, so the oracle proves the pipeline.
+**All six domains are converted** — 301 tasks, the benchmark's full
+instance count, every scorer deterministic and offline (no LLM judge
+anywhere). One instance = one Harbor task; name order replays each
+domain's upstream lifecycle:
 
-CL-Bench's other five domains (codebase adaptation, cohort studies,
-database exploration, exploitable poker, sales prediction) are
-interactive environments that need more than a prompt-and-score
-conversion; they are tracked in the
-[roadmap](https://github.com/Human-Agent-Society/tide-eval/issues/19).
+| Domain | Tasks | What it is | Reward |
+|---|---|---|---|
+| `bsm-sNN` | 90 | infer a radio band's persistent transmitter layout across scans, through drift | long-run availability IoU (0–1) |
+| `sales-iNN` | 12 | yearly 5-year demand forecasts from a shifting one-store data room | WAPE-skill (1 = perfect, negative possible) |
+| `cohort-iNN` | 20 | rolling survival meta-analysis across biased studies; 36 cohorts no single study observes | information gain in bits over the study-wide baseline |
+| `code-iNN` | 19 | sequential real-PR bugfixes in tablib, then tenacity | hidden tests pass = 1.0 |
+| `dbx-qNN` | 40 | questions over an undocumented SQLite db with a 15-query budget; schema migrates at q21 | 1 − queries/15 if correct, else 0 |
+| `poker-hNNN` | 120 | deterministic heads-up hold'em vs three exploitable scripted opponents | profit in big blinds |
 
-**Get the tasks** (generated from the pinned upstream commit; the corpus
-is integrity-checked against the sha256 its own metadata declares):
+**How the conversions work** (`convert_<domain>.py` beside this file):
+
+- **bsm / sales / cohort** generate self-contained predict-and-score
+  tasks; the data rooms and scorers are the upstream code, vendored
+  verbatim where practical (`vendor_sales.py`, `score_*.py` headers say
+  exactly what was ported).
+- **codebase** builds on the upstream-published Docker images (repo with
+  full git history), prepares the workspace at image build exactly as
+  upstream does, and the verifier replays the upstream evaluation:
+  sanitize the agent's `git diff` of test-owned paths, reset, re-apply
+  the official test patch, run the exact FAIL_TO_PASS + PASS_TO_PASS
+  pytest node ids.
+- **dbx / poker** keep their hidden state (the database, the deck and
+  both hands) in a **judge sidecar** the agent reaches only over HTTP —
+  the query meter and the deal are enforced where the agent cannot touch
+  them, the same trust model as tide's autoresearch judge. Decks are
+  dealt with the upstream seed-plus-burn recipe, verified card-for-card
+  against the upstream harness.
+
+**Oracle-checked**: every task ships a reference solution with a known
+exact score — the truth-derived report (bsm 1.0, sales 1.0, cohort = the
+per-instance ceiling recorded as `oracle_score`), the gold PR patch
+(codebase 1.0), the direct correct answer (dbx 1.0), or a simulated
+check/call line (poker, per-hand `oracle_reward`).
+
+**Honest deviations from upstream**, per domain: sales/cohort/codebase
+replace the upstream step- or action-metered interaction with free shell
+work under a time budget (codebase's step-count reward shaping becomes
+pass/fail; cohort's six-tool API becomes direct SQLite access); the
+persistent workspace is `$TIDE_STATE_DIR` rather than a reused `/app`;
+and where upstream delivered feedback conversationally, the converted
+instructions carry the same information (dbx: the previous question's
+correct answer) or it is self-served from the refreshed data (sales).
+The dbx query budget and the poker deal are *not* deviations — the
+sidecar enforces them exactly.
+
+**Get the tasks** (everything pinned: upstream commit, HuggingFace
+revisions, sha256-verified corpora; the poker conversion needs
+`pip install texasholdem==0.11.0` on the host for the oracle simulation):
 
 ```bash
-tide fetch cl-bench                # all 90 scans · or --limit 10
-tide stream my-stream cl-bench --agent claude-code --model anthropic/claude-opus-5
+tide fetch cl-bench                 # all 301 · or: cl-bench bsm sales · or --limit N
+tide stream my-stream tasks/cl-bench/poker-* --agent claude-code --model anthropic/claude-opus-5
 ```
 
-The isolated control arm for `metrics.transfer` — CL-Bench's gain — is a
-plain `tide run cl-bench/<task> --agent <a>` over the same tasks.
+Stream one domain with a shell glob as above (each domain is its own
+lifecycle), or the whole folder in name order. The isolated control arm
+for `metrics.transfer` — CL-Bench's gain — is a plain
+`tide run cl-bench/<task> --agent <a>` over the same tasks.
+
+Heads-up on scale: dbx task images download the published databases
+(~0.4 GB each, cached across tasks by Docker layer), and codebase tasks
+pull the upstream repo images on first build.
