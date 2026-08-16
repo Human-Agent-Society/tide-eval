@@ -28,9 +28,10 @@ Issues = "https://github.com/Human-Agent-Society/tide-eval/issues"
 # The Harbor executor. Kept optional so the core (store, metrics, fakes)
 # works without Harbor's heavy dependency tree.
 harbor = ["harbor==0.20.0"]
-
-[dependency-groups]
-dev = ["pytest>=8", "pytest-asyncio>=0.24", "pyyaml>=6"]
+# Lint + test tools. ruff is pinned so local and CI format identically —
+# ruff 0.16+ formats Python code blocks inside Markdown, which means an
+# unpinned ruff can make CI fail overnight on a release we didn't opt into.
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "pyyaml>=6", "ruff==0.16.3"]
 
 [build-system]
 requires = ["hatchling"]
