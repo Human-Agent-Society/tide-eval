@@ -1,6 +1,6 @@
 # Metrics
 
-`tide/metrics.py` — pure functions, `DataFrame in → DataFrame/Series out`.
+`tide/metrics.py`: pure functions, `DataFrame in → DataFrame/Series out`.
 They import pandas and **nothing from tide**, so they work on any exported
 results table, including one you didn't produce.
 
@@ -22,11 +22,11 @@ metrics.improvements(trace, by=["task"])  # how often self-eval improved
 |---|---|---|
 | `anytime(df, by=…)` | `t`, `score` | the best-so-far progress curve |
 | `auc(curve)` | `t`, `best_so_far` | the anytime score: area under the best-so-far curve ÷ time span |
-| `scaling(df, budget=…, by=…)` | *budget col*, `reward` | score vs budget on any axis — pass `budget="budget_max_tokens"`, `"budget"` (hours), … |
-| `efficiency(df, spend=…, per=…, by=…)` | a `used_*` col, `reward` | reward per unit actually spent (per 1k tokens, per dollar, per eval) — see [budget](budget.md) |
+| `scaling(df, budget=…, by=…)` | *budget col*, `reward` | score vs budget on any axis; pass `budget="budget_max_tokens"`, `"budget"` (hours), … |
+| `efficiency(df, spend=…, per=…, by=…)` | a `used_*` col, `reward` | reward per unit actually spent (per 1k tokens, per dollar, per eval); see [budget](budget.md) |
 | `time_to(df, threshold, by=…)` | `t`, `score` | how long until the score first reached a threshold (NaN if never) |
 | `improvements(df, by=…)` | `t`, `score` | evals vs strict improvements, and their ratio |
-| `rescale_linear` / `rescale_anchored` | a Series | 0–100 normalization; anchored stretches past 100 beyond the best known result |
+| `rescale_linear` / `rescale_anchored` | a Series | 0-100 normalization; anchored stretches past 100 beyond the best known result |
 
 ## The column contract
 
@@ -36,13 +36,13 @@ entire mechanism keeping free-form tags from becoming chaos.
 
 Two more rules keep the numbers honest:
 
-1. **Raw in the store, normalized in the view** — rescales apply at query
+1. **Raw in the store, normalized in the view**: rescales apply at query
    time, so re-anchoring never requires re-running anything.
-2. **Missing expectations are loud** — a degenerate input raises rather
+2. **Missing expectations are loud**: a degenerate input raises rather
    than silently returning half an answer.
 
 ## Add a metric
 
 One pure function + a docstring declaring its expected columns + a
-small-frame test (see `tests/test_metrics.py` — each is 5–10 lines).
+small-frame test (see `tests/test_metrics.py`; each is 5-10 lines).
 There is no registry to update.

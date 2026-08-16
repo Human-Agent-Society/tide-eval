@@ -1,6 +1,6 @@
 # Streams
 
-`tide/stream.py` — a `Stream` runs an ordered list of Harbor tasks under
+`tide/stream.py`. A `Stream` runs an ordered list of Harbor tasks under
 one agent and carries a state directory between them. Each task runs in a
 fresh container with the directory mounted at `$TIDE_STATE_DIR`; whatever
 the agent writes there (notes, a skill library, code) is visible in the
@@ -60,7 +60,7 @@ three things:
 - queries: every row carries the name as a `stream` tag.
 
 The same name under a different agent, tags, or budget is automatically a
-different variant with separate state and keys — name your experiment,
+different variant with separate state and keys: name your experiment,
 not your configuration.
 
 ## Ordering
@@ -70,12 +70,12 @@ stream runs exactly the list you give it, and the episode keys pin that
 order. The [AgentStream](https://arxiv.org/abs/2608.00155) scenarios map
 directly:
 
-- isolated — plain `tide run` over the same tasks (the control arm for
+- isolated: plain `tide run` over the same tasks (the baseline for
   `metrics.transfer`);
-- sequential — list the folders in order:
+- sequential: list the folders in order;
   `tide stream s1 terminal-bench swebench-verified --agent <a>` runs all
   of one benchmark, then the next;
-- interleaved — `--shuffle SEED` shuffles the task list deterministically
+- interleaved: `--shuffle SEED` shuffles the task list deterministically
   and records the seed as a `shuffle_seed` tag. Each seed is its own
   stream, so the three-seeds-and-average protocol is three runs and one
   groupby:
@@ -118,9 +118,9 @@ arguments you would pass to `run`.
 Re-running skips tasks that already have a stored row, like everything
 else in tide. A position's key covers the task list up to that position:
 
-- appending tasks extends a finished stream — old positions keep their
+- appending tasks extends a finished stream; old positions keep their
   rows, new ones run from the last snapshot;
-- editing an earlier position re-runs everything after it — a stream is
+- editing an earlier position re-runs everything after it. A stream is
   one measurement, and a changed history invalidates what followed.
 
 A stream is sequential by design: each task's starting state is the
@@ -135,7 +135,7 @@ unchanged: it can only influence the agent's own future behavior.
 
 ## Metrics
 
-All three are ordinary [metrics](metrics.md) — pandas functions that
+All three are ordinary [metrics](metrics.md): pandas functions that
 document the columns they expect:
 
 | function | question | expects |

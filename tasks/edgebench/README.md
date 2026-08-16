@@ -1,7 +1,7 @@
 # EdgeBench
 
 51 released tasks from [ByteDance-Seed/EdgeBench](https://github.com/ByteDance-Seed/EdgeBench):
-real-world environments where agents iterate for 2–12 hours against
+real-world environments where agents iterate for 2-12 hours against
 executable feedback. Continuous scores; the official metric is score vs
 interaction budget.
 
@@ -16,7 +16,7 @@ script is tested against unmodified published specs; it maps EdgeBench's two
 containers onto Harbor's separate verifier and turns `submit_paths` into
 declared artifacts.
 
-Run one — the budget is a run parameter, not a task property:
+Run one (the budget is a run parameter, not a task property):
 
 ```python
 await lab.run(
@@ -32,7 +32,7 @@ await lab.run(
 # rescale params ride in each task.toml's [metadata].
 ```
 
-All 51 tasks are committed in this folder — the underlying specs are
+All 51 tasks are committed in this folder; the underlying specs are
 [CC-BY-4.0](https://huggingface.co/datasets/ByteDance-Seed/EdgeBench),
 © ByteDance-Seed. The local `fetch.py` and `convert.py` scripts regenerate
 them from the published specs.

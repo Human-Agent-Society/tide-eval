@@ -13,12 +13,12 @@ git clone https://github.com/Human-Agent-Society/tide-eval && cd tide-eval
 pip install -e ".[harbor]"     # container runs; plain -e . covers --local and the API
 ```
 
-- **Docker** — tasks run in containers. One caveat: first-party tasks use an
+- **Docker**: tasks run in containers. One caveat: first-party tasks use an
   `allowlist` network policy, which Harbor enforces with an nftables egress
   sidecar. That needs a kernel with `CONFIG_NFT_FIB_INET`; Docker Desktop
   older than ~4.30 (linuxkit 5.15) doesn't have it and Harbor will refuse
-  the run — see [Troubleshooting](#troubleshooting).
-- **An agent login** — Harbor's installed agents run their CLI *inside* the
+  the run; see [Troubleshooting](#troubleshooting).
+- **An agent login**: Harbor's installed agents run their CLI *inside* the
   task container and need credentials injected:
   - **codex**: `export OPENAI_API_KEY=...`, or reuse your local
     `codex login` session with `CODEX_FORCE_AUTH_JSON=1` (Harbor uploads
@@ -31,7 +31,7 @@ pip install -e ".[harbor]"     # container runs; plain -e . covers --local and t
 |---|---|---|
 | simulated | `python examples/quickstart.py` | the Lab API; scores are fake | 
 | local | `tide run autoresearch/circle-packing --local --command "python examples/minimal_harness_search.py" --budget 0.01` | the *real* judge, no Docker, no isolation |
-| containers | below | the real pipeline — this is what you report |
+| containers | below | the real pipeline; this is what you report |
 
 ## Smoke test: the oracle
 
@@ -53,7 +53,7 @@ two kinds of egress on top of that:
    codex's CLI is installed with `apt` + `nvm` + `npm` inside the container;
 2. **API egress** (agent phase): the model endpoint.
 
-Widen the baseline per run — no task edits — with the TrialConfig
+Widen the baseline per run, with no task edits, using the TrialConfig
 `environment.extra_allowed_hosts` override (the agent-phase-only
 equivalent, `agent.extra_allowed_hosts`, is reachable from the CLI as
 `--agent-arg extra_allowed_hosts='[...]'` but does **not** cover setup):
@@ -100,7 +100,7 @@ CODEX_FORCE_AUTH_JSON=1 python run_codex.py
 ```
 
 The agent gets the task's `timeout_sec` as its budget (10 min here); hitting
-the deadline is a normal ending — the verifier still grades the
+the deadline is a normal ending; the verifier still grades the
 best-so-far submission.
 
 On tasks whose network is already open (e.g. the `frontier-cs` folders),
@@ -127,22 +127,22 @@ runs/codex/
 tide report --lab runs/codex       # summarize the store
 ```
 
-Re-running the identical call returns the stored row instead of re-running
-— the episode key is derived from (task, agent, tags). Vary a tag
+Re-running the identical call returns the stored row instead of re-running,
+because the episode key is derived from (task, agent, tags). Vary a tag
 (`--tag attempt=2`) to add attempts.
 
 ## Troubleshooting
 
-- **`Cannot connect to the Docker daemon`** — start Docker Desktop first.
-- **`network_mode='allowlist' is not supported by EnvironmentType.DOCKER`**
-  — your Docker VM kernel lacks nftables FIB rules (Docker Desktop ≤ ~4.30).
+- **`Cannot connect to the Docker daemon`**: start Docker Desktop first.
+- **`network_mode='allowlist' is not supported by EnvironmentType.DOCKER`**:
+  your Docker VM kernel lacks nftables FIB rules (Docker Desktop ≤ ~4.30).
   Upgrade Docker; until then, `--local` develops against the real judge, or
   copy the task and set `network_mode = "public"` for a smoke test whose
   scores are *not* isolation-backed (the optima are googleable, so treat
   them as pipeline checks, not results).
-- **codex fails during setup with npm/apt errors** — the install hosts
+- **codex fails during setup with npm/apt errors**: the install hosts
   above aren't in the allowlist, or `override_setup_timeout_sec` is too
   small.
-- **codex fails immediately with 401** — no credentials: set
+- **codex fails immediately with 401**: no credentials. Set
   `OPENAI_API_KEY`, or `CODEX_FORCE_AUTH_JSON=1` with a valid
   `~/.codex/auth.json`.

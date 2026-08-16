@@ -18,9 +18,9 @@ Every task gives your agent two environment variables and one protocol:
 
 Your final score is your best submission (re-scored by a final judge with
 hidden tests, if the task has one). The final evaluation runs on a
-**separate verifier port** behind a per-session token — the agent cannot
-trigger or observe it. Everything else — how you search, what you
-evaluate locally, whether you build your own scorer — is your business;
+**separate verifier port** behind a per-session token; the agent cannot
+trigger or observe it. Everything else (how you search, what you
+evaluate locally, whether you build your own scorer) is your business;
 tide places no constraints on the agent's side.
 
 If the run set a [budget](../api/budget.md) beyond time, the container
@@ -28,11 +28,11 @@ also carries `TIDE_MAX_SUBMISSIONS`, `TIDE_MAX_TOKENS`, and/or
 `TIDE_MAX_COST_USD`. Reading them lets your method pace itself; you don't
 have to, since tide records the actual spend either way.
 
-## Level 1 — a supported harness (zero code)
+## Level 1: a supported harness (zero code)
 
 `claude-code`, `codex`, `aider`, `cursor-cli`, `terminus-2`, … plus
-`oracle` (submits the task's reference solution — proves the pipeline) and
-`nop` (does nothing — catches leakage):
+`oracle` (submits the task's reference solution; proves the pipeline) and
+`nop` (does nothing; catches leakage):
 
 ```bash
 tide run autoresearch --agent claude-code --model anthropic/claude-opus-5
@@ -43,7 +43,7 @@ The instruction tells the harness the submission protocol; `--budget` sets
 the timeout and a `budget` tag. Extra `AgentConfig` fields pass via
 `--agent-arg key=value`.
 
-## Level 2 — your own harness (one class)
+## Level 2: your own harness (one class)
 
 Implement Harbor's `BaseAgent`, reference it by import path. Your code
 runs on the host; the container (where `$JUDGE_URL` lives) is reached via
@@ -77,31 +77,31 @@ row = await lab.run(
 )
 ```
 
-Runnable version: [`examples/minimal_harness.py`](../../examples/minimal_harness.py)
-— a ~25-line adapter around a random-search loop, no LLM, no keys.
+Runnable version: [`examples/minimal_harness.py`](../../examples/minimal_harness.py),
+a ~25-line adapter around a random-search loop, no LLM, no keys.
 
 Two placements for your method, both fine:
 
-- **Host-side loop** — your method keeps its own GPUs / inference server /
+- **Host-side loop**: your method keeps its own GPUs / inference server /
   orchestrator and submits through the container
   (`environment.exec(command="curl ... $JUDGE_URL/submit")`). The fit for
   external learners (TTT-style training loops) and host-side multi-agent
   systems (CORAL-style).
-- **In-container** — upload your method and launch it; it talks to the
+- **In-container**: upload your method and launch it; it talks to the
   judge directly. LLM calls from inside need the task's network policy
-   opened: add your API host to the `[agent]` phase allowlist — see
+   opened: add your API host to the `[agent]` phase allowlist; see
    [network policy](authoring-tasks.md#network-policy).
 
-## Level 3 — your method isn't an "agent" at all
+## Level 3: your method isn't an "agent" at all
 
-An evolutionary search, a solver portfolio, a bare sampling loop — the
+An evolutionary search, a solver portfolio, a bare sampling loop. The
 whole integration is: read `$JUDGE_URL`, POST candidates worth scoring,
 stop at 429. The minimal version is ~20 lines
 ([`examples/minimal_harness_search.py`](../../examples/minimal_harness_search.py)).
 
 An OpenEvolve-style loop plugs in the same way: its `evaluate()` function
 POSTs the candidate to `$JUDGE_URL/submit` and returns the judge's score.
-Mind the submission budget — evolutionary methods burn evaluations fast,
+Mind the submission budget: evolutionary methods burn evaluations fast,
 so give cheap candidates a local pre-filter (your own evaluator, written
 from the instruction) and spend submissions on survivors.
 
@@ -123,7 +123,7 @@ python examples/run_harness.py coral --model gpt-5.6-terra --agents 2
   Harbor runs the task through standard non-interactive `codex exec --json`
   and retains its trajectory and usage metrics. Because the verifier grades
   the judge's submission log, a best-effort fallback submits the final
-  `solution.json` after the agent stops when the run never submitted —
+  `solution.json` after the agent stops when the run never submitted;
   an agent that did submit is left untouched under best-of semantics.
 - **CORAL** runs multiple Codex workers over a shared repository. Its packaged
   `TaskGrader` makes `coral eval` spend one Tide submission and returns that
@@ -154,5 +154,5 @@ credentials, and adaptation notes.
   the endpoint comparison. `oracle` and `nop` bracket the plausible range.
 - **Sanity-check cheaply**: `--agent oracle` proves the task, `--agent nop`
   proves no leakage, `--fake` exercises your run script with no
-  containers — and `--local --command "..."` runs your method against the
+  containers, and `--local --command "..."` runs your method against the
   task's real judge with no Docker at all (see the README).

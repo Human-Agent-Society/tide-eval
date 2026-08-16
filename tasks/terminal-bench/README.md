@@ -1,8 +1,8 @@
 # terminal-bench
 
 [terminal-bench 2.0](https://github.com/laude-institute/terminal-bench-2)
-(Apache-2.0): 89 pass/fail terminal tasks — build a project, fix a repo,
-drive a CLI — each a stock Harbor task with its own container and
+(Apache-2.0): 89 pass/fail terminal tasks (build a project, fix a repo,
+drive a CLI), each a stock Harbor task with its own container and
 verifier. A pass is reward 1.0, so the stream metrics work on it
 directly.
 
