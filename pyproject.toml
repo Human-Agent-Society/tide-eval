@@ -50,6 +50,9 @@ target-version = "py312"
 extend-exclude = [
     "tests/fixtures",
     "tasks/frontier-cs",
+    "tasks/cl-bench",
+    "tasks/swebench-verified",
+    "tasks/terminal-bench",
     "tasks/edgebench/*/instruction.md",
     "tasks/edgebench/*/tests",
 ]
