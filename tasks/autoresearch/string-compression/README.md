@@ -9,7 +9,7 @@ Ship a decompressor + payload; reward = corpus / compressed bytes, byte-exact ro
 | **Run it** | `await lab.run("tasks/autoresearch/string-compression", {"name": "oracle"})` |
 | **Verify standalone** | `harbor trial start -p tasks/autoresearch/string-compression` |
 
-**What this task teaches:** Grading agent-shipped CODE safely: subprocess + timeout, and every corpus copy is deleted before the decompressor runs — reading the reference scores zero.
+**What this task teaches:** Grading agent-shipped CODE safely: subprocess + timeout, and every corpus copy is deleted before the decompressor runs, so reading the reference scores zero.
 
 Files: `instruction.md` (the problem + the submission protocol) ·
 `environment/` (the agent's container, plus the judge: `score.py`, budget,

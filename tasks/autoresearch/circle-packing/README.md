@@ -9,7 +9,7 @@ Pack 3 circles in the unit square, maximize the sum of radii.
 | **Run it** | `await lab.run("tasks/autoresearch/circle-packing", {"name": "oracle"})` |
 | **Verify standalone** | `harbor trial start -p tasks/autoresearch/circle-packing` |
 
-**What this task teaches:** The reference task: the full autoresearch protocol in its simplest form. Grader uses exact rational arithmetic — a 5e-9 overlap scores zero.
+**What this task teaches:** The reference task: the full autoresearch protocol in its simplest form. Grader uses exact rational arithmetic; a 5e-9 overlap scores zero.
 
 Files: `instruction.md` (the problem + the submission protocol) ·
 `environment/` (the agent's container, plus the judge: `score.py`, budget,

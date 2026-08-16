@@ -31,7 +31,7 @@
 
   <!-- submissions out (above axis), scores back (below axis) -->
   <path d="M 152 98 H 304" class="draw-c" marker-end="url(#m-cor)"/>
-  <text x="228" y="84" text-anchor="middle" class="sm c">submit — limited</text>
+  <text x="228" y="84" text-anchor="middle" class="sm c">submit (limited)</text>
   <path d="M 304 122 H 152" class="draw-f dash" marker-end="url(#m-ink)"/>
   <text x="228" y="144" text-anchor="middle" class="sm m">score</text>
 
@@ -76,5 +76,5 @@
   <path d="M 300 246 V 288 H 414" class="draw-f"/>
   <polyline points="306,282 330,282 330,270 356,270 356,262 382,262 382,254 406,254" class="draw-a"/>
   <circle cx="406" cy="254" r="4" fill="#0E7490"/>
-  <text x="430" y="272" class="sm a">score over time — every point judged</text>
+  <text x="430" y="272" class="sm a">score over time, every point judged</text>
 </svg>

@@ -8,14 +8,14 @@ environment and should improve by remembering what it saw. Their "system"
 `$TIDE_STATE_DIR`, and their gain metric (stateful minus stateless
 reward) is `metrics.transfer` against a plain isolated `tide run` sweep.
 
-All six domains are converted — 301 tasks, the benchmark's full instance
+All six domains are converted: 301 tasks, the benchmark's full instance
 count, committed to this repo. One instance = one task; name order
 replays each domain's lifecycle. Every scorer is deterministic and
 offline.
 
 | Domain | Tasks | What it is | Reward |
 |---|---|---|---|
-| `bsm-sNN` | 90 | infer a radio band's transmitter layout across scans | availability IoU (0–1) |
+| `bsm-sNN` | 90 | infer a radio band's transmitter layout across scans | availability IoU (0-1) |
 | `sales-iNN` | 12 | yearly 5-year demand forecasts from a shifting data room | WAPE-skill (1 = perfect, can go negative) |
 | `cohort-iNN` | 20 | rolling survival meta-analysis across biased studies | information gain in bits over the study baseline |
 | `code-iNN` | 19 | sequential real-PR bugfixes in tablib, then tenacity | hidden tests pass = 1.0 |
@@ -49,7 +49,7 @@ cohort's six-tool API becomes direct SQLite access); the persistent
 workspace is `$TIDE_STATE_DIR` rather than a reused `/app`; and where
 upstream delivered feedback conversationally, the instructions carry the
 same information (dbx includes the previous question's correct answer).
-The dbx query budget and the poker deal are not deviations — the sidecar
+The dbx query budget and the poker deal are not deviations; the sidecar
 enforces them exactly.
 
 The tasks are committed, so they run out of the box:

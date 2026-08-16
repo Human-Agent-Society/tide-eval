@@ -9,7 +9,7 @@ Shortest closed tour over 40 fixed cities; reward = identity length / yours.
 | **Run it** | `await lab.run("tasks/autoresearch/tsp-tour", {"name": "oracle"})` |
 | **Verify standalone** | `harbor trial start -p tasks/autoresearch/tsp-tour` |
 
-**What this task teaches:** Classic combinatorial search with a continuous improvement signal — 2-opt and beyond.
+**What this task teaches:** Classic combinatorial search with a continuous improvement signal: 2-opt and beyond.
 
 Files: `instruction.md` (the problem + the submission protocol) ·
 `environment/` (the agent's container, plus the judge: `score.py`, budget,

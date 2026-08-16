@@ -38,5 +38,5 @@ Converted to the same task format and committed to the repo; each suite's
 
 | Suite | Tasks | Run |
 |---|---|---|
-| [EdgeBench](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/edgebench) — [upstream](https://github.com/ByteDance-Seed/EdgeBench) (CC-BY-4.0) | 51 · 2–12 h budgets | `tide run edgebench/<task> --budget <h>` |
-| [FrontierCS](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/frontier-cs) — [upstream](https://github.com/FrontierCS/Frontier-CS) (MIT) | 188 algorithmic + 20 research · incl. 4 GPU kernel | `tide run frontier-cs/<task> --agent <a>` |
+| [EdgeBench](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/edgebench) ([upstream](https://github.com/ByteDance-Seed/EdgeBench), CC-BY-4.0) | 51 · 2-12 h budgets | `tide run edgebench/<task> --budget <h>` |
+| [FrontierCS](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/frontier-cs) ([upstream](https://github.com/FrontierCS/Frontier-CS), MIT) | 188 algorithmic + 20 research · incl. 4 GPU kernel | `tide run frontier-cs/<task> --agent <a>` |

@@ -77,5 +77,5 @@
   <path d="M 96 246 V 288 H 470" class="draw-f"/>
   <polyline points="102,282 148,282 148,274 206,274 206,268 264,268 264,258 330,258 330,252 400,252" class="draw-a"/>
   <circle cx="400" cy="252" r="4" fill="#45B2C6"/>
-  <text x="492" y="272" class="sm a">score over the stream — does experience add up?</text>
+  <text x="492" y="272" class="sm a">score over the stream: does experience add up?</text>
 </svg>
