@@ -1,16 +1,15 @@
-"""CL-bench conversion + judge: schema-faithful fixture, mock-API grading."""
+"""CL-Bench conversion + scorer: real published fixtures, hand-computed IoU."""
 
 import importlib.util
 import json
 import sys
-import threading
 import tomllib
-from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 import pytest
 
 CLBENCH = Path(__file__).parent.parent / "tasks" / "cl-bench"
+FIXTURES = Path(__file__).parent / "fixtures" / "clbench"
 
 
 def _load(name: str):
@@ -24,137 +23,109 @@ def _load(name: str):
 
 
 convert = _load("convert")
-judge = _load("judge")
+scorer = _load("score_bsm")
+
+METADATA = json.loads((FIXTURES / "mixed_grid_lifecycle_metadata.json").read_text())
+SCANS = [
+    json.loads(line)
+    for line in (FIXTURES / "bsm_sample.jsonl").read_text().splitlines()
+]
 
 
-def record(n_turns: int = 1, task_id: str = "t-1", context_id: str = "ctx-12345678"):
-    """A synthetic record in the published schema (messages/rubrics/metadata)."""
-    messages = [{"role": "system", "content": "You are a helpful assistant."}]
-    for i in range(n_turns - 1):
-        messages += [
-            {"role": "user", "content": f"earlier question {i}"},
-            {"role": "assistant", "content": f"reference answer {i}"},
-        ]
-    messages.append(
-        {"role": "user", "content": "RULE BOOK: gronks beat snarfs.\nWho wins?"}
-    )
-    return {
-        "messages": messages,
-        "rubrics": ["Mentions gronks win.", "Cites the rule book."],
-        "metadata": {
-            "task_id": task_id,
-            "context_id": context_id,
-            "context_category": "Rule System Application",
-            "sub_category": "Game Mechanics",
-        },
-    }
+def _convert(scan, tmp_path):
+    stage = convert.stage_for_scan(scan["scan_idx"], METADATA["stages"])
+    return convert.convert_scan(scan, stage, tmp_path, total_scans=90)
 
 
 # ---------------------------------------------------------------- converter
 
 
 def test_convert_writes_a_complete_task(tmp_path):
-    task_dir = convert.convert_task(record(), tmp_path, turn=1)
-    assert task_dir.name == "ctx-1234-t01"
+    task_dir = _convert(SCANS[0], tmp_path)
+    assert task_dir.name == "bsm-s01"
     for piece in (
         "task.toml",
         "instruction.md",
         "environment/Dockerfile",
         "tests/test.sh",
-        "tests/judge.py",
-        "tests/rubrics.json",
+        "tests/score.py",
+        "tests/truth.json",
         "solution/solve.sh",
     ):
         assert (task_dir / piece).exists(), piece
     config = tomllib.loads((task_dir / "task.toml").read_text())
-    assert config["metadata"]["task_id"] == "t-1"
-    assert config["metadata"]["turn"] == 1
-    assert "OPENAI_API_KEY" in config["verifier"]["env"]
-    assert json.loads((task_dir / "tests" / "rubrics.json").read_text()) == [
-        "Mentions gronks win.",
-        "Cites the rule book.",
-    ]
+    assert config["metadata"]["domain"] == "blind_spectrum_monitoring"
+    assert config["metadata"]["scan_idx"] == 0
 
 
-def test_instruction_carries_transcript_and_answer_contract(tmp_path):
-    task_dir = convert.convert_task(record(n_turns=2), tmp_path, turn=2)
-    text = (task_dir / "instruction.md").read_text()
-    assert "RULE BOOK: gronks beat snarfs." in text
-    assert "earlier question 0" in text
-    assert "Reference response" in text  # prior turns keep their reference answers
-    assert "/app/answer.md" in text
-    assert text.index("earlier question 0") < text.index("## Your task")
+def test_instruction_matches_the_upstream_prompt_shape(tmp_path):
+    scan = SCANS[0]
+    text = (_convert(scan, tmp_path) / "instruction.md").read_text()
+    assert "spectrum monitoring analyst" in text  # the system preamble
+    assert f"--- Scan {scan['scan_idx'] + 1}/90 ---" in text
+    for peak in scan["detected_peaks"]:
+        assert peak["peak_id"] in text
+    assert "Band: 0.0-168.0 MHz" in text  # stage 0 band width
+    assert '"transmitters"' in text  # the exact answer schema
+    assert "/app/report.json" in text
+
+
+def test_stage_lookup_follows_metadata_ranges(tmp_path):
+    later = SCANS[1]  # scan 40 — stage 1, a different variant
+    task_dir = _convert(later, tmp_path)
+    assert task_dir.name == "bsm-s41"
+    config = tomllib.loads((task_dir / "task.toml").read_text())
+    assert config["metadata"]["stage_idx"] == 1
+    assert config["metadata"]["variant_id"] == "five_plus_four_mixed"
+    with pytest.raises(ValueError, match="outside"):
+        convert.stage_for_scan(999, METADATA["stages"])
 
 
 def test_convert_is_valid_stock_harbor(tmp_path):
     pytest.importorskip("harbor")
     from harbor.models.task.config import TaskConfig
 
-    task_dir = convert.convert_task(record(), tmp_path, turn=1)
+    task_dir = _convert(SCANS[0], tmp_path)
     TaskConfig.model_validate(tomllib.loads((task_dir / "task.toml").read_text()))
 
 
-def test_turn_order_by_transcript_length():
-    records = [record(n_turns=n, task_id=f"t-{n}") for n in (3, 1, 2)]
-    ordered = convert.order_context_tasks(records)
-    assert [r["metadata"]["task_id"] for r in ordered] == ["t-1", "t-2", "t-3"]
+def test_truth_includes_dormant_channels(tmp_path):
+    """Upstream grades against every persistent channel, active or not."""
+    scan = SCANS[0]
+    truth = json.loads((_convert(scan, tmp_path) / "tests" / "truth.json").read_text())
+    assert len(truth["channels"]) == len(scan["ground_truth"])
+    assert any(not ch["active_this_scan"] for ch in truth["channels"])
 
 
-# -------------------------------------------------------------------- judge
+# ------------------------------------------------------------------- scorer
 
 
-class _Judge(BaseHTTPRequestHandler):
-    verdict: dict = {}
-    requests: list = []
-
-    def do_POST(self):
-        body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-        _Judge.requests.append(body)
-        reply = {"choices": [{"message": {"content": json.dumps(self.verdict)}}]}
-        payload = json.dumps(reply).encode()
-        self.send_response(200)
-        self.send_header("Content-Length", str(len(payload)))
-        self.end_headers()
-        self.wfile.write(payload)
-
-    def log_message(self, *args):
-        pass
+def test_scorer_hand_computed_iou():
+    truth = {"band_width": 100.0, "channels": [{"center_freq": 50, "bandwidth": 20}]}
+    perfect = [{"center_freq": 50, "bandwidth": 20}]
+    assert scorer.score_report(perfect, truth)["score"] == 1.0
+    # Empty report: available = whole band (100); truth available = 80.
+    # IoU = 80 / 100 = 0.8.
+    assert scorer.score_report([], truth)["score"] == 0.8
+    # Claiming the whole band occupied: no available overlap at all.
+    whole = [{"center_freq": 50, "bandwidth": 100}]
+    assert scorer.score_report(whole, truth)["score"] == 0.0
 
 
-@pytest.fixture()
-def mock_judge(monkeypatch):
-    server = HTTPServer(("127.0.0.1", 0), _Judge)
-    threading.Thread(target=server.serve_forever, daemon=True).start()
-    monkeypatch.setenv(
-        "CLBENCH_JUDGE_BASE_URL", f"http://127.0.0.1:{server.server_port}/v1"
-    )
-    monkeypatch.setenv("CLBENCH_JUDGE_API_KEY", "test-key")
-    _Judge.requests = []
-    yield _Judge
-    server.shutdown()
+def test_reference_solution_scores_exactly_one(tmp_path):
+    """The oracle contract: the truth-derived report must earn IoU 1.0."""
+    for scan in SCANS:
+        task_dir = _convert(scan, tmp_path)
+        truth = json.loads((task_dir / "tests" / "truth.json").read_text())
+        solve = (task_dir / "solution" / "solve.sh").read_text()
+        report = json.loads(solve.split("<<'EOF'\n")[1].split("\nEOF")[0])
+        assert scorer.score_report(report["transmitters"], truth)["score"] == 1.0
 
 
-def test_judge_all_rubrics_pass(mock_judge):
-    mock_judge.verdict = {
-        "Grading Rationale": "solid",
-        "List of Requirement Satisfaction Status": ["yes", "yes"],
-        "Overall Score": 1,
-    }
-    verdict = judge.call_judge(judge.build_prompt(["r1", "r2"], "the answer"))
-    assert verdict["Overall Score"] == 1
-    prompt = mock_judge.requests[0]["messages"][0]["content"]
-    assert "1. r1" in prompt and "2. r2" in prompt and "the answer" in prompt
-
-
-def test_judge_parse_strips_fences():
-    fenced = '```json\n{"Overall Score": 0, "Grading Rationale": "x"}\n```'
-    assert judge.parse_verdict(fenced)["Overall Score"] == 0
-    with pytest.raises(ValueError):
-        judge.parse_verdict('{"Overall Score": 7}')
-
-
-def test_judge_missing_key_is_loud(monkeypatch):
-    for var in ("CLBENCH_JUDGE_API_KEY", "OPENAI_API_KEY"):
-        monkeypatch.delenv(var, raising=False)
-    with pytest.raises(RuntimeError, match="no judge API key"):
-        judge.call_judge("prompt")
+def test_malformed_reports_degrade_to_empty(tmp_path):
+    bad = tmp_path / "report.json"
+    bad.write_text("{not json")
+    transmitters, reason = scorer.load_transmitters(str(bad))
+    assert transmitters == [] and "malformed" in reason
+    transmitters, reason = scorer.load_transmitters(str(tmp_path / "missing.json"))
+    assert transmitters == [] and "no report" in reason

@@ -46,9 +46,11 @@ The supported stream benchmarks are [terminal-bench 2.0](../../tasks/terminal-be
 (v2.0 only — 1.x predates the Harbor task format),
 [SWE-bench Verified](../../tasks/swebench-verified) — the hardest of
 [AgentStream](https://arxiv.org/abs/2608.00155)'s six benchmarks with a
-published Harbor version — and [CL-bench](../../tasks/cl-bench), whose
-sequential per-context turns stream in order under the carried memory
-(its rubric judge needs an LLM API key at verify time).
+published Harbor version — and
+[CL-Bench](../../tasks/cl-bench)'s blind-spectrum-monitoring domain,
+whose 90 sequential scans stream in lifecycle order under the carried
+memory (upstream IoU scoring, offline); CL-Bench's *gain metric* is
+`metrics.transfer` against an isolated `lab.run` sweep.
 
 ## Ordering: sequential and interleaved streams
 

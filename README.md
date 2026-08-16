@@ -226,19 +226,21 @@ Harbor format — nothing is converted:
 |---|---|---|---|
 | [terminal-bench](tasks/terminal-bench) | 89 · **v2.0 only** (1.x unsupported) | [terminal-bench-2](https://github.com/laude-institute/terminal-bench-2) (Apache-2.0) | `tide fetch terminal-bench`, then `tide stream week1 terminal-bench --agent <a>` |
 | [SWE-bench Verified](tasks/swebench-verified) | 500 | [harbor-datasets](https://github.com/laude-institute/harbor-datasets) | `tide fetch swebench-verified --limit 50`, then `tide stream week1 swebench-verified --agent <a>` |
-| [CL-bench](tasks/cl-bench) | 1,899 over 500 contexts | [clbench.com](https://www.clbench.com) (eval-only license) | `tide fetch cl-bench --contexts 5`, then `tide stream week1 cl-bench --agent <a>` |
+| [CL-Bench](tasks/cl-bench) | 90 (1 of 6 domains) | [continual-learning-bench](https://github.com/pgasawa/continual-learning-bench) (Apache-2.0) | `tide fetch cl-bench`, then `tide stream week1 cl-bench --agent <a>` |
 
 SWE-bench Verified is there because [AgentStream](https://arxiv.org/abs/2608.00155)
 builds its streams from six benchmarks, and it is the hardest of them with
 a published Harbor version — the two the paper measures as hardest, HLE
-and BrowseComp-Plus, have none yet. [CL-bench](tasks/cl-bench) tests
-learning from in-context material (rulebooks, procedures, empirical data;
-frontier models solve ~17%), and over half its tasks are sequential turns
-of one context — converted so each context's turns stream in order under
-the carried memory, graded by the official rubric judge (needs an LLM API
-key at verify time). A stream also takes any task list you build
-yourself, repeats allowed (that is how forgetting is measured) — see
-[streams](docs/api/streams.md).
+and BrowseComp-Plus, have none yet.
+[CL-Bench](tasks/cl-bench) ([paper](https://arxiv.org/pdf/2606.05661)) is
+a continual-learning benchmark in the strict sense — sequential instances
+of one environment where remembering should help — and its *gain metric*
+(stateful minus stateless reward) is exactly `metrics.transfer`. The
+blind-spectrum-monitoring domain (90 scans, upstream IoU scoring, no LLM
+judge) is converted today; the five interactive domains are on the
+[roadmap](https://github.com/Human-Agent-Society/tide-eval/issues/19). A
+stream also takes any task list you build yourself, repeats allowed (that
+is how forgetting is measured) — see [streams](docs/api/streams.md).
 
 ### What each first-party task teaches
 

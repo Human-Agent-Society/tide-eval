@@ -1,86 +1,73 @@
-"""Fetch CL-bench and convert it to stock Harbor tasks, pinned.
+"""Fetch CL-Bench's blind-spectrum-monitoring corpus and convert it, pinned.
 
-    python tasks/cl-bench/fetch.py --contexts 5      # first 5 contexts (their tasks in turn order)
-    python tasks/cl-bench/fetch.py 71a2cd92          # whole contexts, by id prefix
-    python tasks/cl-bench/fetch.py                   # everything: 500 contexts, 1,899 tasks
+    python tasks/cl-bench/fetch.py               # all 90 scans
+    python tasks/cl-bench/fetch.py --limit 10    # the first 10 — a starter stream
 
-Downloads the published JSONL from the pinned HuggingFace revision
-(tencent/CL-bench), then converts each record with ``convert.py``. Grading
-needs an LLM judge at verify time — set ``OPENAI_API_KEY`` (or
-``CLBENCH_JUDGE_API_KEY``, plus ``CLBENCH_JUDGE_MODEL`` /
-``CLBENCH_JUDGE_BASE_URL`` for another provider); the default judge is the
-paper's, gpt-5.1. License: evaluation/benchmarking only — no training use.
+Downloads the published corpus and its metadata from the pinned commit of
+pgasawa/continual-learning-bench (Apache-2.0), verifies the corpus against
+the sha256 the metadata itself declares, and converts every scan with
+``convert.py``. Scoring is the upstream IoU metric — deterministic and
+offline, no LLM judge, no API key. Then:
 
     tide stream week1 cl-bench --agent claude-code --model anthropic/claude-opus-5
 """
 
 import argparse
+import hashlib
 import json
 import urllib.request
-from collections import defaultdict
 from pathlib import Path
 
-from convert import convert_task, order_context_tasks
+from convert import convert_scan, stage_for_scan
 
-# The pinned HuggingFace revision of tencent/CL-bench (dataset repo commit).
-REVISION = "b28a5832a09b0d96c0cf4c22e90d7c60ede25b80"
-DATA_URL = (
-    "https://huggingface.co/datasets/tencent/CL-bench/"
-    f"resolve/{REVISION}/CL-bench.jsonl"
+# The pinned upstream commit (main at conversion time).
+COMMIT = "5f8c50eb1e84b2eda2ef4faff757dfc812a0ea26"
+RAW = (
+    "https://raw.githubusercontent.com/pgasawa/continual-learning-bench/"
+    f"{COMMIT}/data/blind_spectrum_monitoring"
 )
 HERE = Path(__file__).parent
-CACHE = HERE / ".data" / "CL-bench.jsonl"
+CACHE = HERE / ".data"
 
 
-def load_records() -> list[dict]:
-    if not CACHE.exists():
-        print(f"downloading CL-bench.jsonl (~90 MB, pinned {REVISION[:12]}) ...")
-        CACHE.parent.mkdir(parents=True, exist_ok=True)
-        urllib.request.urlretrieve(DATA_URL, CACHE)
-    return [json.loads(line) for line in CACHE.open(encoding="utf-8")]
+def _download(name: str) -> Path:
+    path = CACHE / name
+    if not path.exists():
+        CACHE.mkdir(parents=True, exist_ok=True)
+        urllib.request.urlretrieve(f"{RAW}/{name}", path)
+    return path
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="fetch + convert CL-bench (pinned)")
-    parser.add_argument(
-        "contexts",
-        nargs="*",
-        help="context ids (prefixes work) to convert; default: all 500",
+    parser = argparse.ArgumentParser(
+        description="fetch + convert CL-Bench blind spectrum monitoring (pinned)"
     )
     parser.add_argument(
-        "--contexts",
-        dest="first_n",
-        type=int,
-        default=None,
-        metavar="N",
-        help="only the first N contexts (sorted by context id)",
+        "--limit", type=int, default=None, metavar="N", help="only the first N scans"
     )
     args = parser.parse_args()
 
-    by_context: dict[str, list[dict]] = defaultdict(list)
-    for record in load_records():
-        by_context[record["metadata"]["context_id"]].append(record)
+    metadata = json.loads(_download("mixed_grid_lifecycle_metadata.json").read_text())
+    corpus_path = _download("mixed_grid_lifecycle.jsonl")
+    digest = hashlib.sha256(corpus_path.read_bytes()).hexdigest()
+    if digest != metadata["jsonl_sha256"]:
+        raise SystemExit(
+            f"corpus integrity check failed: sha256 {digest[:16]}... does not "
+            f"match the metadata's {metadata['jsonl_sha256'][:16]}..."
+        )
 
-    wanted = sorted(by_context)
-    if args.contexts:
-        wanted = [
-            ctx for ctx in wanted if any(ctx.startswith(p) for p in args.contexts)
-        ]
-        if not wanted:
-            raise SystemExit(f"no contexts match {args.contexts}")
-    if args.first_n is not None:
-        wanted = wanted[: args.first_n]
+    scans = [json.loads(line) for line in corpus_path.open(encoding="utf-8")]
+    scans.sort(key=lambda s: s["scan_idx"])
+    if args.limit is not None:
+        scans = scans[: args.limit]
 
-    n_tasks = 0
-    for ctx in wanted:
-        for turn, record in enumerate(order_context_tasks(by_context[ctx]), start=1):
-            convert_task(record, HERE, turn)
-            n_tasks += 1
+    total = metadata["total_scans"]
+    for scan in scans:
+        stage = stage_for_scan(scan["scan_idx"], metadata["stages"])
+        convert_scan(scan, stage, HERE, total_scans=total)
 
-    print(f"converted {n_tasks} task(s) from {len(wanted)} context(s) -> {HERE}")
-    print("license: evaluation/benchmarking only — no training use")
+    print(f"converted {len(scans)}/{total} blind-spectrum scans -> {HERE}")
     print("stream them: tide stream week1 cl-bench --agent <a> --model <m>")
-    print("judging needs OPENAI_API_KEY (or CLBENCH_JUDGE_* overrides) on the host")
 
 
 if __name__ == "__main__":
