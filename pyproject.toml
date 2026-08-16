@@ -31,7 +31,14 @@ harbor = ["harbor==0.20.0"]
 # Lint + test tools. ruff is pinned so local and CI format identically —
 # ruff 0.16+ formats Python code blocks inside Markdown, which means an
 # unpinned ruff can make CI fail overnight on a release we didn't opt into.
-dev = ["pytest>=8", "pytest-asyncio>=0.24", "pyyaml>=6", "ruff==0.16.3"]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.24",
+    "pyyaml>=6",
+    "ruff==0.16.3",
+    "mypy==2.3.1",
+    "pandas-stubs",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -43,6 +50,12 @@ packages = ["tide"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.mypy]
+files = ["tide"]
+ignore_missing_imports = true  # harbor is optional; pandas via pandas-stubs
+disallow_untyped_defs = true
+check_untyped_defs = true
 
 [tool.ruff]
 line-length = 88
