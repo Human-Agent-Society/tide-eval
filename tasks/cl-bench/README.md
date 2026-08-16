@@ -31,7 +31,7 @@ is integrity-checked against the sha256 its own metadata declares):
 
 ```bash
 tide fetch cl-bench                # all 90 scans · or --limit 10
-tide stream week1 cl-bench --agent claude-code --model anthropic/claude-opus-5
+tide stream my-stream cl-bench --agent claude-code --model anthropic/claude-opus-5
 ```
 
 The isolated control arm for `metrics.transfer` — CL-Bench's gain — is a

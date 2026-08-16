@@ -9,7 +9,7 @@ the sha256 the metadata itself declares, and converts every scan with
 ``convert.py``. Scoring is the upstream IoU metric — deterministic and
 offline, no LLM judge, no API key. Then:
 
-    tide stream week1 cl-bench --agent claude-code --model anthropic/claude-opus-5
+    tide stream my-stream cl-bench --agent claude-code --model anthropic/claude-opus-5
 """
 
 import argparse
@@ -67,7 +67,7 @@ def main() -> None:
         convert_scan(scan, stage, HERE, total_scans=total)
 
     print(f"converted {len(scans)}/{total} blind-spectrum scans -> {HERE}")
-    print("stream them: tide stream week1 cl-bench --agent <a> --model <m>")
+    print("stream them: tide stream my-stream cl-bench --agent <a> --model <m>")
 
 
 if __name__ == "__main__":

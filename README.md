@@ -78,7 +78,7 @@ tide run autoresearch --agent oracle     # oracle = built-in agent that runs eac
 tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2h     # time (2h / 30m / 90s; bare = hours)
 tide run autoresearch/tsp-tour --agent codex --model openai/gpt-5 --max-tokens 500k                # or: tokens / --max-evals / --max-cost
 tide fetch terminal-bench                # the continual-learning benchmark: 89 pass/fail tasks, pinned to v2.0
-tide stream week1 terminal-bench --agent claude-code --model anthropic/claude-opus-5               # continual learning: memory carried across tasks
+tide stream my-stream terminal-bench --agent claude-code --model anthropic/claude-opus-5               # continual learning: memory carried across tasks
 tide report                              # summarize the results store
 ```
 
@@ -166,7 +166,7 @@ from tide import Lab, Stream, metrics
 
 lab = Lab("runs/cl")
 stream = Stream(
-    "week1",  # ordered tasks, repeats allowed — the revisit is how forgetting shows
+    "my-stream",  # ordered tasks, repeats allowed — the revisit is how forgetting shows
     ["tasks/terminal-bench/chess-best-move", "tasks/terminal-bench/build-pmars", "tasks/terminal-bench/chess-best-move"],
 )
 rows = await stream.run(lab, agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"}, budget="30m")
@@ -176,6 +176,10 @@ metrics.learning_curve(df, by=["stream"])  # does experience accumulate?
 metrics.forgetting(df)  # did the revisited task degrade?
 metrics.transfer(df, baseline_df)  # vs the same tasks run isolated (plain lab.run)
 ```
+
+`"my-stream"` is just a name you choose for the stream: re-running the
+same name resumes it, a new name starts fresh with empty memory, and
+every row carries the name as a `stream` tag for querying.
 
 Every task in the stream is an ordinary Harbor trial in its own
 container. Before each one, the memory is reset to the snapshot from the
@@ -224,9 +228,9 @@ Harbor format — nothing is converted:
 
 | Benchmark | Tasks | Upstream | Run |
 |---|---|---|---|
-| [terminal-bench](tasks/terminal-bench) | 89 · **v2.0 only** (1.x unsupported) | [terminal-bench-2](https://github.com/laude-institute/terminal-bench-2) (Apache-2.0) | `tide fetch terminal-bench`, then `tide stream week1 terminal-bench --agent <a>` |
-| [SWE-bench Verified](tasks/swebench-verified) | 500 | [harbor-datasets](https://github.com/laude-institute/harbor-datasets) | `tide fetch swebench-verified --limit 50`, then `tide stream week1 swebench-verified --agent <a>` |
-| [CL-Bench](tasks/cl-bench) | 90 (1 of 6 domains) | [continual-learning-bench](https://github.com/pgasawa/continual-learning-bench) (Apache-2.0) | `tide fetch cl-bench`, then `tide stream week1 cl-bench --agent <a>` |
+| [terminal-bench](tasks/terminal-bench) | 89 · **v2.0 only** (1.x unsupported) | [terminal-bench-2](https://github.com/laude-institute/terminal-bench-2) (Apache-2.0) | `tide fetch terminal-bench`, then `tide stream my-stream terminal-bench --agent <a>` |
+| [SWE-bench Verified](tasks/swebench-verified) | 500 | [harbor-datasets](https://github.com/laude-institute/harbor-datasets) | `tide fetch swebench-verified --limit 50`, then `tide stream my-stream swebench-verified --agent <a>` |
+| [CL-Bench](tasks/cl-bench) | 90 (1 of 6 domains) | [continual-learning-bench](https://github.com/pgasawa/continual-learning-bench) (Apache-2.0) | `tide fetch cl-bench`, then `tide stream my-stream cl-bench --agent <a>` |
 
 SWE-bench Verified is there because [AgentStream](https://arxiv.org/abs/2608.00155)
 builds its streams from six benchmarks, and it is the hardest of them with

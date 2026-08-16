@@ -11,7 +11,7 @@ to this script unchanged — they are already stock Harbor tasks, nothing is
 converted — and stay git-ignored, because the pin makes any fetch
 reproducible. Then:
 
-    tide stream week1 terminal-bench --agent claude-code --model anthropic/claude-opus-5
+    tide stream my-stream terminal-bench --agent claude-code --model anthropic/claude-opus-5
 """
 
 import argparse
@@ -40,7 +40,7 @@ def main() -> None:
         GIT_URL, COMMIT, dest, only=args.tasks or None, limit=args.limit
     )
     print(f"fetched {len(copied)} terminal-bench 2.0 task(s) -> {dest}")
-    print("stream them: tide stream week1 terminal-bench --agent <a> --model <m>")
+    print("stream them: tide stream my-stream terminal-bench --agent <a> --model <m>")
 
 
 if __name__ == "__main__":

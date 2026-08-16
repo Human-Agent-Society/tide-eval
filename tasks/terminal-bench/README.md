@@ -16,7 +16,7 @@ fetch reproducible — so fetch them first:
 
 ```bash
 tide fetch terminal-bench                 # all 89 · or: --limit 10 · or task names
-tide stream week1 terminal-bench --agent claude-code --model anthropic/claude-opus-5
+tide stream my-stream terminal-bench --agent claude-code --model anthropic/claude-opus-5
 ```
 
 The stream runs the tasks in name order with the agent's memory directory
@@ -25,7 +25,7 @@ subset, or repeats (how forgetting is measured), list the task folders
 yourself:
 
 ```bash
-tide stream week1 terminal-bench/chess-best-move terminal-bench/build-pmars \
+tide stream my-stream terminal-bench/chess-best-move terminal-bench/build-pmars \
   terminal-bench/chess-best-move --agent claude-code --model anthropic/claude-opus-5
 ```
 

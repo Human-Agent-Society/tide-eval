@@ -21,7 +21,7 @@ the blob filter keeps a subset fetch small:
 
 ```bash
 tide fetch swebench-verified --limit 50   # a stream-sized subset · or task names · or all 500
-tide stream week1 swebench-verified --agent claude-code --model anthropic/claude-opus-5
+tide stream my-stream swebench-verified --agent claude-code --model anthropic/claude-opus-5
 ```
 
 Streams run in name order with the agent's memory (`$TIDE_STATE_DIR`)

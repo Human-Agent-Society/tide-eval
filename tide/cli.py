@@ -4,7 +4,7 @@
     tide run tasks/autoresearch/circle-packing --agent oracle
     tide run autoresearch --agent claude-code --model anthropic/claude-opus-5
     tide run edgebench/ann_vector_search_qps --agent codex --budget 2
-    tide stream week1 autoresearch --agent claude-code  # continual: carried state
+    tide stream my-stream terminal-bench --agent claude-code  # continual: carried state
     tide report                                         # summarize the results store
 
 Targets resolve in order: an explicit task directory → every task inside a
@@ -399,7 +399,11 @@ def main(argv: list[str] | None = None) -> int:
         "stream",
         help="run tasks as one continual-learning stream (carried agent state)",
     )
-    p_stream.add_argument("name", help="stream name — part of every episode's key")
+    p_stream.add_argument(
+        "name",
+        help="your name for this stream — re-running the same name resumes it; "
+        "a new name starts a fresh stream with empty memory",
+    )
     p_stream.add_argument("targets", nargs="+")
     add_shared_flags(p_stream)
     p_stream.add_argument(

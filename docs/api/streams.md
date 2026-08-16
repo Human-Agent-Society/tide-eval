@@ -15,7 +15,7 @@ from tide import Lab, Stream, metrics
 
 lab = Lab("runs/cl")
 stream = Stream(
-    "week1",  # the stream's name — part of every episode's key
+    "my-stream",  # the stream's name — part of every episode's key
     [  # any Harbor tasks, in the order the agent will meet them
         "tasks/terminal-bench/chess-best-move",
         "tasks/terminal-bench/build-pmars",
@@ -39,8 +39,25 @@ every fetched task in name order:
 
 ```bash
 tide fetch terminal-bench          # or: tide fetch swebench-verified --limit 50
-tide stream week1 terminal-bench --agent claude-code --model anthropic/claude-opus-5
+tide stream my-stream terminal-bench --agent claude-code --model anthropic/claude-opus-5
 ```
+
+## The stream name
+
+`"my-stream"` above is just a name you choose — there are no reserved
+names. It identifies the measurement, and it does three things:
+
+- **resume**: the name is part of every episode's key, so re-running the
+  same name (with the same setup) picks up where it left off, while a new
+  name starts a fresh stream with empty memory;
+- **state**: the agent's memory lives under
+  `<lab>/streams/<name>-<variant>/`;
+- **queries**: every row carries a `stream` tag with this name, so
+  comparing streams is a groupby.
+
+The same name under a different agent, tags, or budget is automatically a
+different *variant* — separate state, separate keys — so name your
+experiment, not your configuration.
 
 The supported stream benchmarks are [terminal-bench 2.0](../../tasks/terminal-bench)
 (v2.0 only — 1.x predates the Harbor task format),

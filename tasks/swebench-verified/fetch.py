@@ -12,7 +12,7 @@ dataset repository carries no license, so these tasks are never committed
 here — this script fetches them onto your machine, and the blob filter
 keeps a `--limit` fetch small even though the full repository is huge.
 
-    tide stream week1 swebench-verified --agent claude-code --model anthropic/claude-opus-5
+    tide stream my-stream swebench-verified --agent claude-code --model anthropic/claude-opus-5
 """
 
 import argparse
@@ -42,7 +42,7 @@ def main() -> None:
         GIT_URL, COMMIT, dest, subdir=SUBDIR, only=args.tasks or None, limit=args.limit
     )
     print(f"fetched {len(copied)} SWE-bench Verified task(s) -> {dest}")
-    print("stream them: tide stream week1 swebench-verified --agent <a> --model <m>")
+    print("stream them: tide stream my-stream swebench-verified --agent <a> --model <m>")
 
 
 if __name__ == "__main__":

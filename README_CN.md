@@ -70,7 +70,7 @@ tide list                                # 有哪些任务可跑
 tide run autoresearch --agent oracle     # oracle = 内置 agent,运行每个任务的参考解
 tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2h  # 时间(2h / 30m / 90s;裸数字 = 小时)
 tide fetch terminal-bench                # continual learning 的 benchmark:89 个通过/不通过任务,pin 在 v2.0
-tide stream week1 terminal-bench --agent claude-code --model anthropic/claude-opus-5            # continual learning:记忆跨任务传递
+tide stream my-stream terminal-bench --agent claude-code --model anthropic/claude-opus-5            # continual learning:记忆跨任务传递
 tide report                              # 汇总结果库
 ```
 
@@ -136,7 +136,7 @@ from tide import Lab, Stream, metrics
 
 lab = Lab("runs/cl")
 stream = Stream(
-    "week1",  # 有序任务列表,允许重复出现——重访正是"遗忘"显形的地方
+    "my-stream",  # 有序任务列表,允许重复出现——重访正是"遗忘"显形的地方
     ["tasks/terminal-bench/chess-best-move", "tasks/terminal-bench/build-pmars", "tasks/terminal-bench/chess-best-move"],
 )
 rows = await stream.run(lab, agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"}, budget="30m")
@@ -146,6 +146,9 @@ metrics.learning_curve(df, by=["stream"])  # 经验积累起来了吗?
 metrics.forgetting(df)  # 重访的任务退步了吗?
 metrics.transfer(df, baseline_df)  # 对比同一批任务的孤立运行(普通 lab.run)
 ```
+
+`"my-stream"` 只是你给这条流起的名字:同名重跑就是续跑,换个名字就是一条
+从零记忆开始的新流,每行结果都带这个名字作为 `stream` 标签方便查询。
 
 流里的每个任务就是一次普通的 Harbor trial、一个独立容器。每个任务开始
 前,记忆重置为上一步留下的快照;结束后再存一份新快照——所以流崩溃后能
@@ -190,9 +193,9 @@ metrics.transfer(df, baseline_df)  # 对比同一批任务的孤立运行(普通
 
 | Benchmark | 任务数 | 上游 | 运行方式 |
 |---|---|---|---|
-| [terminal-bench](tasks/terminal-bench) | 89 · **只支持 v2.0**(不含 1.x) | [terminal-bench-2](https://github.com/laude-institute/terminal-bench-2)(Apache-2.0) | `tide fetch terminal-bench`,然后 `tide stream week1 terminal-bench --agent <a>` |
-| [SWE-bench Verified](tasks/swebench-verified) | 500 | [harbor-datasets](https://github.com/laude-institute/harbor-datasets) | `tide fetch swebench-verified --limit 50`,然后 `tide stream week1 swebench-verified --agent <a>` |
-| [CL-Bench](tasks/cl-bench) | 90(6 个 domain 中的 1 个) | [continual-learning-bench](https://github.com/pgasawa/continual-learning-bench)(Apache-2.0) | `tide fetch cl-bench`,然后 `tide stream week1 cl-bench --agent <a>` |
+| [terminal-bench](tasks/terminal-bench) | 89 · **只支持 v2.0**(不含 1.x) | [terminal-bench-2](https://github.com/laude-institute/terminal-bench-2)(Apache-2.0) | `tide fetch terminal-bench`,然后 `tide stream my-stream terminal-bench --agent <a>` |
+| [SWE-bench Verified](tasks/swebench-verified) | 500 | [harbor-datasets](https://github.com/laude-institute/harbor-datasets) | `tide fetch swebench-verified --limit 50`,然后 `tide stream my-stream swebench-verified --agent <a>` |
+| [CL-Bench](tasks/cl-bench) | 90(6 个 domain 中的 1 个) | [continual-learning-bench](https://github.com/pgasawa/continual-learning-bench)(Apache-2.0) | `tide fetch cl-bench`,然后 `tide stream my-stream cl-bench --agent <a>` |
 
 放 SWE-bench Verified 是因为 [AgentStream](https://arxiv.org/abs/2608.00155)
 的任务流由六个 benchmark 组成,而它是其中已有 Harbor 版本的最难的一个
