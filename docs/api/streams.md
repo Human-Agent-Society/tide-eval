@@ -10,16 +10,16 @@ evolved harness. Whether accumulating that state helps is the measurement.
 ## Use it
 
 ```python
+# first: tide fetch terminal-bench  (89 pass/fail tasks, pinned to v2.0)
 from tide import Lab, Stream, metrics
 
 lab = Lab("runs/cl")
 stream = Stream(
     "week1",  # the stream's name — part of every episode's key
-    [  # any Harbor tasks, in the order the agent will meet them;
-       # pass/fail tasks (terminal-bench-style) work as-is
-        "tasks/autoresearch/tsp-tour",
-        "tasks/autoresearch/bin-packing",
-        "tasks/autoresearch/tsp-tour",  # a revisit — how forgetting is measured
+    [  # any Harbor tasks, in the order the agent will meet them
+        "tasks/terminal-bench/chess-best-move",
+        "tasks/terminal-bench/build-pmars",
+        "tasks/terminal-bench/chess-best-move",  # a revisit — how forgetting is measured
     ],
 )
 rows = await stream.run(
@@ -34,11 +34,19 @@ metrics.forgetting(df)  # did revisited tasks degrade?
 metrics.transfer(df, baseline_df)  # vs the same tasks run isolated (plain lab.run)
 ```
 
-The CLI equivalent (also `--fake` / `--local`):
+The CLI equivalent (also `--fake` / `--local`) — a folder target streams
+every fetched task in name order:
 
 ```bash
-tide stream week1 autoresearch --agent claude-code --model anthropic/claude-opus-5 --budget 30m
+tide fetch terminal-bench          # or: tide fetch swebench-verified --limit 50
+tide stream week1 terminal-bench --agent claude-code --model anthropic/claude-opus-5
 ```
+
+The supported stream benchmarks are [terminal-bench 2.0](../../tasks/terminal-bench)
+(v2.0 only — 1.x predates the Harbor task format) and
+[SWE-bench Verified](../../tasks/swebench-verified), the hardest of
+[AgentStream](https://arxiv.org/abs/2608.00155)'s six benchmarks with a
+published Harbor version.
 
 ## How state is carried
 

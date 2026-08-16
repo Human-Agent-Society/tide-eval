@@ -25,11 +25,11 @@ There is no "passed" — only *how good, by when*. The learning happens
 
 **Continual learning** — one agent works through a
 [stream](docs/api/streams.md) of tasks in order (the
-[AgentStream](https://arxiv.org/abs/2608.00155) setting;
-terminal-bench-style pass/fail Harbor tasks work as they are), carrying
-its memory from task to task. What matters is not the score on any one
-task — it is *whether experience adds up*. The learning happens
-**across tasks**:
+[AgentStream](https://arxiv.org/abs/2608.00155) setting; the supported
+benchmarks are [terminal-bench 2.0](tasks/terminal-bench) and
+[SWE-bench Verified](tasks/swebench-verified)), carrying its memory from
+task to task. What matters is not the score on any one task — it is
+*whether experience adds up*. The learning happens **across tasks**:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-stream-dark.svg">
@@ -77,7 +77,8 @@ tide list                                # what's runnable
 tide run autoresearch --agent oracle     # oracle = built-in agent that runs each task's reference solution
 tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2h     # time (2h / 30m / 90s; bare = hours)
 tide run autoresearch/tsp-tour --agent codex --model openai/gpt-5 --max-tokens 500k                # or: tokens / --max-evals / --max-cost
-tide stream week1 autoresearch --agent claude-code --model anthropic/claude-opus-5 --budget 30m    # continual learning: memory carried across tasks
+tide fetch terminal-bench                # the continual-learning benchmark: 89 pass/fail tasks, pinned to v2.0
+tide stream week1 terminal-bench --agent claude-code --model anthropic/claude-opus-5               # continual learning: memory carried across tasks
 tide report                              # summarize the results store
 ```
 
@@ -160,12 +161,13 @@ so the agent's memory, skill library, or evolved harness rides along from
 task to task — and whether that helps is exactly what gets measured:
 
 ```python
+# first: tide fetch terminal-bench
 from tide import Lab, Stream, metrics
 
 lab = Lab("runs/cl")
 stream = Stream(
-    "week1",  # ordered tasks; task dirs or Harbor registry ids, repeats allowed
-    ["tasks/autoresearch/tsp-tour", "tasks/autoresearch/bin-packing", "tasks/autoresearch/tsp-tour"],
+    "week1",  # ordered tasks, repeats allowed — the revisit is how forgetting shows
+    ["tasks/terminal-bench/chess-best-move", "tasks/terminal-bench/build-pmars", "tasks/terminal-bench/chess-best-move"],
 )
 rows = await stream.run(lab, agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"}, budget="30m")
 
@@ -216,15 +218,21 @@ The next converters, vetted for autoresearch fit, are tracked in the
 
 ### Continual learning
 
-A stream takes any ordered list of Harbor tasks, so nothing needs
-converting — pass/fail benchmarks work as they are, and every catalog
-above can also be run as a stream:
+Two stream benchmarks, both fetched from the exact commit the Harbor
+registry pins (so a fetch is reproducible) and already in the stock
+Harbor format — nothing is converted:
 
-| Stream of | Where the tasks come from | Run |
-|---|---|---|
-| [terminal-bench](https://github.com/laude-institute/terminal-bench) and other pass/fail benchmarks | Harbor registry ids, used as-is | `tide stream week1 <task-id> … --agent <a>` |
-| any catalog above (6 + 51 + 208 tasks) | this repo | `tide stream week1 autoresearch --agent <a>` |
-| your own mix, repeats allowed (that's how forgetting is measured) | task dirs and registry ids together | `Stream("week1", [...])` — see [streams](docs/api/streams.md) |
+| Benchmark | Tasks | Upstream | Run |
+|---|---|---|---|
+| [terminal-bench](tasks/terminal-bench) | 89 · **v2.0 only** (1.x unsupported) | [terminal-bench-2](https://github.com/laude-institute/terminal-bench-2) (Apache-2.0) | `tide fetch terminal-bench`, then `tide stream week1 terminal-bench --agent <a>` |
+| [SWE-bench Verified](tasks/swebench-verified) | 500 | [harbor-datasets](https://github.com/laude-institute/harbor-datasets) | `tide fetch swebench-verified --limit 50`, then `tide stream week1 swebench-verified --agent <a>` |
+
+SWE-bench Verified is there because [AgentStream](https://arxiv.org/abs/2608.00155)
+builds its streams from six benchmarks, and it is the hardest of them with
+a published Harbor version — the two the paper measures as hardest, HLE
+and BrowseComp-Plus, have none yet. A stream also takes any task list you
+build yourself, repeats allowed (that is how forgetting is measured) —
+see [streams](docs/api/streams.md).
 
 ### What each first-party task teaches
 

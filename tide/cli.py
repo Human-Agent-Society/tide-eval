@@ -405,7 +405,8 @@ def main(argv: list[str] | None = None) -> int:
 
     p_fetch = sub.add_parser("fetch", help="fetch an external benchmark's tasks")
     p_fetch.add_argument("benchmark")
-    p_fetch.add_argument("rest", nargs="*")
+    # REMAINDER so flags like `--limit 10` pass through to the fetch script.
+    p_fetch.add_argument("rest", nargs=argparse.REMAINDER)
     p_fetch.set_defaults(func=cmd_fetch)
 
     args = parser.parse_args(argv)

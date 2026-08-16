@@ -23,10 +23,11 @@ tide 评测的是"随经验变强的 agent",支持两种模式。
 </picture>
 
 **Continual learning**——同一个 agent 按顺序做完一条任务[流](docs/api/streams.md)
-([AgentStream](https://arxiv.org/abs/2608.00155) 的设定;terminal-bench
-那类通过/不通过的 Harbor 任务原样可用),把自己的记忆从一个任务带到
-下一个。重要的不是任何单个任务的分数,而是*经验有没有积累起来*。学习
-发生在**任务与任务之间**:
+([AgentStream](https://arxiv.org/abs/2608.00155) 的设定;支持的 benchmark
+是 [terminal-bench 2.0](tasks/terminal-bench) 和
+[SWE-bench Verified](tasks/swebench-verified)),把自己的记忆从一个任务
+带到下一个。重要的不是任何单个任务的分数,而是*经验有没有积累起来*。
+学习发生在**任务与任务之间**:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-stream-dark.svg">
@@ -68,7 +69,8 @@ pip install -e ".[harbor]"               # 容器模式需要;仅 --local 和 AP
 tide list                                # 有哪些任务可跑
 tide run autoresearch --agent oracle     # oracle = 内置 agent,运行每个任务的参考解
 tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2h  # 时间(2h / 30m / 90s;裸数字 = 小时)
-tide stream week1 autoresearch --agent claude-code --model anthropic/claude-opus-5 --budget 30m # continual learning:记忆跨任务传递
+tide fetch terminal-bench                # continual learning 的 benchmark:89 个通过/不通过任务,pin 在 v2.0
+tide stream week1 terminal-bench --agent claude-code --model anthropic/claude-opus-5            # continual learning:记忆跨任务传递
 tide report                              # 汇总结果库
 ```
 
@@ -129,12 +131,13 @@ harness 就随流从一个任务带到下一个——而"带着它到底有没�
 东西:
 
 ```python
+# 先执行:tide fetch terminal-bench
 from tide import Lab, Stream, metrics
 
 lab = Lab("runs/cl")
 stream = Stream(
-    "week1",  # 有序任务列表;任务目录或 Harbor registry id,允许重复出现
-    ["tasks/autoresearch/tsp-tour", "tasks/autoresearch/bin-packing", "tasks/autoresearch/tsp-tour"],
+    "week1",  # 有序任务列表,允许重复出现——重访正是"遗忘"显形的地方
+    ["tasks/terminal-bench/chess-best-move", "tasks/terminal-bench/build-pmars", "tasks/terminal-bench/chess-best-move"],
 )
 rows = await stream.run(lab, agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"}, budget="30m")
 
@@ -181,14 +184,20 @@ metrics.transfer(df, baseline_df)  # 对比同一批任务的孤立运行(普通
 
 ### Continual learning 模式
 
-stream 接受任意有序的 Harbor 任务列表,不需要任何转换——通过/不通过类
-benchmark 原样可用,上面每个目录也都能作为一条流来跑:
+两个 stream benchmark,都从 Harbor registry pin 死的那个 commit 拉取
+(所以每次 fetch 都可复现),而且本身就是标准 Harbor 格式——不需要任何
+转换:
 
-| 流的内容 | 任务来源 | 运行方式 |
-|---|---|---|
-| [terminal-bench](https://github.com/laude-institute/terminal-bench) 等通过/不通过类 benchmark | Harbor registry id,直接可用 | `tide stream week1 <task-id> … --agent <a>` |
-| 上面任何目录(6 + 51 + 208 个任务) | 本仓库 | `tide stream week1 autoresearch --agent <a>` |
-| 自选组合,允许重复出现(重复正是测"遗忘"的方式) | 任务目录和 registry id 混排 | `Stream("week1", [...])`——见 [streams](docs/api/streams.md) |
+| Benchmark | 任务数 | 上游 | 运行方式 |
+|---|---|---|---|
+| [terminal-bench](tasks/terminal-bench) | 89 · **只支持 v2.0**(不含 1.x) | [terminal-bench-2](https://github.com/laude-institute/terminal-bench-2)(Apache-2.0) | `tide fetch terminal-bench`,然后 `tide stream week1 terminal-bench --agent <a>` |
+| [SWE-bench Verified](tasks/swebench-verified) | 500 | [harbor-datasets](https://github.com/laude-institute/harbor-datasets) | `tide fetch swebench-verified --limit 50`,然后 `tide stream week1 swebench-verified --agent <a>` |
+
+放 SWE-bench Verified 是因为 [AgentStream](https://arxiv.org/abs/2608.00155)
+的任务流由六个 benchmark 组成,而它是其中已有 Harbor 版本的最难的一个
+——论文里测出最难的两个(HLE 和 BrowseComp-Plus)目前还没有 Harbor 版。
+stream 也接受你自己排的任意任务列表,允许重复出现(重复正是测"遗忘"的
+方式)——见 [streams](docs/api/streams.md)。
 
 ### 每个第一方任务教什么
 

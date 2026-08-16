@@ -5,6 +5,9 @@ __pycache__/
 .pytest_cache/
 runs/
 site/
+# fetched (never vendored) stream benchmarks — see each folder's README
+tasks/terminal-bench/*/
+tasks/swebench-verified/*/
 dist/
 build/
 .DS_Store
