@@ -13,6 +13,7 @@ tasks/cl-bench/.data/
 tasks/terminal-bench/.data/
 dist/
 build/
+uv.lock
 .DS_Store
 .vercel
 .env*

@@ -6,8 +6,6 @@
 
 **Autoresearch and continual-learning evaluation on the [Harbor](https://github.com/laude-institute/harbor) task standard.**
 
-**English** | [中文](README_CN.md)
-
 tide evaluates agents that get better with experience, in two modes.
 
 **Autoresearch** — the kind of work DeepMind's
