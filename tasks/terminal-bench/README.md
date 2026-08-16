@@ -10,12 +10,11 @@ reward 1.0, a fail 0.0, so the stream metrics (`learning_curve`,
 commit the Harbor registry publishes as v2.0; terminal-bench 1.x predates
 the Harbor task format and is deliberately not supported.
 
-**License**: Apache-2.0 (upstream). The tasks are not committed here —
-they are large, upstream already versions them, and the pin makes every
-fetch reproducible — so fetch them first:
+**License**: Apache-2.0 (upstream). **All 89 tasks are committed here**,
+so they run out of the box; [`fetch.py`](fetch.py) re-syncs them from the
+pinned commit if you ever need to regenerate:
 
 ```bash
-tide fetch terminal-bench                 # all 89 · or: --limit 10 · or task names
 tide stream my-stream terminal-bench --agent claude-code --model anthropic/claude-opus-5
 ```
 

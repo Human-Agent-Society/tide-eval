@@ -51,17 +51,17 @@ states the oracle baseline and what the task teaches.
 
 ## External benchmarks — continual-learning streams
 
-Pass/fail benchmarks for `tide stream`, already in the stock Harbor
-format upstream — nothing is converted, and nothing is committed: each
-`fetch.py` pulls from the exact commit the Harbor registry pins, so a
-fetch is reproducible (and the SWE-bench dataset repo carries no license,
-so vendoring is not an option there anyway).
+Benchmarks for `tide stream`. terminal-bench and CL-Bench tasks are
+**committed** (Apache-2.0) — browse and run them directly; each
+`fetch.py` regenerates them from its pinned sources. SWE-bench Verified's
+dataset repo carries no license, so those tasks are the exception:
+fetched onto your machine, never committed.
 
 | Folder | Upstream | Get the tasks |
 |---|---|---|
-| [`terminal-bench/`](terminal-bench) | [terminal-bench 2.0](https://github.com/laude-institute/terminal-bench-2) (Apache-2.0) · 89 terminal tasks · **v2.0 only, 1.x unsupported** | `tide fetch terminal-bench` |
+| [`terminal-bench/`](terminal-bench) | [terminal-bench 2.0](https://github.com/laude-institute/terminal-bench-2) (Apache-2.0) · 89 terminal tasks · **v2.0 only, 1.x unsupported** | **all 89 committed** — `tide fetch terminal-bench` re-syncs from the pin |
 | [`swebench-verified/`](swebench-verified) | [SWE-bench Verified](https://github.com/SWE-bench/SWE-bench) via [harbor-datasets](https://github.com/laude-institute/harbor-datasets) (no license) · 500 issue-fixing tasks · the hardest [AgentStream](https://arxiv.org/abs/2608.00155) benchmark with a Harbor version | `tide fetch swebench-verified --limit 50` |
-| [`cl-bench/`](cl-bench) | [CL-Bench](https://www.continual-learning-bench.com) (Apache-2.0) · continual learning over sequential instances of one environment · **all 6 domains converted, 301 tasks** (spectrum, sales, cohorts, PR bugfixes, metered SQL, poker) · upstream metrics, deterministic and offline; hidden state lives in judge sidecars | `tide fetch cl-bench` |
+| [`cl-bench/`](cl-bench) | [CL-Bench](https://www.continual-learning-bench.com) (Apache-2.0) · continual learning over sequential instances of one environment · **all 6 domains converted, 301 tasks** (spectrum, sales, cohorts, PR bugfixes, metered SQL, poker) · upstream metrics, deterministic and offline; hidden state lives in judge sidecars | **all 301 committed** — `tide fetch cl-bench` regenerates from the pins |
 
 ## Adding a new benchmark
 

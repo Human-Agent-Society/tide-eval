@@ -10,7 +10,6 @@ evolved harness. Whether accumulating that state helps is the measurement.
 ## Use it
 
 ```python
-# first: tide fetch terminal-bench  (89 pass/fail tasks, pinned to v2.0)
 from tide import Lab, Stream, metrics
 
 lab = Lab("runs/cl")
@@ -35,12 +34,16 @@ metrics.transfer(df, baseline_df)  # vs the same tasks run isolated (plain lab.r
 ```
 
 The CLI equivalent (also `--fake` / `--local`) — a folder target streams
-every fetched task in name order:
+every task inside it in name order:
 
 ```bash
-tide fetch terminal-bench          # or: tide fetch swebench-verified --limit 50
 tide stream my-stream terminal-bench --agent claude-code --model anthropic/claude-opus-5
 ```
+
+terminal-bench and CL-Bench tasks are committed to the repo and run out
+of the box; only SWE-bench Verified needs a fetch first
+(`tide fetch swebench-verified --limit 50` — its upstream has no
+license, so those tasks are never committed).
 
 ## The stream name
 

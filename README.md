@@ -78,7 +78,6 @@ tide list                                # what's runnable
 tide run autoresearch --agent oracle     # oracle = built-in agent that runs each task's reference solution
 tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2h     # time (2h / 30m / 90s; bare = hours)
 tide run autoresearch/tsp-tour --agent codex --model openai/gpt-5 --max-tokens 500k                # or: tokens / --max-evals / --max-cost
-tide fetch terminal-bench                # the continual-learning benchmark: 89 pass/fail tasks, pinned to v2.0
 tide stream my-stream terminal-bench --agent claude-code --model anthropic/claude-opus-5               # continual learning: memory carried across tasks
 tide report                              # summarize the results store
 ```
@@ -162,7 +161,6 @@ so the agent's memory, skill library, or evolved harness rides along from
 task to task — and whether that helps is exactly what gets measured:
 
 ```python
-# first: tide fetch terminal-bench
 from tide import Lab, Stream, metrics
 
 lab = Lab("runs/cl")
@@ -223,15 +221,16 @@ The next converters, vetted for autoresearch fit, are tracked in the
 
 ### Continual learning
 
-Two stream benchmarks, both fetched from the exact commit the Harbor
-registry pins (so a fetch is reproducible) and already in the stock
-Harbor format — nothing is converted:
+Three stream benchmarks. terminal-bench and CL-Bench tasks are committed
+to this repo (Apache-2.0) and run out of the box, with a pinned
+`fetch.py` to regenerate them; SWE-bench Verified's dataset repo has no
+license, so its tasks are fetched onto your machine instead:
 
 | Benchmark | Tasks | Upstream | Run |
 |---|---|---|---|
-| [terminal-bench](tasks/terminal-bench) | 89 · **v2.0 only** (1.x unsupported) | [terminal-bench-2](https://github.com/laude-institute/terminal-bench-2) (Apache-2.0) | `tide fetch terminal-bench`, then `tide stream my-stream terminal-bench --agent <a>` |
-| [SWE-bench Verified](tasks/swebench-verified) | 500 | [harbor-datasets](https://github.com/laude-institute/harbor-datasets) | `tide fetch swebench-verified --limit 50`, then `tide stream my-stream swebench-verified --agent <a>` |
-| [CL-Bench](tasks/cl-bench) | 301 · **all 6 domains** | [continual-learning-bench](https://github.com/pgasawa/continual-learning-bench) (Apache-2.0) | `tide fetch cl-bench`, then `tide stream my-stream tasks/cl-bench/poker-* --agent <a>` |
+| [terminal-bench](tasks/terminal-bench) | 89 · **v2.0 only** (1.x unsupported) · committed | [terminal-bench-2](https://github.com/laude-institute/terminal-bench-2) (Apache-2.0) | `tide stream my-stream terminal-bench --agent <a>` |
+| [SWE-bench Verified](tasks/swebench-verified) | 500 · fetched (upstream has no license) | [harbor-datasets](https://github.com/laude-institute/harbor-datasets) | `tide fetch swebench-verified --limit 50`, then `tide stream my-stream swebench-verified --agent <a>` |
+| [CL-Bench](tasks/cl-bench) | 301 · **all 6 domains** · committed | [continual-learning-bench](https://github.com/pgasawa/continual-learning-bench) (Apache-2.0) | `tide stream my-stream tasks/cl-bench/poker-* --agent <a>` |
 
 SWE-bench Verified is there because [AgentStream](https://arxiv.org/abs/2608.00155)
 builds its streams from six benchmarks, and it is the hardest of them with

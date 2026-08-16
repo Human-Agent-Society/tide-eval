@@ -7,9 +7,9 @@
 Only terminal-bench **2.0** is supported: the pin below is the exact
 commit the Harbor registry publishes as v2.0. terminal-bench 1.x predates
 the Harbor task format and is deliberately not included. Tasks land next
-to this script unchanged — they are already stock Harbor tasks, nothing is
-converted — and stay git-ignored, because the pin makes any fetch
-reproducible. Then:
+to this script unchanged — they are already stock Harbor tasks, nothing
+is converted. All 89 are committed to the repo; running this script
+re-syncs them from the pin. Then:
 
     tide stream my-stream terminal-bench --agent claude-code --model anthropic/claude-opus-5
 """

@@ -59,13 +59,15 @@ correct answer) or it is self-served from the refreshed data (sales).
 The dbx query budget and the poker deal are *not* deviations — the
 sidecar enforces them exactly.
 
-**Get the tasks** (everything pinned: upstream commit, HuggingFace
-revisions, sha256-verified corpora; the poker conversion needs
-`pip install texasholdem==0.11.0` on the host for the oracle simulation):
+**All 301 tasks are committed here**, so they run out of the box.
+[`fetch.py`](fetch.py) regenerates them from the pinned sources (upstream
+commit, HuggingFace revisions, sha256-verified corpora; regenerating the
+poker domain needs `pip install texasholdem==0.11.0` for the oracle
+simulation):
 
 ```bash
-tide fetch cl-bench                 # all 301 · or: cl-bench bsm sales · or --limit N
 tide stream my-stream tasks/cl-bench/poker-* --agent claude-code --model anthropic/claude-opus-5
+tide fetch cl-bench bsm sales       # only to regenerate from the pins
 ```
 
 Stream one domain with a shell glob as above (each domain is its own

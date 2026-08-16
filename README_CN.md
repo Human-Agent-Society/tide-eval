@@ -70,7 +70,6 @@ pip install -e ".[harbor]"               # 容器模式需要;仅 --local 和 AP
 tide list                                # 有哪些任务可跑
 tide run autoresearch --agent oracle     # oracle = 内置 agent,运行每个任务的参考解
 tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2h  # 时间(2h / 30m / 90s;裸数字 = 小时)
-tide fetch terminal-bench                # continual learning 的 benchmark:89 个通过/不通过任务,pin 在 v2.0
 tide stream my-stream terminal-bench --agent claude-code --model anthropic/claude-opus-5            # continual learning:记忆跨任务传递
 tide report                              # 汇总结果库
 ```
@@ -132,7 +131,6 @@ harness 就随流从一个任务带到下一个——而"带着它到底有没�
 东西:
 
 ```python
-# 先执行:tide fetch terminal-bench
 from tide import Lab, Stream, metrics
 
 lab = Lab("runs/cl")
@@ -188,15 +186,16 @@ metrics.transfer(df, baseline_df)  # 对比同一批任务的孤立运行(普通
 
 ### Continual learning 模式
 
-两个 stream benchmark,都从 Harbor registry pin 死的那个 commit 拉取
-(所以每次 fetch 都可复现),而且本身就是标准 Harbor 格式——不需要任何
-转换:
+三个 stream benchmark。terminal-bench 和 CL-Bench 的任务已直接提交进
+本仓库(Apache-2.0),开箱即跑,配 pin 死来源的 `fetch.py` 可随时重新
+生成;SWE-bench Verified 的数据仓库没有 license,所以它的任务只能
+fetch 到你自己机器上:
 
 | Benchmark | 任务数 | 上游 | 运行方式 |
 |---|---|---|---|
-| [terminal-bench](tasks/terminal-bench) | 89 · **只支持 v2.0**(不含 1.x) | [terminal-bench-2](https://github.com/laude-institute/terminal-bench-2)(Apache-2.0) | `tide fetch terminal-bench`,然后 `tide stream my-stream terminal-bench --agent <a>` |
-| [SWE-bench Verified](tasks/swebench-verified) | 500 | [harbor-datasets](https://github.com/laude-institute/harbor-datasets) | `tide fetch swebench-verified --limit 50`,然后 `tide stream my-stream swebench-verified --agent <a>` |
-| [CL-Bench](tasks/cl-bench) | 301 · **全部 6 个 domain** | [continual-learning-bench](https://github.com/pgasawa/continual-learning-bench)(Apache-2.0) | `tide fetch cl-bench`,然后 `tide stream my-stream tasks/cl-bench/poker-* --agent <a>` |
+| [terminal-bench](tasks/terminal-bench) | 89 · **只支持 v2.0**(不含 1.x)· 已提交进仓库 | [terminal-bench-2](https://github.com/laude-institute/terminal-bench-2)(Apache-2.0) | `tide stream my-stream terminal-bench --agent <a>` |
+| [SWE-bench Verified](tasks/swebench-verified) | 500 · fetch 获取(上游无 license) | [harbor-datasets](https://github.com/laude-institute/harbor-datasets) | `tide fetch swebench-verified --limit 50`,然后 `tide stream my-stream swebench-verified --agent <a>` |
+| [CL-Bench](tasks/cl-bench) | 301 · **全部 6 个 domain** · 已提交进仓库 | [continual-learning-bench](https://github.com/pgasawa/continual-learning-bench)(Apache-2.0) | `tide stream my-stream tasks/cl-bench/poker-* --agent <a>` |
 
 放 SWE-bench Verified 是因为 [AgentStream](https://arxiv.org/abs/2608.00155)
 的任务流由六个 benchmark 组成,而它是其中已有 Harbor 版本的最难的一个
