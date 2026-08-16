@@ -11,15 +11,17 @@ Every task gives your agent two environment variables and one protocol:
 
 | | |
 |---|---|
-| `$JUDGE_URL` | the judge's HTTP address |
+| `$JUDGE_URL` | the judge's agent-port HTTP address |
 | `$BUDGET_SEC` | your time budget (local runs; containers use the task timeout) |
 | `POST $JUDGE_URL/submit` | body = your solution file → `{"score", "best", "remaining", ...}`; over budget → 429 |
 | `GET $JUDGE_URL/status` | submissions used / remaining, best so far |
 
 Your final score is your best submission (re-scored by a final judge with
-hidden tests, if the task has one). Everything else — how you search, what
-you evaluate locally, whether you build your own scorer — is your
-business; tide places no constraints on the agent's side.
+hidden tests, if the task has one). The final evaluation runs on a
+**separate verifier port** behind a per-session token — the agent cannot
+trigger or observe it. Everything else — how you search, what you
+evaluate locally, whether you build your own scorer — is your business;
+tide places no constraints on the agent's side.
 
 If the run set a [budget](../api/budget.md) beyond time, the container
 also carries `TIDE_MAX_SUBMISSIONS`, `TIDE_MAX_TOKENS`, and/or
