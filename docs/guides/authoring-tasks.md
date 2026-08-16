@@ -41,13 +41,51 @@ the objective is stated in the instruction):
 |---|---|---|
 | `POST /submit` (body = the solution file) | the agent, at will | `score.py` grades it and records the result; over budget → 429 |
 | `GET /status` | the agent | submissions used / remaining, best so far |
-| `GET /final` | the verifier, once, at the end | the final verdict + the full submission log. **Terminal**: the first call locks the session; later submissions are refused, repeat calls return the cached verdict. An agent that peeks early ends its own run. |
+| `GET /final` | **403 on the agent port** — finalization is a verifier-only capability (see below) |  |
+
+Finalization runs on a separate verifier port (`VERIFIER_PORT`, default
+`PORT + 1`) behind a per-session token generated at startup. The token is
+written to `{DATA_DIR}/.verifier_token` — inside the judge's own
+filesystem, never in the agent's environment. The local executor reads it
+from there; the container verifier fetches it via `GET /token` on the
+verifier port (which the agent should not be able to reach — the network
+policy keeps the agent on the agent port only).
+
+| Request | Who calls it | What happens |
+|---|---|---|
+| `GET /final` | the verifier, once, at the end (verifier port + token) | the final verdict + the full submission log. **Terminal**: the first call locks the session; later submissions are refused, repeat calls return the cached verdict. |
+| `GET /token` | the verifier (verifier port) | returns the per-session verifier token |
 
 Trust follows from the topology: scoring code and data live only in the
-judge image, the agent's network reaches only the judge
+judge image, the agent's network reaches only the judge's agent port
 (`network_mode = "allowlist"`, `allowed_hosts = ["judge"]`), and every
 number in the submission log was computed by the judge — which is why the
 score-over-time curve is trusted, not self-reported.
+
+### Artifact selection and lifecycle ordering
+
+The judge owns artifact selection and the full lifecycle:
+
+1. **Agent submits** — the agent POSTs candidate solutions to the agent
+   port at will; the judge scores each and appends to the in-memory log.
+2. **Agent stops** — the budget runs out or the agent exits.
+3. **Verifier finalizes** — the trusted verifier (the local executor in
+   `--local` mode, or `tests/grade.py` in containers) fetches the token
+   from the verifier port, then calls `GET /final` on that port.
+4. **Artifact frozen** — the judge selects the best submission by session
+   score (`max(log, key=lambda e: (e["score"], -e["n"]))`), identifies it
+   by its submission number, and reads the stored file
+   `DATA_DIR/submission_{best_n}`. The artifact is already on disk —
+   no content digest is needed because the judge never accepted a
+   replacement for a logged submission.
+5. **Final evaluation** — if `final.py` exists, it runs once on the
+   frozen artifact; otherwise the best session score is the verdict.
+6. **Session locked** — the verdict is cached; subsequent `/final` calls
+   return the same object (safe for verifier retries); `/submit` is
+   refused with 429.
+
+The orchestrator (not the agent) owns steps 2–3; the judge owns steps 4–6.
+The agent never observes the final evaluation or its result.
 
 ## The submission budget
 

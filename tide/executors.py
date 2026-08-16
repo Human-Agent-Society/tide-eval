@@ -203,20 +203,25 @@ class LocalExecutor:
 
         workdir = Path(tempfile.mkdtemp(prefix=f"{task_dir.name}-", dir=self.root))
         port = _free_port()
+        verifier_port = _free_port()
+        data_dir = workdir / "judge_data"
         judge = subprocess.Popen(
             [sys.executable, str(judge_dir / "judge_server.py")],
             env={
                 **os.environ,
                 "PORT": str(port),
+                "VERIFIER_PORT": str(verifier_port),
                 "JUDGE_DIR": str(judge_dir),
-                "DATA_DIR": str(workdir / "judge_data"),
+                "DATA_DIR": str(data_dir),
             },
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
         judge_url = f"http://127.0.0.1:{port}"
+        verifier_url = f"http://127.0.0.1:{verifier_port}"
         try:
             await asyncio.to_thread(_wait_healthy, judge_url)
+            await asyncio.to_thread(_wait_healthy, verifier_url)
 
             error = None
             try:
@@ -243,7 +248,8 @@ class LocalExecutor:
             except subprocess.TimeoutExpired:
                 pass  # budget spent — a normal ending
 
-            final = await asyncio.to_thread(_get_json, f"{judge_url}/final")
+            token = (data_dir / ".verifier_token").read_text()
+            final = await asyncio.to_thread(_get_json, f"{verifier_url}/final", token)
         finally:
             judge.kill()
 
@@ -278,8 +284,11 @@ def _wait_healthy(judge_url: str, timeout_sec: float = 10.0) -> None:
             time.sleep(0.05)
 
 
-def _get_json(url: str) -> dict:
-    with urllib.request.urlopen(url, timeout=60) as resp:
+def _get_json(url: str, token: str | None = None) -> dict:
+    req = urllib.request.Request(url)
+    if token:
+        req.add_header("Authorization", f"Bearer {token}")
+    with urllib.request.urlopen(req, timeout=60) as resp:
         return json.loads(resp.read())
 
 
