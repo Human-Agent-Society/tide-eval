@@ -14,7 +14,7 @@ All 89 tasks are committed here and run out of the box; `fetch.py`
 re-syncs them from the pin if you need to regenerate.
 
 ```bash
-tide stream my-stream terminal-bench --agent claude-code --model anthropic/claude-opus-5
+tide stream terminal-bench --agent claude-code --model anthropic/claude-opus-5
 ```
 
 That streams every task in name order with the agent's state directory
@@ -22,7 +22,7 @@ That streams every task in name order with the agent's state directory
 or repeats, list the task folders yourself:
 
 ```bash
-tide stream my-stream terminal-bench/chess-best-move terminal-bench/build-pmars \
+tide stream terminal-bench/chess-best-move terminal-bench/build-pmars \
   terminal-bench/chess-best-move --agent claude-code --model anthropic/claude-opus-5
 ```
 

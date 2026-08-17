@@ -1,4 +1,4 @@
-"""CORAL ``TaskGrader`` implementation backed by Tide."""
+"""CORAL ``TaskGrader`` implementation backed by tide."""
 
 from pathlib import Path
 

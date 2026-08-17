@@ -2,11 +2,11 @@
 
 Design rules (see docs/design.md):
 
-- **Dimensions are tags, not schema.** Rows carry a free-form JSON tag dict;
-  ``df()`` expands tags into columns. Metrics never require a fixed schema —
+- Dimensions are tags, not schema. Rows carry a free-form JSON tag dict and
+  ``df()`` expands tags into columns. Metrics never require a fixed schema:
   each metric function documents the tag names it expects.
-- **Raw scores only.** Normalization happens at query time, never at write time.
-- **Re-running resumes.** Each row's key is a stable ID for the call that
+- Raw scores only. Normalization happens at query time, never at write time.
+- Re-running resumes. Each row's key is a stable ID for the call that
   produced it; ``get()`` lets callers skip work that already has a row.
 """
 
@@ -31,6 +31,9 @@ CREATE TABLE IF NOT EXISTS results (
     uri        TEXT,
     created_at REAL NOT NULL
 );
+-- tide's own reads go through the primary key or load the whole table into
+-- pandas, so these indexes are for querying results.sqlite directly, which
+-- the data model treats as a supported way to audit a run.
 CREATE INDEX IF NOT EXISTS idx_results_kind ON results (kind);
 CREATE INDEX IF NOT EXISTS idx_results_task ON results (task);
 """

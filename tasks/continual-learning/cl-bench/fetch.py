@@ -1,8 +1,9 @@
 """Fetch CL-Bench and convert it to Harbor tasks, pinned.
 
-    python tasks/cl-bench/fetch.py                   # every domain
-    python tasks/cl-bench/fetch.py bsm sales         # just these
-    python tasks/cl-bench/fetch.py bsm --limit 10    # first N per domain
+    cd tasks/continual-learning/cl-bench
+    python fetch.py                 # every domain
+    python fetch.py bsm sales       # just these
+    python fetch.py bsm --limit 10  # first N per domain
 
 All 301 tasks are committed to the repo; run this only to regenerate
 them. Sources download from the pinned commit of
@@ -175,7 +176,7 @@ def fetch_dbx(limit: int | None) -> int:
 def fetch_poker(limit: int | None) -> int:
     """Exploitable poker: 120 deterministic hands, profit-in-BB-scored."""
     try:
-        import texasholdem  # noqa: F401 — conversion simulates the oracle policy
+        import texasholdem  # noqa: F401 (conversion simulates the oracle policy)
     except ImportError:
         raise SystemExit(
             "the poker domain needs texasholdem for the conversion-time oracle "
@@ -208,7 +209,7 @@ def main() -> None:
         "domains",
         nargs="*",
         choices=[*DOMAINS, []],
-        help=f"domains to convert (default: all — {', '.join(DOMAINS)})",
+        help=f"domains to convert (default: all of {', '.join(DOMAINS)})",
     )
     parser.add_argument(
         "--limit",
@@ -224,9 +225,9 @@ def main() -> None:
         fetch, description = DOMAINS[name]
         count = fetch(args.limit)
         total += count
-        print(f"  {name}: converted {count} task(s) — {description}")
+        print(f"  {name}: converted {count} task(s), {description}")
     print(f"{total} CL-Bench task(s) -> {HERE}")
-    print("stream a domain: tide stream my-stream tasks/cl-bench/sales-* --agent <a>")
+    print("stream a domain: tide stream cl-bench/sales-* --agent <a>")
 
 
 if __name__ == "__main__":

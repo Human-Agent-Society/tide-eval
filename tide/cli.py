@@ -1,20 +1,20 @@
 """The tide CLI: one command from any task to a scored result.
 
     tide list                                           # everything runnable here
-    tide run tasks/autoresearch/circle-packing --agent oracle
-    tide run autoresearch --agent claude-code --model anthropic/claude-opus-5
+    tide run tasks/autoresearch/first-party/circle-packing --agent oracle
+    tide run autoresearch/first-party --agent claude-code --model anthropic/claude-opus-5
     tide run edgebench/ann_vector_search_qps --agent codex --budget 2
-    tide stream my-stream terminal-bench --agent claude-code  # continual: carried state
+    tide stream terminal-bench --agent claude-code   # continual: carried state
     tide report                                         # summarize the results store
 
-Targets resolve in order: an explicit task directory → every task inside a
-category/benchmark folder (``autoresearch`` runs all six) → anything else is
-passed to Harbor as a registry id. The CLI is a thin caller of :class:`Lab`;
-everything it runs lands in the same tagged results store (``--lab``,
-default ``runs/cli``), so re-running resumes and ``tide report`` is a query.
+Targets resolve in order: an explicit task directory, then every task inside
+a category or benchmark folder, then anything else passed to Harbor as a
+registry id. The CLI is a thin caller of :class:`Lab`; everything it runs
+lands in the same tagged results store (``--lab``, default ``runs/cli``), so
+re-running resumes and ``tide report`` is a query.
 
-Protocols the CLI can't express (custom schedules, control arms) are plain
-Python scripts over :class:`Lab` — see ``examples/``.
+Protocols the CLI cannot express (custom schedules, control arms) are plain
+Python scripts over :class:`Lab`; see ``examples/``.
 """
 
 from __future__ import annotations
@@ -52,14 +52,20 @@ def _is_task_dir(path: Path) -> bool:
 
 
 def _tasks_under(path: Path) -> list[Path]:
-    return sorted(
-        (
-            p.parent
-            for p in path.glob("**/task.toml")
-            if not any(part.startswith(("_", ".")) for part in p.parts)
-        ),
-        key=lambda p: p.as_posix(),
-    )
+    """Every task folder inside *path*, skipping ``_``- and ``.``-prefixed
+    directories such as ``_template``.
+
+    The skip test looks only at the parts below *path*: the search root
+    itself may sit anywhere, including under a dot-directory (benchmarks
+    download to ``~/.cache/tide`` by default).
+    """
+    found = []
+    for task_toml in path.glob("**/task.toml"):
+        parts = task_toml.relative_to(path).parts
+        if any(part.startswith(("_", ".")) for part in parts):
+            continue
+        found.append(task_toml.parent)
+    return sorted(found, key=lambda p: p.as_posix())
 
 
 def _expand(target: str, candidate: Path) -> list[str] | None:
@@ -70,8 +76,8 @@ def _expand(target: str, candidate: Path) -> list[str] | None:
         inside = _tasks_under(candidate)
         if not inside:
             raise SystemExit(
-                f"'{target}' is a directory but contains no task.toml — "
-                "fetch its tasks first? (see its README / `tide fetch`)"
+                f"'{target}' is a directory but contains no task.toml. "
+                "Fetch its tasks first (see its README, or `tide fetch`)."
             )
         return [str(t) for t in inside]
     return None
@@ -166,6 +172,30 @@ def _parse_tags(pairs: list[str] | None) -> dict:
         except json.JSONDecodeError:
             tags[key] = value
     return tags
+
+
+def _stream_name(name: str | None, targets: list[str]) -> str:
+    """The stream's label: ``--name`` when given, else derived from what was
+    asked for.
+
+    The derived form is the first target's own name, plus how many more
+    followed, so ``tide stream terminal-bench cl-bench`` becomes
+    ``terminal-bench+1more``. It is only a label: two streams with the same
+    name but different tasks or setups still keep separate state.
+    """
+    if name is None:
+        first = targets[0].rstrip("/").split("/")[-1]
+        extra = len(targets) - 1
+        return f"{first}+{extra}more" if extra else first
+    if not name.strip():
+        raise SystemExit("--name cannot be empty")
+    bad = [c for c in "/\\" if c in name]
+    if bad or any(c.isspace() for c in name):
+        raise SystemExit(
+            f"invalid --name {name!r}: it becomes a directory name, so it "
+            "cannot contain path separators or whitespace"
+        )
+    return name
 
 
 def _enable_progress() -> None:
@@ -269,7 +299,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             failures += 1
         name = row.task.rstrip("/").split("/")[-1]
         print(f"  {marker} {name}: {row.rewards or error}")
-    print(f"\nresults stored in {args.lab} — `tide report --lab {args.lab}`")
+    print(f"\nresults stored in {args.lab}: `tide report --lab {args.lab}`")
     return 1 if failures else 0
 
 
@@ -286,6 +316,9 @@ def cmd_stream(args: argparse.Namespace) -> int:
         raise SystemExit("--agent is required (or use --local with --command)")
 
     tasks_root = _find_tasks_root(args.tasks_dir)
+    # Derive the label from what was typed, not from the expansion, so
+    # `tide stream terminal-bench` is named for the benchmark.
+    name = _stream_name(args.name, args.targets)
     targets = resolve_targets(args.targets, tasks_root)
     agent = _build_agent(args)
     if args.command:
@@ -304,10 +337,10 @@ def cmd_stream(args: argparse.Namespace) -> int:
 
     _enable_progress()
     _first_build_hint(args)
-    stream = Stream(args.name, targets)
+    stream = Stream(name, targets)
     lab = _make_lab(args)
     print(
-        f"stream '{args.name}': {len(targets)} task(s) in order, "
+        f"stream '{name}': {len(targets)} task(s) in order, "
         f"agent '{args.agent}', state carried between episodes -> {args.lab}"
     )
     print(f"state: {stream.state_root(lab, agent, tags=tags, budget=budget)}")
@@ -324,7 +357,7 @@ def cmd_stream(args: argparse.Namespace) -> int:
         print(
             f"  {marker} [{row.tags.get('position'):>3}] {name}: {row.rewards or error}"
         )
-    print(f"\nresults stored in {args.lab} — `tide report --lab {args.lab}`")
+    print(f"\nresults stored in {args.lab}: `tide report --lab {args.lab}`")
     return 1 if failures else 0
 
 
@@ -463,13 +496,16 @@ def main(argv: list[str] | None = None) -> int:
         "stream",
         help="run tasks as one continual-learning stream (carried agent state)",
     )
-    p_stream.add_argument(
-        "name",
-        help="your name for this stream — re-running the same name resumes it; "
-        "a new name starts a fresh stream with empty memory",
-    )
     p_stream.add_argument("targets", nargs="+")
     add_shared_flags(p_stream)
+    p_stream.add_argument(
+        "--name",
+        default=None,
+        metavar="NAME",
+        help="label for this stream, recorded as the `stream` tag and used as "
+        "its state directory (default: derived from the targets). Pass a new "
+        "name to start the same tasks over with empty memory",
+    )
     p_stream.add_argument(
         "--shuffle",
         type=int,

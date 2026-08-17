@@ -1,8 +1,8 @@
-"""The E2E gate: run the oracle agent through real containers on every
-first-party task and require each score to match ``solve_sh_scores`` in its
-grader_tests.json — a number for an exact expectation, or ``{"min", "max"}``
-where the live run legitimately varies (e.g. compression ratios across zlib
-builds).
+"""The E2E gate: run the oracle agent through real containers on every task
+that declares ``solve_sh_scores`` in its grader_tests.json, and require each
+score to match. The expectation is a number for an exact match, or
+``{"min", "max"}`` where the live run legitimately varies (compression
+ratios differ across zlib builds, for instance).
 
     python scripts/e2e_oracle.py                 # all tasks with grader_tests.json
     python scripts/e2e_oracle.py circle-packing  # a subset, by name
@@ -19,9 +19,10 @@ TASKS_ROOT = Path(__file__).parent.parent / "tasks"
 
 
 def discover(names: list[str]) -> list[Path]:
+    # The template carries its own grader_tests.json, so this glob already
+    # includes it. It is a working task and is kept working.
     tasks = sorted(
-        {p.parent.parent for p in TASKS_ROOT.glob("**/tests/grader_tests.json")}
-        | {TASKS_ROOT / "_template"},  # the template is a working task; keep it working
+        {p.parent.parent for p in TASKS_ROOT.glob("**/tests/grader_tests.json")},
         key=lambda p: p.name,
     )
     return [t for t in tasks if t.name in names] if names else tasks

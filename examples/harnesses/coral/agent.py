@@ -20,7 +20,7 @@ CODEX_VERSION = "0.147.0"
 
 
 class CoralHarness(TideHarnessBase):
-    """Run a multi-agent CORAL organization against Tide's judge."""
+    """Run a multi-agent CORAL organization against tide's judge."""
 
     def __init__(self, *args: Any, agents: int = 2, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -74,7 +74,7 @@ class CoralHarness(TideHarnessBase):
             )
             (bundle / "seed" / "AGENTS.md").write_text(
                 "Optimize solution.json. Use `coral eval` only for candidates "
-                "worth spending a Tide judge submission on.\n"
+                "worth spending a tide judge submission on.\n"
             )
             config = coral_config(instruction, model, agents=self.agents)
             (bundle / "task.yaml").write_text(json.dumps(config, indent=2))

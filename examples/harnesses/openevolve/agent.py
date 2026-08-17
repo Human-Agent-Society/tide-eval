@@ -18,7 +18,7 @@ OPENEVOLVE_VERSION = "0.3.2"
 
 
 class OpenEvolveHarness(TideHarnessBase):
-    """Run OpenEvolve inside the task container against Tide's judge.
+    """Run OpenEvolve inside the task container against tide's judge.
 
     No ``_finalize``: every evaluation spends a judge submission by
     construction, so the verifier's log covers the run on its own.

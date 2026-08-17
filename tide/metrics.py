@@ -61,7 +61,7 @@ def anytime(
     score: str = "score",
     by: list[str] | None = None,
 ) -> pd.DataFrame:
-    """Best-so-far curve over time — the autoresearch progress curve.
+    """Best-so-far curve over time: the autoresearch progress curve.
 
     Expects columns: *time*, *score*, plus any *by* group columns
     (typically task or version). Returns the input sorted by time with a
@@ -74,8 +74,8 @@ def anytime(
 
 
 def auc(curve: pd.DataFrame, *, time: str = "t", value: str = "best_so_far") -> float:
-    """Area under an anytime curve, normalized by the time span — the
-    "anytime score". Expects the output of :func:`anytime` (one group)."""
+    """Area under an anytime curve, normalized by the time span: the
+    anytime score. Expects the output of :func:`anytime` (one group)."""
     c = curve.sort_values(time)
     if len(c) < 2:
         return float(c[value].iloc[-1]) if len(c) else 0.0
@@ -92,7 +92,7 @@ def scaling(
     score: str = "reward",
     by: list[str] | None = None,
 ) -> pd.DataFrame:
-    """Score as a function of budget (EdgeBench's 2–12h curves).
+    """Score as a function of budget (EdgeBench's 2 to 12 hour curves).
 
     Expects columns: *budget*, *score*, plus optional *by* groups (model,
     category). Returns mean and count per (group, budget).
@@ -117,7 +117,7 @@ def time_to(
     """When did the score first reach *threshold*?
 
     Expects columns *time*, *score* (+ *by* groups). Returns one row per
-    group with ``time_to`` — the earliest *time* whose score meets the
+    group with ``time_to``, the earliest *time* whose score meets the
     threshold, or NaN if the group never reached it.
     """
     hits = df[df[score] >= threshold]
@@ -172,7 +172,7 @@ def efficiency(
     by: list[str] | None = None,
     per: float = 1.0,
 ) -> pd.DataFrame:
-    """Reward per unit of what the run actually spent — the budget's flip side.
+    """Reward per unit of what the run actually spent, the budget's other side.
 
     ``spend`` is a ``used_*`` column (tokens, ``used_cost_usd``,
     ``used_n_submissions``); ``per`` scales the denominator (e.g. ``1000``
@@ -212,7 +212,7 @@ def learning_curve(
     by: list[str] | None = None,
     window: int | None = None,
 ) -> pd.DataFrame:
-    """Score over stream position — the continual-learning progress curve.
+    """Score over stream position: the continual-learning progress curve.
 
     Expects columns: *position*, *score*, plus any *by* group columns
     (typically ``stream``). Returns the input sorted by position with a
@@ -290,7 +290,8 @@ def forgetting(
 
 
 def rescale_linear(s: pd.Series, *, lo: float, hi: float) -> pd.Series:
-    """Map raw scores to 0–100 linearly, clipped. ``lo`` → 0, ``hi`` → 100."""
+    """Map raw scores to 0-100 linearly, clipped: ``lo`` becomes 0 and
+    ``hi`` becomes 100."""
     if hi == lo:
         raise ValueError("rescale_linear needs hi != lo")
     return ((s - lo) / (hi - lo) * 100).clip(0, 100)
@@ -303,9 +304,10 @@ def rescale_anchored(
     top: float,
     super_anchor: float | None = None,
 ) -> pd.Series:
-    """EdgeBench-style piecewise rescale: baseline → 0, top → 100, and scores
-    beyond ``super_anchor`` (if given) stretch linearly above 100 — so beating
-    the best known result is visible rather than clipped."""
+    """EdgeBench-style piecewise rescale: ``baseline`` becomes 0 and ``top``
+    becomes 100. With ``super_anchor``, scores beyond ``top`` stretch linearly
+    above 100, so beating the best known result is visible rather than
+    clipped."""
     scaled = rescale_linear(s, lo=baseline, hi=top)
     if super_anchor is not None:
         over = s > top

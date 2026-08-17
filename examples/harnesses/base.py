@@ -1,29 +1,30 @@
-"""Tide's one base class for benchmark harness adapters.
+"""The one base class for benchmark harness adapters.
 
-Every Tide harness follows the same standard operating procedure (SOP),
-encoded here as the ``run`` template:
+Every harness here follows the same standard operating procedure,
+encoded as the ``run`` template:
 
-1. ``setup``          — install the pinned tool into the container
-                        (Harbor's hook; native agents provide their own).
-2. ``_prepare``       — upload configs/seeds/graders. Runs before the
-                        ``try``: a preparation failure fails the trial.
-3. ``_launch``        — the long-horizon run itself. A timeout here is a
-                        normal ending, not a failure.
-4. ``_finalize``      — make sure the verifier has something to grade:
-                        submit the run's final artifact iff the judge saw
-                        zero submissions. Default: nothing.
-5. ``_collect_usage`` — meter tokens/cost into Harbor's ``AgentContext``.
-                        Default: nothing.
+1. ``setup``: install the pinned tool into the container (Harbor's hook;
+   native agents provide their own).
+2. ``_prepare``: upload configs, seeds, and graders. Runs before the
+   ``try``, so a preparation failure fails the trial.
+3. ``_launch``: the long-horizon run itself. A timeout here is a normal
+   ending, not a failure.
+4. ``_finalize``: make sure the verifier has something to grade by
+   submitting the run's final artifact if the judge saw zero
+   submissions. Does nothing by default.
+5. ``_collect_usage``: meter tokens and cost into Harbor's
+   ``AgentContext``. Does nothing by default.
 
-``run`` is the template and is not overridden: phases 4–5 run in a
-``finally`` because a stopped run still left artifacts and spent money, and
-each is best-effort — metering or fallback trouble must never mask the
-run's own outcome.
+``run`` is the template and is not overridden. Phases 4 and 5 run in a
+``finally`` because a stopped run still left artifacts and spent money,
+and each is best-effort so that metering or fallback trouble never masks
+the run's own outcome.
 
-Custom frameworks (OpenEvolve, CORAL) subclass ``TideHarnessBase`` directly
-and use its command-pipeline utilities (``_checked``, ``_populate_usage``,
-...). Adapters for Harbor-native agents list it first and delegate their
-``_launch`` to Harbor's own agent — see ``codex.CodexHarness``.
+Custom frameworks (OpenEvolve, CORAL) subclass ``TideHarnessBase``
+directly and use its command-pipeline utilities (``_checked``,
+``_populate_usage``, ...). Adapters for Harbor-native agents list it
+first and delegate ``_launch`` to Harbor's own agent; see
+``codex.CodexHarness``.
 """
 
 from __future__ import annotations
@@ -44,7 +45,7 @@ REMOTE_FINALIZE = "/tmp/tide_finalize.py"
 
 
 class TideHarnessBase(BaseAgent):
-    """The SOP template + shared helpers every Tide harness runs on."""
+    """The procedure template plus the helpers every harness runs on."""
 
     remote_root = Path("/opt/tide-harness")
 
@@ -204,11 +205,15 @@ def _cost_from_litellm(
     if "/" in default_model and "/" not in model:
         provider = default_model.split("/", 1)[0]
         candidates.insert(0, f"{provider}/{model}")
-    candidates.extend(candidate.split("/", 1)[-1] for candidate in candidates[:])
+    for candidate in list(candidates):
+        candidates.append(candidate.split("/", 1)[-1])
 
     pricing = None
     for candidate in candidates:
-        if candidate and (entry := litellm.model_cost.get(candidate)):
+        if not candidate:
+            continue
+        entry = litellm.model_cost.get(candidate)
+        if entry:
             pricing = entry
             break
     if not pricing:

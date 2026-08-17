@@ -1,16 +1,16 @@
 """The verifier's whole job under the judge protocol: ask the judge for the
 final result and write it down.
 
-Generic — task authors never edit this file. It runs inside the task
+Generic: task authors never edit this file. It runs inside the task
 environment after the agent's budget ends. The judge exposes finalization
 on a separate verifier port (``$JUDGE_URL`` with the port incremented by
 one) behind a token; this script fetches the token from the verifier port
 and calls ``GET {verifier_url}/final`` (final.py on the best submission if
 the task has one, else the best session score), then writes:
 
-- ``/logs/verifier/reward.json``  — ``{"reward": <float>}``
-- ``/logs/verifier/reason.txt``   — the human-readable reason
-- ``/logs/verifier/submissions.jsonl`` — one ``{"t", "score"}`` line per
+- ``/logs/verifier/reward.json``: ``{"reward": <float>}``
+- ``/logs/verifier/reason.txt``: the human-readable reason
+- ``/logs/verifier/submissions.jsonl``: one ``{"t", "score"}`` line per
   submission; tide ingests these as the trusted score-over-time curve.
 
 If ``$VERIFIER_JUDGE_URL`` is set it is used directly; otherwise the

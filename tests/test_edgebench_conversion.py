@@ -66,7 +66,7 @@ def test_task_toml_maps_spec_faithfully(task_dir):
 
 
 def test_task_validates_under_stock_harbor(task_dir):
-    harbor = pytest.importorskip("harbor")  # noqa: F841
+    pytest.importorskip("harbor")
     import tomllib
 
     from harbor.models.task.config import TaskConfig

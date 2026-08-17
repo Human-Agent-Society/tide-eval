@@ -1,30 +1,30 @@
 """Fetch SWE-bench Verified as stock Harbor tasks, pinned.
 
-    python tasks/swebench-verified/fetch.py --limit 50        # a stream-sized subset
-    python tasks/swebench-verified/fetch.py django__django-15098  # named tasks
-    python tasks/swebench-verified/fetch.py                   # all 500
+    cd tasks/continual-learning/swebench-verified
+    python fetch.py --limit 50              # a stream-sized subset
+    python fetch.py django__django-15098    # named tasks
+    python fetch.py                         # all 500
 
 SWE-bench Verified is one of the six benchmarks the AgentStream paper
 (arXiv:2608.00155) builds its task streams from, and of those six it is
 the hardest one published in the Harbor task format so far. The pin below
 is the exact commit the Harbor registry publishes as v1.0. The upstream
 dataset repository carries no license, so these tasks are never committed
-here — this script fetches them onto your machine, and the blob filter
+here. This script fetches them onto your machine, and the blob filter
 keeps a `--limit` fetch small even though the full repository is huge.
 
-    tide stream my-stream swebench-verified --agent claude-code --model anthropic/claude-opus-5
+    tide stream swebench-verified --agent claude-code --model anthropic/claude-opus-5
 """
 
 import argparse
 from pathlib import Path
 
-from tide.fetch import fetch_pinned_tasks
+from tide.fetch import REGISTRY, fetch_pinned_tasks
 
-# The exact commit the Harbor registry pins as swebench-verified v1.0.
-# Upstream: harbor-framework/harbor-datasets (no license — never vendored).
-GIT_URL = "https://github.com/laude-institute/harbor-datasets.git"
-COMMIT = "86723674f04e4209ac479d0fb75d9d9f44b4377e"
-SUBDIR = "datasets/swebench-verified"
+# The pin lives in tide.fetch.REGISTRY, so this script and
+# `fetch.benchmark("swebench-verified")` can never resolve different commits.
+# Upstream: harbor-datasets (no license, so never vendored).
+PIN = REGISTRY["swebench-verified"]
 
 
 def main() -> None:
@@ -39,10 +39,15 @@ def main() -> None:
 
     dest = Path(__file__).parent
     copied = fetch_pinned_tasks(
-        GIT_URL, COMMIT, dest, subdir=SUBDIR, only=args.tasks or None, limit=args.limit
+        PIN.repo,
+        PIN.ref,
+        dest,
+        subdir=PIN.subdir,
+        only=args.tasks or None,
+        limit=args.limit,
     )
     print(f"fetched {len(copied)} SWE-bench Verified task(s) -> {dest}")
-    print("stream them: tide stream my-stream swebench-verified --agent <a> --model <m>")
+    print("stream them: tide stream swebench-verified --agent <a> --model <m>")
 
 
 if __name__ == "__main__":

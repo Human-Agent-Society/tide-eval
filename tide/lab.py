@@ -4,10 +4,10 @@ A Lab is a directory. Inside it live the results database (``results.sqlite``)
 and, when the Harbor executor is used, the Harbor trial directories
 (``trials/``). Everything a Lab ever does is:
 
-- ``run()``   — execute one episode (a Harbor task under an agent), store the
+- ``run()``: execute one episode (a Harbor task under an agent), store the
   trusted reward plus the judge's submission log, and skip work that
   already has a stored result.
-- ``df()``    — everything as a pandas DataFrame; metrics are queries.
+- ``df()``: everything as a pandas DataFrame; metrics are queries.
 
 Persistence lives in the data: there is no daemon, and re-running a crashed
 script resumes it because completed keys are skipped.
@@ -63,20 +63,21 @@ class Lab:
         agent: dict[str, Any],
         *,
         tags: Tags | None = None,
-        budget: Budget | dict[str, Any] | float | int | None = None,
+        budget: Budget | dict[str, Any] | float | int | str | None = None,
         key: str | None = None,
         **overrides: Any,
     ) -> Row:
         """Run one episode and store its trusted result.
 
-        ``key`` is the episode's stable ID; when omitted it is derived from
-        (task, agent, tags), so identical calls are one episode. If the key
-        already has a stored row, that row is returned and nothing runs.
+        ``key`` is the episode's stable ID; when omitted it is derived
+        from (task, agent, tags, overrides), so identical calls are one
+        episode. If the key already has a stored row, that row is
+        returned and nothing runs.
         ``overrides`` pass through to the executor (for Harbor: TrialConfig
         fields such as ``verifier=...`` or ``timeout_multiplier=...``).
 
-        ``budget`` bounds the run across any of four dimensions — time,
-        submissions (evals), tokens, cost — see :class:`tide.budget.Budget`.
+        ``budget`` bounds the run across any of four dimensions (time,
+        submissions, tokens, cost); see :class:`tide.budget.Budget`.
         A bare number is hours. It sets the timeout, hands the agent
         ``TIDE_*`` budget-signal env vars, and tags the episode with its
         budget so runs group and pivot by it. What was actually spent comes
@@ -102,7 +103,8 @@ class Lab:
         spec = EpisodeSpec(task=task, agent=agent, overrides=overrides)
         key = key or self._default_key(spec, tags)
 
-        if (existing := self.store.get(key)) is not None:
+        existing = self.store.get(key)
+        if existing is not None:
             logger.info("skip %s (already recorded)", key)
             return existing
 
@@ -135,7 +137,10 @@ class Lab:
                         key=f"{key}#t{i}",
                         kind="trace",
                         task=task,
-                        tags={**tags, "t": point.t, **point.data},
+                        # The log's own fields go first: the episode's tags
+                        # and t identify the row and must not be shadowed by
+                        # whatever a task recorded alongside a submission.
+                        tags={**point.data, **tags, "t": point.t},
                         rewards={"score": point.score},
                         uri=result.uri,
                     )
@@ -166,7 +171,7 @@ class Lab:
                 in_flight.set_exception(exc)
             raise
         finally:
-            # Single await-free dict op — atomic in one asyncio task, and
+            # Single await-free dict op: atomic in one asyncio task, and
             # safe to run even while unwinding a cancellation.
             self._inflight.pop(key, None)
 

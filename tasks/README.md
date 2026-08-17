@@ -6,7 +6,7 @@
 > holds terminal-bench, SWE-bench Verified, and CL-Bench. Committed tasks
 > can be browsed and run directly; each benchmark's `fetch.py` regenerates
 > them from the published sources. CLI targets resolve at either level:
-> `tide run edgebench/<task>` and `tide stream s1 terminal-bench` both work.
+> `tide run edgebench/<task>` and `tide stream terminal-bench` both work.
 
 Throughout this catalog, `oracle` is Harbor's built-in agent that runs a
 task's reference `solution/` (which submits once to the judge), the
@@ -30,7 +30,9 @@ cp -r tasks/_template tasks/autoresearch/first-party/my-task
 
 Work through the `TODO(task)` markers (six files), then run
 `pytest tests/test_task_suite.py`. Your task is picked up automatically:
-oracle score, cheat suite, stock-Harbor validation, zero test code to write.
+its scoring cases, its zero-reward cases, and stock-Harbor validation, with
+zero test code to write. `python scripts/e2e_oracle.py <name>` adds the
+containerized oracle check.
 [`_template/README.md`](_template/README.md) walks every step.
 
 ## Autoresearch: open-ended optimization, continuous scores, budget semantics
@@ -44,7 +46,7 @@ states the oracle baseline and what the task teaches.
 | [`function-minimization`](autoresearch/first-party/function-minimization) | minimize deceptive Levi N.13 | 0.333 → 1.0 | exploration vs local search |
 | [`tsp-tour`](autoresearch/first-party/tsp-tour) | shorten a 40-city tour | 1.0 → ~2.0 | combinatorial search, continuous signal |
 | [`bin-packing`](autoresearch/first-party/bin-packing) | beat first-fit on 60 items | 1.0 → >1.0 | exact constraint checking |
-| [`symbolic-regression`](autoresearch/first-party/symbolic-regression) | recover a hidden formula | 0.604 → 1.0 | **held-out grading**: scored on points the agent never saw |
+| [`symbolic-regression`](autoresearch/first-party/symbolic-regression) | recover a hidden formula | 0.610 → 1.0 | **held-out grading**: scored on points the agent never saw |
 | [`string-compression`](autoresearch/first-party/string-compression) | ship decompressor + payload | 3.47 → higher | **grading agent-shipped code safely** (sandboxed subprocess, reference deleted first) |
 
 ## External benchmarks: autoresearch
@@ -73,4 +75,5 @@ fetched onto your machine, never committed.
 Add a folder with a README (what / license / count) and either vendored task
 dirs or a `fetch.py`. If it needs format conversion, the converter goes in
 the benchmark folder beside `fetch.py`, with fixture tests pinned to
-unmodified published specs (see [`edgebench/convert.py`](edgebench/convert.py)).
+unmodified published specs (see
+[`autoresearch/edgebench/convert.py`](autoresearch/edgebench/convert.py)).

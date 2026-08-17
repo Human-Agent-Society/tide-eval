@@ -46,7 +46,7 @@ objective is stated in the instruction):
 |---|---|---|
 | `POST /submit` (body = the solution file) | the agent, at will | `score.py` grades it and records the result; over budget → 429 |
 | `GET /status` | the agent | submissions used / remaining, best so far |
-| `GET /final` | **403 on the agent port**: finalization is a verifier-only capability (see below) |  |
+| `GET /final` | nobody, on this port | **403**: finalization is a verifier-only capability (see below) |
 
 Finalization runs on a separate verifier port (`VERIFIER_PORT`, default
 `PORT + 1`) behind a per-session token generated at startup. The token is

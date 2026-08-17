@@ -23,7 +23,7 @@ Every term tide uses, in one place. Terms link to the page that owns them.
 | final judge | An optional `final.py` on the judge with hidden tests. Runs once, on the best submission, and locks the session. |
 | verifier | Harbor's scoring step at the end of a trial: for judge tasks it asks the judge for the final verdict; for pass/fail tasks it runs the task's `tests/`. |
 | reward | The trusted score of an episode, as reported by the verifier. |
-| trace | Untrusted per-submission score rows stored next to the trusted episode row; the raw material of the anytime curve. |
+| trace | Per-submission scores from the judge, stored next to the episode row; the raw material of the anytime curve. |
 | budget | What an episode may spend: time, evals, tokens, or cost. Set on the run, delivered as `TIDE_*` env vars, recorded as `budget_*` tags with actuals in `used_*` columns. See [budgets](get-started.md#budgets). |
 
 ## Results

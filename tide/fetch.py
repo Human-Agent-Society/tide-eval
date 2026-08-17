@@ -2,7 +2,7 @@
 
 Stream benchmarks publish their tasks as ordinary Harbor task directories
 in a git repository, pinned to one commit. Fetching is a shallow fetch of
-that commit plus copying the wanted task folders out — no conversion.
+that commit plus copying the wanted task folders out, with no conversion.
 Blobs are fetched lazily, so pulling a few tasks from a large dataset
 repository downloads roughly those tasks and nothing else.
 """

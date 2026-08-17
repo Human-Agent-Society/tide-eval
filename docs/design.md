@@ -12,7 +12,7 @@ rather than the whole. Adaptation that ends with the episode, like
 in-context reasoning, a retry after an error, or a test-time search, is
 not what tide measures.
 
-What form the learning persists in is the method's business, and tide
+What form the learning persists in is up to the method, and tide
 never trains anything itself: a method that updates weights runs its own
 loop, and tide measures the result. What tide provides is the two task
 regimes where persistence shows up, and the measurements that show

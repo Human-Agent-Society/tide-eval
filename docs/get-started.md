@@ -63,14 +63,17 @@ container as `$TIDE_STATE_DIR`. tide never reads it; whether carrying it
 helps is what gets measured.
 
 ```bash
-tide stream demo cl-bench --agent claude-code --model anthropic/claude-opus-5
-tide stream mix terminal-bench cl-bench --shuffle 1 --agent claude-code --model anthropic/claude-opus-5
+tide stream cl-bench --agent claude-code --model anthropic/claude-opus-5
+tide stream terminal-bench cl-bench --shuffle 1 --agent claude-code --model anthropic/claude-opus-5
 ```
 
-The stream name is yours to choose. Re-running the same name resumes it;
-a new name starts fresh; the same name under a different agent, tags, or
-budget is automatically a separate variant with its own state. Order is
-never implicit: a stream runs exactly the list you give it, and
+Targets come first, exactly as in `tide run`. Re-running the same command
+resumes; a different agent, tags, budget, or task list is automatically a
+separate stream with its own state. `--name` labels the stream (it becomes
+the `stream` tag and the state directory); without it the label is derived
+from the targets. Pass a new `--name` to run the same tasks again from
+empty memory, the way `--tag attempt=2` gives `tide run` a fresh attempt.
+Order is never implicit: a stream runs exactly the list you give it, and
 `--shuffle SEED` shuffles it deterministically, recording the seed as a
 tag (each seed is its own stream).
 
@@ -80,9 +83,10 @@ up where it left off and every step's memory can be audited later:
 
 ```
 <lab>/streams/<name>-<variant>/
-  state/               # mounted into the current task
-  snapshots/init       # the state before position 0 (seed a memory here)
-  snapshots/000, 001…  # each task's ending state
+  state/                    # mounted into the current task
+  snapshots/init            # the state before position 0 (seed a memory here)
+  snapshots/000-<digest>    # each task's ending state; the digest covers the
+  snapshots/001-<digest>    # task list up to here and matches the episode key
 ```
 
 Appending tasks extends a finished stream; editing an earlier position

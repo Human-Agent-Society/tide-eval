@@ -1,4 +1,4 @@
-"""Offline contract tests for the issue-4 harness adapters."""
+"""Offline contract tests for the reference harness adapters."""
 
 from __future__ import annotations
 

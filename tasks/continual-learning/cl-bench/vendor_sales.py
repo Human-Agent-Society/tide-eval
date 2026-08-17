@@ -503,4 +503,3 @@ def slice_annual_ground_truth(
             entry["year"] = yr
         results.append(entry)
     return results
-

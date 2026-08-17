@@ -38,7 +38,7 @@ class RandomSearchHarness(BaseAgent):
         return "0.1"
 
     async def setup(self, environment) -> None:
-        pass  # pure stdlib — nothing to install
+        pass  # pure stdlib, nothing to install
 
     async def run(self, instruction, environment, context) -> None:
         with tempfile.TemporaryDirectory() as tmp:

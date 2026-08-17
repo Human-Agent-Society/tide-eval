@@ -1,6 +1,6 @@
 """The judge: scoring, the submission budget, and the final verdict.
 
-Exercises the template's generic ``judge_server.py`` directly (no HTTP —
+Exercises the template's generic ``judge_server.py`` directly (no HTTP:
 the HTTP path is covered by the LocalExecutor tests, which run the same
 file as a real server).
 """
@@ -79,7 +79,7 @@ def test_final_judge_overrides_session_score(monkeypatch, tmp_path):
         "    return {'reward': x, 'reason': 'ok'}\n"
     )
     judge = make_judge(monkeypatch, tmp_path, judge_dir)
-    submit(judge, {"x": 0.9})  # session says 0.9 — best by session score
+    submit(judge, {"x": 0.9})  # session says 0.9, best by session score
     submit(judge, {"x": 0.6})
 
     final = judge.final_result()

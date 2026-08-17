@@ -58,7 +58,7 @@ one autoresearch problem.
 ```bash
 tide run frontier-cs/frontier-cs-2-0-vllm-llm-serving-optimization --agent claude-code --model anthropic/claude-opus-5
 tide run frontier-cs/frontier-cs-algorithm-1 --agent codex --budget 2h
-tide stream demo cl-bench --agent claude-code --model anthropic/claude-opus-5
+tide stream cl-bench --agent claude-code --model anthropic/claude-opus-5
 ```
 
 The instruction tells the harness the submission protocol; `--budget` sets
@@ -115,7 +115,7 @@ async def main():
         },
         environment={"extra_allowed_hosts": INSTALL_HOSTS + API_HOSTS},
     )
-    print(row.rewards)  # the reference solution scores 1.0
+    print(row.rewards)  # the verifier's verdict for this codex run
 
 
 asyncio.run(main())
@@ -172,8 +172,8 @@ Two placements for your method, both fine:
   systems (CORAL-style).
 - **In-container**: upload your method and launch it; it talks to the
   judge directly. LLM calls from inside need the task's network policy
-   opened: add your API host to the `[agent]` phase allowlist; see
-   [network policy](authoring-tasks.md#network-policy).
+  opened: add your API host to the `[agent]` phase allowlist; see
+  [network policy](authoring-tasks.md#network-policy).
 
 ## Level 3: your method isn't an "agent" at all
 
@@ -211,8 +211,8 @@ like any other agent. Versions, credentials, and adaptation notes:
 ## Rules of the game
 
 - **You cannot bring your own judge.** Scores come from the task's judge
-   or they don't exist. Different scoring rule = a new task
-   ([`tasks/_template`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/_template)), not a new judge for an
+  or they don't exist. Different scoring rule = a new task
+  ([`tasks/_template`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/_template)), not a new judge for an
   existing one.
 - **Compare methods at the same `budget` tag**, on the same tasks. All
   scores are judge-computed, so the curve comparison is as trustworthy as

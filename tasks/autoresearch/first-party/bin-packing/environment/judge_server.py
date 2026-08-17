@@ -1,51 +1,51 @@
 """The judge: one scoring implementation, a submission budget, two ports.
 
-Generic — task authors never edit this file. It loads the scoring from the
+Generic: task authors never edit this file. It loads the scoring from the
 files next to it:
 
-- ``score.py``     — ``grade(path) -> {"reward": float, "reason": str}``,
+- ``score.py``: ``grade(path) -> {"reward": float, "reason": str}``,
   run on every submission (the session score the agent sees);
-- ``final.py``     — optional, same signature, run once on the best
+- ``final.py``: optional, same signature, run once on the best
   submission when the verifier asks for the final result. This is where
   hidden tests live: the file ships only in the judge image, and querying
   it costs the whole session (see /final below).
-- ``judge_config.json`` — ``{"max_submissions": int|null,
+- ``judge_config.json``: ``{"max_submissions": int|null,
   "min_interval_sec": float}``. The submission budget is the task's
   anti-probing dial: generous for public metrics, tight where feedback
   would leak information.
 
 Two ports, two capability levels:
 
-**Agent port** (``PORT``, default 8082) — the URL handed to the agent as
+Agent port (``PORT``, default 8082), the URL handed to the agent as
 ``$JUDGE_URL``:
 
-- ``POST /submit``  — body = the raw solution file. Scores it, appends to
+- ``POST /submit``: body = the raw solution file. Scores it, appends to
   the submission log, returns ``{"n", "score", "reason", "best", "remaining"}``.
-  Over budget or too soon → 429.
-- ``GET /status``   — ``{"used", "remaining", "best"}``.
-- ``GET /final``    — **403**. Finalization is a verifier-only capability;
-  the agent cannot trigger or observe hidden evaluation.
-- ``GET /health``   — liveness.
+  Over budget or too soon returns 429.
+- ``GET /status``: ``{"used", "remaining", "best"}``.
+- ``GET /final``: 403. Finalization is a verifier-only capability; the
+  agent cannot trigger or observe hidden evaluation.
+- ``GET /health``: liveness.
 
-**Verifier port** (``VERIFIER_PORT``, default ``PORT + 1``) — reachable
+Verifier port (``VERIFIER_PORT``, default ``PORT + 1``), reachable
 only by the trusted verifier (via network topology in containers, via
 filesystem-hidden token locally):
 
-- ``GET /final``    — ``{"reward", "reason", "best_n", "submissions"}``:
+- ``GET /final``: ``{"reward", "reason", "best_n", "submissions"}``,
   the final judgment (final.py on the best submission if present, else the
-  best session score) plus the full submission log. **Finalizing is
-  terminal**: the first call locks the session — the result is computed
+  best session score) plus the full submission log. Finalizing is
+  terminal: the first call locks the session, the result is computed
   once and cached (safe for the verifier to retry), and every later
   /submit is refused. Requires ``Authorization: Bearer <token>``.
-- ``GET /token``    — returns the verifier token (so the verifier can
+- ``GET /token``: returns the verifier token (so the verifier can
   fetch it without filesystem access).
-- ``GET /health``   — liveness.
+- ``GET /health``: liveness.
 
 The token is generated at startup with ``secrets.token_hex(32)`` and
-written to ``{DATA_DIR}/.verifier_token`` — a file inside the judge's own
+written to ``{DATA_DIR}/.verifier_token``, a file inside the judge's own
 filesystem/container, never in the agent's environment. The local executor
 reads it from there; the container verifier fetches it via ``GET /token``
-on the verifier port (which the agent should not be able to reach — see
+on the verifier port (which the agent should not be able to reach; see
 ``allowed_hosts`` and the deployment docs).
 
 Environment: ``PORT`` (default 8082), ``VERIFIER_PORT`` (default
@@ -100,7 +100,7 @@ class Judge:
     def submit(self, body: bytes) -> tuple[int, dict]:
         with self.lock:
             if self.finalized is not None:
-                return 429, {"error": "session finalized — no more submissions"}
+                return 429, {"error": "session finalized, no more submissions"}
             now = time.monotonic() - self.t0
             if self.max_submissions is not None and len(self.log) >= int(
                 self.max_submissions

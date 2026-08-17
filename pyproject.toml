@@ -28,7 +28,7 @@ Issues = "https://github.com/Human-Agent-Society/tide-eval/issues"
 # The Harbor executor. Kept optional so the core (store, metrics, fakes)
 # works without Harbor's heavy dependency tree.
 harbor = ["harbor==0.20.0"]
-# Lint + test tools. ruff is pinned so local and CI format identically —
+# Lint + test tools. ruff is pinned so local and CI format identically:
 # ruff 0.16+ formats Python code blocks inside Markdown, which means an
 # unpinned ruff can make CI fail overnight on a release we didn't opt into.
 dev = [
@@ -64,13 +64,15 @@ check_untyped_defs = true
 [tool.ruff]
 line-length = 88
 target-version = "py312"
-# Fixtures and imported task instructions include third-party code.
+# Vendored and generated task directories hold third-party code. The
+# `<benchmark>/*/**` form excludes the task folders while still linting the
+# first-party fetch and convert scripts that sit beside them.
 extend-exclude = [
     "tests/fixtures",
-    "tasks/autoresearch/frontier-cs",
-    "tasks/continual-learning/cl-bench",
-    "tasks/continual-learning/swebench-verified",
-    "tasks/continual-learning/terminal-bench",
+    "tasks/autoresearch/frontier-cs/*/**",
+    "tasks/continual-learning/cl-bench/*/**",
+    "tasks/continual-learning/swebench-verified/*/**",
+    "tasks/continual-learning/terminal-bench/*/**",
     "tasks/autoresearch/edgebench/*/instruction.md",
     "tasks/autoresearch/edgebench/*/tests",
 ]

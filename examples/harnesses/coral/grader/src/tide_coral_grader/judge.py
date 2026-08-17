@@ -1,4 +1,4 @@
-"""Small stdlib client for Tide's judge protocol."""
+"""Small stdlib client for tide's judge protocol."""
 
 from __future__ import annotations
 
@@ -30,6 +30,6 @@ def submit_file(solution_file: Path, judge_url: str | None = None) -> dict:
         body = error.read().decode(errors="replace")
         if error.code == 429:
             raise SubmissionBudgetExhausted(
-                "Tide submission budget exhausted"
+                "tide submission budget exhausted"
             ) from error
-        raise RuntimeError(f"Tide judge returned HTTP {error.code}: {body}") from error
+        raise RuntimeError(f"tide judge returned HTTP {error.code}: {body}") from error

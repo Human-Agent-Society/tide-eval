@@ -1,8 +1,9 @@
 """Fetch EdgeBench specs from HuggingFace and convert them to Harbor tasks.
 
-    python tasks/edgebench/fetch.py                          # list the 51 tasks
-    python tasks/edgebench/fetch.py ann_vector_search_qps    # convert one
-    python tasks/edgebench/fetch.py --all                    # convert all
+    cd tasks/autoresearch/edgebench
+    python fetch.py                        # list the 51 tasks
+    python fetch.py ann_vector_search_qps  # convert one
+    python fetch.py --all                  # convert all
 
 Converted tasks land next to this script and are stock Harbor tasks; see
 README.md here for how to run one.
@@ -50,7 +51,7 @@ def main() -> None:
     if not args:
         print(f"{len(task_ids)} EdgeBench tasks available:")
         print("\n".join(f"  {t}" for t in task_ids))
-        print("\nConvert one:  python tasks/edgebench/fetch.py <task_id>")
+        print("\nConvert one:  python tasks/autoresearch/edgebench/fetch.py <task_id>")
         return
 
     wanted = task_ids if args == ["--all"] else args

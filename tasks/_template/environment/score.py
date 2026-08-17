@@ -1,4 +1,4 @@
-"""The scoring rule — run by the judge on every submission. Rules:
+"""The scoring rule, run by the judge on every submission. Rules:
 
 - recompute everything from the submitted file; NEVER read agent-claimed
   scores;
@@ -7,7 +7,7 @@
 - return {"reward": float, "reason": str}; invalid input scores 0.0 with a
   reason, never an exception.
 
-This file ships only in the judge image — the agent never reads it, it
+This file ships only in the judge image. The agent never reads it and
 only sees scores come back from /submit. Hidden tests go in final.py
 (same signature), which runs once on the best submission at the end.
 

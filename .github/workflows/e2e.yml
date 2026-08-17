@@ -13,6 +13,7 @@ on:
       - "tide/**"
       - "tasks/**"
       - "scripts/e2e_oracle.py"
+      - "pyproject.toml"
       - ".github/workflows/e2e.yml"
 
 jobs:
@@ -25,8 +26,8 @@ jobs:
       - name: Install tide + harbor
         run: |
           uv venv --python 3.12
-          uv pip install -e . harbor==0.20.0
-      - name: Oracle gate — every first-party task, real containers
+          uv pip install -e ".[harbor]"   # the pin lives in pyproject.toml
+      - name: Oracle gate (every first-party task, real containers)
         run: uv run python scripts/e2e_oracle.py
       - name: Show trial artifacts on failure
         if: failure()

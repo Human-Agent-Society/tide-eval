@@ -42,7 +42,7 @@ async def test_local_no_submissions_scores_zero(tmp_path):
 
 
 async def test_local_delivers_stream_state_dir(tmp_path):
-    """Under --local the carried state is the host path itself — no mount."""
+    """Under --local the carried state is the host path itself, no mount."""
     state = tmp_path / "state"
     lab = Lab(tmp_path / "lab", executor=LocalExecutor(root=tmp_path))
     await lab.run(

@@ -45,7 +45,7 @@ def test_fetches_root_tasks_and_skips_non_tasks(upstream, tmp_path):
     assert fetch_pinned_tasks(url, sha, dest) == ["alpha", "beta"]
     assert (dest / "alpha" / "instruction.md").exists()
     assert not (dest / "docs").exists()  # no task.toml
-    assert not (dest / "datasets").exists()  # nested — not a root task
+    assert not (dest / "datasets").exists()  # nested, not a root task
 
 
 def test_subdir_scopes_the_scan(upstream, tmp_path):

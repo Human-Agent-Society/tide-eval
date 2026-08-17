@@ -30,9 +30,10 @@ Regenerate any task from upstream (ids pick the track: numeric =
 algorithmic, named = 2.0):
 
 ```bash
-python tasks/frontier-cs/fetch.py                       # list problem ids
-python tasks/frontier-cs/fetch.py 1 17                  # algorithmic track
-python tasks/frontier-cs/fetch.py erdos_unit_distance   # 2.0 track
+cd tasks/autoresearch/frontier-cs
+python fetch.py                      # list problem ids
+python fetch.py 1 17                 # algorithmic track
+python fetch.py erdos_unit_distance  # 2.0 track
 ```
 
 The algorithmic judge runs from a published image

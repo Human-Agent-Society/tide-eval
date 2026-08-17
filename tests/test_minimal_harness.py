@@ -1,5 +1,5 @@
 """The minimal harness's search loop, run end to end against the real
-circle-packing judge on this machine — guards the example the README
+circle-packing judge on this machine, guarding the example the README
 points beginners at."""
 
 import sys

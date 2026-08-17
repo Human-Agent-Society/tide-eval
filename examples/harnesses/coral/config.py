@@ -11,18 +11,18 @@ def coral_config(
     *,
     agents: int = 2,
 ) -> dict[str, Any]:
-    """Return a CORAL task whose only grader is the Tide judge."""
+    """Return a CORAL task whose only grader is the tide judge."""
     description = f"""{instruction}
 
 Work on solution.json. It must contain exactly the JSON solution described above.
-Run `coral eval` whenever a candidate is worth spending one Tide submission on.
-The returned score and feedback come directly from the Tide judge. Keep the best
+Run `coral eval` whenever a candidate is worth spending one tide submission on.
+The returned score and feedback come directly from the tide judge. Keep the best
 candidate in solution.json and commit useful improvements so the other agents can
 build on them.
 """
     return {
         "task": {
-            "name": "Tide benchmark",
+            "name": "tide benchmark",
             "description": description,
             "tips": (
                 "Submissions are limited. Use local checks for cheap filtering and "
