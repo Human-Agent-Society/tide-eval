@@ -38,6 +38,7 @@ def _download(rel_path: str) -> Path:
     path = CACHE / rel_path.replace("/", "__")
     if not path.exists():
         CACHE.mkdir(parents=True, exist_ok=True)
+        print(f"downloading {rel_path} ...", flush=True)
         urllib.request.urlretrieve(f"{RAW}/{rel_path}", path)
     return path
 

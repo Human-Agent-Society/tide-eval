@@ -126,6 +126,7 @@ class Lab:
                 # A retried episode may have left trace rows behind; clear them so
                 # the trace is never double-recorded.
                 self.store.delete_prefix(f"{key}#")
+                logger.info("run %s", key)
                 result = await self.executor.execute(spec)
 
             for i, point in enumerate(result.trace):
@@ -154,6 +155,7 @@ class Lab:
                 uri=result.uri,
             )
             self.store.put(row)
+            logger.info("done %s: %s", key, row.rewards or result.error or "no reward")
             in_flight.set_result(row)
             return row
         except BaseException as exc:

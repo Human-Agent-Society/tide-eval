@@ -38,6 +38,7 @@ def fetch_pinned_tasks(
         tmp = Path(tmp_str)
         _git(tmp, "init", "-q")
         _git(tmp, "remote", "add", "origin", git_url)
+        print(f"fetching {git_url} @ {commit[:12]} ...", flush=True)
         _git(tmp, "fetch", "-q", "--depth", "1", "--filter=blob:none", "origin", commit)
 
         found: set[str] = set()
@@ -63,6 +64,7 @@ def fetch_pinned_tasks(
         if limit is not None:
             names = names[:limit]
 
+        print(f"copying {len(names)} task folder(s) ...", flush=True)
         _git(tmp, "checkout", "-q", commit, "--", *(prefix + n for n in names))
         dest.mkdir(parents=True, exist_ok=True)
         for name in names:
