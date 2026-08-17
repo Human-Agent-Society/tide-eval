@@ -6,9 +6,10 @@ executable feedback. Continuous scores; the official metric is score vs
 interaction budget.
 
 ```bash
-python tasks/edgebench/fetch.py                          # list all 51 tasks
-python tasks/edgebench/fetch.py ann_vector_search_qps    # convert one into this folder
-python tasks/edgebench/fetch.py --all                    # convert all
+cd tasks/autoresearch/edgebench
+python fetch.py                        # list all 51 tasks
+python fetch.py ann_vector_search_qps  # convert one into this folder
+python fetch.py --all                  # convert all
 ```
 
 Converted folders are stock Harbor tasks. The local [`convert.py`](convert.py)
@@ -20,7 +21,7 @@ Run one (the budget is a run parameter, not a task property):
 
 ```python
 await lab.run(
-    "tasks/edgebench/ann_vector_search_qps",
+    "tasks/autoresearch/edgebench/ann_vector_search_qps",
     agent={
         "name": "claude-code",
         "model_name": ...,

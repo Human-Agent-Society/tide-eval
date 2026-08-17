@@ -20,6 +20,20 @@ def test_resolve_category_expands_and_skips_template():
     assert not any("_template" in r for r in resolved)
 
 
+def test_resolve_under_a_dot_directory_root(tmp_path):
+    """Benchmarks download to ~/.cache/tide, so a tasks root under a
+    dot-directory must still resolve. Only the parts below the root decide
+    whether a task is skipped."""
+    root = tmp_path / ".cache" / "tide" / "tasks" / "v0.1.0" / "edgebench"
+    (root / "real-task").mkdir(parents=True)
+    (root / "real-task" / "task.toml").write_text('name = "real-task"\n')
+    (root / "_template").mkdir()
+    (root / "_template" / "task.toml").write_text('name = "template"\n')
+
+    resolved = resolve_targets([str(root)], None)
+    assert [Path(r).name for r in resolved] == ["real-task"]
+
+
 def test_resolve_registry_id_passthrough():
     assert resolve_targets(["some-benchmark/some-task"], TASKS_ROOT) == [
         "some-benchmark/some-task"
@@ -90,9 +104,10 @@ def test_stream_fake_end_to_end(tmp_path, capsys):
         "--tasks-dir",
         str(TASKS_ROOT),
         "stream",
-        "week1",
         "autoresearch/first-party/tsp-tour",
         "autoresearch/first-party/bin-packing",
+        "--name",
+        "week1",
         "--agent",
         "oracle",
         "--fake",
@@ -113,14 +128,64 @@ def test_stream_fake_end_to_end(tmp_path, capsys):
     assert sorted(df["position"].tolist()) == [0, 1]
 
 
+def test_stream_name_defaults_to_the_targets(tmp_path, capsys):
+    """`tide stream` takes targets positionally, like `tide run`. Without
+    --name the label comes from what was asked for, so no target can be
+    silently swallowed as a name."""
+    lab = str(tmp_path / "lab")
+    assert (
+        main(
+            [
+                "--tasks-dir",
+                str(TASKS_ROOT),
+                "stream",
+                "autoresearch/first-party/tsp-tour",
+                "autoresearch/first-party/bin-packing",
+                "--agent",
+                "oracle",
+                "--fake",
+                "--lab",
+                lab,
+            ]
+        )
+        == 0
+    )
+    from tide import Lab
+
+    df = Lab(lab).df("episode")
+    assert len(df) == 2  # both targets ran; neither became the name
+    assert set(df["stream"]) == {"tsp-tour+1more"}
+
+
+@pytest.mark.parametrize("bad", ["my/stream", "my stream", "  "])
+def test_stream_name_that_would_break_the_state_dir_is_rejected(tmp_path, bad):
+    with pytest.raises(SystemExit, match="name"):
+        main(
+            [
+                "--tasks-dir",
+                str(TASKS_ROOT),
+                "stream",
+                "autoresearch/first-party/tsp-tour",
+                "--name",
+                bad,
+                "--agent",
+                "oracle",
+                "--fake",
+                "--lab",
+                str(tmp_path / "lab"),
+            ]
+        )
+
+
 def test_stream_shuffle_is_deterministic_and_seed_scoped(tmp_path, capsys):
     lab = str(tmp_path / "lab")
     base = [
         "--tasks-dir",
         str(TASKS_ROOT),
         "stream",
-        "mix",
         "autoresearch/first-party",
+        "--name",
+        "mix",
         "--agent",
         "oracle",
         "--fake",

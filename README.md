@@ -76,7 +76,7 @@ pip install "tide-eval[harbor]"    # or from a source checkout: pip install -e "
 tide list                          # what's runnable
 tide fetch cl-bench                # download a benchmark's tasks (a source checkout has them all already)
 tide run frontier-cs/frontier-cs-2-0-vllm-llm-serving-optimization --agent claude-code --model anthropic/claude-opus-5 --budget 2h
-tide stream demo cl-bench --agent claude-code --model anthropic/claude-opus-5
+tide stream cl-bench --agent claude-code --model anthropic/claude-opus-5
 ```
 
 `--budget` is time (`2h` / `30m` / `90s`; a bare number is hours); the other
@@ -143,8 +143,8 @@ from tide import Lab, Stream, metrics
 
 lab = Lab("runs/cl")
 stream = Stream(
-    "my-stream",  # ordered tasks, repeats allowed; the revisit is how forgetting shows
-    [
+    "my-stream",  # the name; a new one reruns the same tasks from empty memory
+    [  # ordered tasks, repeats allowed; the revisit is how forgetting shows
         "tasks/continual-learning/terminal-bench/chess-best-move",
         "tasks/continual-learning/terminal-bench/build-pmars",
         "tasks/continual-learning/terminal-bench/chess-best-move",
@@ -162,10 +162,14 @@ metrics.forgetting(df)  # did the revisited task degrade?
 metrics.transfer(df, baseline_df)  # vs the same tasks run isolated (plain lab.run)
 ```
 
-Re-running the same stream name resumes it; a new name starts fresh with
-empty memory. Each task is an ordinary Harbor trial in its own container,
-with the memory snapshotted at every step, so a crashed stream picks up
-where it left off. Full details: **[docs/get-started.md](docs/get-started.md#streams)**.
+Re-running the same stream resumes it. A stream is identified by its name
+together with its agent, tags, budget, and task list, so changing any of
+those is a separate stream with its own memory; give it a new name to run
+the same tasks again from empty memory. On the CLI that name is `--name`,
+and it defaults to one derived from the targets. Each task is an ordinary
+Harbor trial in its own container, with the memory snapshotted at every
+step, so a crashed stream picks up where it left off. Full details:
+**[docs/get-started.md](docs/get-started.md#streams)**.
 
 ### Evaluate your own agent
 
@@ -185,12 +189,11 @@ The only thing you cannot bring is your own judge. Full guide:
 
 ### Examples
 
-One script per thing worth learning first; the first two run with zero
-setup:
+One script per part of the API; the first two run with zero setup:
 
 | Script | What it shows | Needs |
 |---|---|---|
-| [`quickstart.py`](examples/quickstart.py) | the Lab API: episodes, budgets, the results table (agents are simulated) | nothing |
+| [`quickstart.py`](examples/quickstart.py) | the Lab API: episodes, resume, the results table (agents are simulated) | nothing |
 | [`stream_quickstart.py`](examples/stream_quickstart.py) | a continual-learning stream: carried state, the learning curve, resume | nothing |
 | [`minimal_harness.py`](examples/minimal_harness.py) | the smallest real agent harness through the full pipeline | Docker + `[harbor]` |
 
@@ -222,9 +225,9 @@ license, so its tasks are fetched onto your machine instead:
 
 | Benchmark | Tasks | Upstream | Run |
 |---|---|---|---|
-| [terminal-bench](tasks/continual-learning/terminal-bench) | 89 · **v2.0 only** (1.x unsupported) · committed | [terminal-bench-2](https://github.com/laude-institute/terminal-bench-2) (Apache-2.0) | `tide stream my-stream terminal-bench --agent <a>` |
-| [SWE-bench Verified](tasks/continual-learning/swebench-verified) | 500 · fetched (upstream has no license) | [harbor-datasets](https://github.com/laude-institute/harbor-datasets) | `tide fetch swebench-verified --limit 50`, then `tide stream my-stream swebench-verified --agent <a>` |
-| [CL-Bench](tasks/continual-learning/cl-bench) | 301 · **all 6 domains** · committed | [continual-learning-bench](https://github.com/pgasawa/continual-learning-bench) (Apache-2.0) | `tide stream my-stream cl-bench --agent <a>` |
+| [terminal-bench](tasks/continual-learning/terminal-bench) | 89 · **v2.0 only** (1.x unsupported) · committed | [terminal-bench-2](https://github.com/laude-institute/terminal-bench-2) (Apache-2.0) | `tide stream terminal-bench --agent <a>` |
+| [SWE-bench Verified](tasks/continual-learning/swebench-verified) | 500 · fetched (upstream has no license) | [harbor-datasets](https://github.com/laude-institute/harbor-datasets) | `tide fetch swebench-verified --limit 50`, then `tide stream swebench-verified --agent <a>` |
+| [CL-Bench](tasks/continual-learning/cl-bench) | 301 · **all 6 domains** · committed | [continual-learning-bench](https://github.com/pgasawa/continual-learning-bench) (Apache-2.0) | `tide stream cl-bench --agent <a>` |
 
 SWE-bench Verified is the hardest of the benchmarks
 [AgentStream](https://arxiv.org/abs/2608.00155) builds its streams from
@@ -241,6 +244,7 @@ any task list you build yourself, repeats allowed; see
 ### Define a new task
 
 ```bash
+mkdir -p tasks/autoresearch/my-suite     # a new benchmark is just a folder
 cp -r tasks/_template tasks/autoresearch/my-suite/my-task
 pytest tests/test_task_suite.py          # picked up automatically, and already green
 ```
@@ -260,9 +264,10 @@ For benchmark converters, metrics, and runtime work, use a dev checkout:
 
 ```bash
 git clone https://github.com/Human-Agent-Society/tide-eval && cd tide-eval
-uv venv --python 3.12 && uv pip install -e . pytest pytest-asyncio ruff
+uv venv --python 3.12 && uv pip install -e ".[dev]"
 .venv/bin/python -m pytest tests/ -q     # harbor tests skip if absent
 .venv/bin/ruff check . && .venv/bin/ruff format --check .
+.venv/bin/mypy
 ```
 
 PRs are reviewed against the design rules in

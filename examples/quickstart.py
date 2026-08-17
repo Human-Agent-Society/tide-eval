@@ -1,14 +1,14 @@
 """Quickstart: the Lab API in 30 seconds, offline.
 
-No Docker and no real agents run here: the FakeExecutor **simulates**
-episode results so you can see the shape of the thing — resume, tags,
-trace rows, the DataFrame. The agent names below ("strong", "weak") are
-just labels our fake scorer reacts to; they are not defined anywhere else.
+No Docker and no real agents run here. The FakeExecutor simulates episode
+results so the shape of the thing is visible: resume, tags, trace rows,
+the DataFrame. The agent names below ("strong", "weak") are labels the
+fake scorer reacts to; they are not defined anywhere else.
 
 Real runs replace the FakeExecutor with the default HarborExecutor and a
 real agent:
 
-    tide run autoresearch --agent claude-code --model ...   # supported harness
+    tide run autoresearch/first-party --agent claude-code --model ...
     python examples/minimal_harness.py                      # your own harness
 
     python examples/quickstart.py

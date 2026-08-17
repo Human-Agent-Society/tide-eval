@@ -2,8 +2,8 @@
 
 Pure stdlib, no LLM, no keys. It shows the whole contract from the
 method's side: generate candidates, POST them to ``$JUDGE_URL/submit``,
-read the score that comes back — the judge's response IS the feedback —
-and stop when the time budget or the submission budget runs out.
+read the score that comes back (the judge's response is the only
+feedback), and stop when the time or submission budget runs out.
 
 Written for the circle-packing task; the protocol is identical for every
 task, only the solution format changes.
@@ -29,7 +29,7 @@ def submit(solution: dict) -> dict | None:
         with urllib.request.urlopen(request, timeout=30) as response:
             return json.loads(response.read())
     except urllib.error.HTTPError:
-        return None  # 429 — out of submissions, stop searching
+        return None  # 429: out of submissions, stop searching
 
 
 t0 = time.monotonic()

@@ -24,7 +24,7 @@ teaches one hard part of the category.
 | [`function-minimization`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/autoresearch/first-party/function-minimization) | minimize deceptive Levi N.13 | 0.333 → 1.0 | exploration vs local search |
 | [`tsp-tour`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/autoresearch/first-party/tsp-tour) | shorten a 40-city tour | 1.0 → ~2.0 | combinatorial search, continuous signal |
 | [`bin-packing`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/autoresearch/first-party/bin-packing) | beat first-fit on 60 items | 1.0 → >1.0 | exact constraint checking |
-| [`symbolic-regression`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/autoresearch/first-party/symbolic-regression) | recover a hidden formula | 0.604 → 1.0 | **held-out grading**: scored on points the agent never saw |
+| [`symbolic-regression`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/autoresearch/first-party/symbolic-regression) | recover a hidden formula | 0.610 → 1.0 | **held-out grading**: scored on points the agent never saw |
 | [`string-compression`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/autoresearch/first-party/string-compression) | ship decompressor + payload | 3.47 → higher | **grading agent-shipped code safely** |
 
 ```bash

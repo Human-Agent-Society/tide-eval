@@ -5,7 +5,8 @@ the test suite is green the moment you copy it. Replace one piece at a
 time and keep the suite green:
 
 ```bash
-cp -r tasks/_template tasks/autoresearch/my-task
+mkdir -p tasks/autoresearch/my-suite       # your own benchmark folder
+cp -r tasks/_template tasks/autoresearch/my-suite/my-task
 pytest tests/test_task_suite.py            # your copy is picked up automatically
 ```
 

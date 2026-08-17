@@ -18,7 +18,7 @@ filter keeps subset fetches small:
 
 ```bash
 tide fetch swebench-verified --limit 50   # or task names, or all 500
-tide stream my-stream swebench-verified --agent claude-code --model anthropic/claude-opus-5
+tide stream swebench-verified --agent claude-code --model anthropic/claude-opus-5
 ```
 
 The isolated baseline for `metrics.transfer` is a plain

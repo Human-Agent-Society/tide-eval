@@ -2,17 +2,20 @@ __pycache__/
 *.pyc
 *.egg-info/
 .venv/
+.venv-docs/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 runs/
 site/
 # swebench-verified upstream has no license, so its tasks are fetched, never
-# committed; terminal-bench and cl-bench tasks ARE committed (Apache-2.0) —
-# only their download caches stay out.
+# committed. terminal-bench and cl-bench tasks ARE committed (Apache-2.0);
+# only cl-bench's download cache stays out.
 tasks/continual-learning/swebench-verified/*/
 tasks/continual-learning/cl-bench/.data/
-tasks/continual-learning/terminal-bench/.data/
 dist/
 build/
+smoke/
 uv.lock
 .DS_Store
 .vercel

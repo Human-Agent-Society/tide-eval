@@ -1,4 +1,4 @@
-"""Generate FrontierCS Harbor tasks into this folder — both tracks.
+"""Generate FrontierCS Harbor tasks into this folder, both tracks.
 
 Wraps the official Frontier-CS → Harbor adapters (MIT). One sample per
 track is vendored here; this script fetches their repo and generates any
@@ -6,9 +6,10 @@ of the others. Problem ids pick the track: numeric ids are the 1.0
 algorithmic track (172 open-ended competitive-programming problems),
 names are the 2.0 track (20 open research problems).
 
-    python tasks/frontier-cs/fetch.py                       # list problem ids
-    python tasks/frontier-cs/fetch.py 1 17                  # algorithmic track
-    python tasks/frontier-cs/fetch.py erdos_unit_distance   # 2.0 track
+    cd tasks/autoresearch/frontier-cs
+    python fetch.py                      # list problem ids
+    python fetch.py 1 17                 # algorithmic track
+    python fetch.py erdos_unit_distance  # 2.0 track
 """
 
 import subprocess
@@ -37,8 +38,11 @@ def main() -> None:
             ["git", "clone", "-q", "--depth", "1", REPO, str(src)], check=True
         )
         algorithmic = sorted(
-            (p.name for p in (src / "algorithmic" / "problems").iterdir()
-             if p.is_dir()),
+            (
+                p.name
+                for p in (src / "algorithmic" / "problems").iterdir()
+                if p.is_dir()
+            ),
             key=lambda n: (len(n), n),
         )
         research = sorted(
@@ -49,7 +53,7 @@ def main() -> None:
             print("  " + " ".join(algorithmic))
             print(f"\n{len(research)} 2.0-track problems:")
             print("\n".join(f"  {p}" for p in research))
-            print("\nGenerate:  python tasks/frontier-cs/fetch.py <id> [...]")
+            print("\nGenerate:  python fetch.py <id> [...] (from this folder)")
             return
 
         wanted = sys.argv[1:]
@@ -64,17 +68,32 @@ def main() -> None:
                 src,
                 "frontier_cs_algorithm.main",
                 src / "adapters" / "frontier-cs-algorithm" / "src",
-                ["--source", str(src), "--output-dir", str(HERE),
-                 "--task-ids", *numeric, "--overwrite",
-                 "--judge-docker-image", PUBLISHED_JUDGE],
+                [
+                    "--source",
+                    str(src),
+                    "--output-dir",
+                    str(HERE),
+                    "--task-ids",
+                    *numeric,
+                    "--overwrite",
+                    "--judge-docker-image",
+                    PUBLISHED_JUDGE,
+                ],
             )
         if named:
             _generate(
                 src,
                 "frontier_cs_2_0.main",
                 src / "adapters" / "frontier-cs-2.0" / "src",
-                ["--source", str(src), "--output-dir", str(HERE),
-                 "--task-ids", *named, "--overwrite"],
+                [
+                    "--source",
+                    str(src),
+                    "--output-dir",
+                    str(HERE),
+                    "--task-ids",
+                    *named,
+                    "--overwrite",
+                ],
             )
         print(f"generated into {HERE}: {wanted}")
 

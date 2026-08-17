@@ -188,7 +188,7 @@ async def test_distinct_keys_still_run_concurrently(tmp_path):
         ),
         timeout=5,
     )
-    assert reached == 2  # both keys executed — neither was deduplicated
+    assert reached == 2  # both keys executed, neither was deduplicated
 
 
 async def test_inflight_claim_released_after_executor_failure(tmp_path):

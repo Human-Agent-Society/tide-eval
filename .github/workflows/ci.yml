@@ -21,7 +21,7 @@ jobs:
           uv run ruff format --check .
       - name: Type check
         run: uv run mypy
-      - name: Test (core — harbor-dependent tests skip)
+      - name: Test (core; harbor-dependent tests skip)
         run: uv run pytest tests/ -q
       - name: Examples run offline
         run: |
@@ -31,7 +31,7 @@ jobs:
         run: |
           uv run tide list
           uv run tide run autoresearch/first-party --agent oracle --fake --lab runs/ci-smoke
-          uv run tide stream ci-week autoresearch/first-party --agent oracle --fake --lab runs/ci-smoke
+          uv run tide stream autoresearch/first-party --name ci-week --agent oracle --fake --lab runs/ci-smoke
           uv run tide report --lab runs/ci-smoke
       - name: Local mode (real scoring, no Docker)
         run: |

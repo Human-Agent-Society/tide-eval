@@ -1,4 +1,4 @@
-"""Run one issue-4 harness on Tide's circle-packing task.
+"""Run one reference harness adapter on the circle-packing task.
 
 Examples:
     OPENAI_API_KEY=... python examples/run_harness.py openevolve --model gpt-5-mini

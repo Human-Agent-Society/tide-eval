@@ -27,8 +27,9 @@ scorer = _load("score_bsm")
 score_sales = _load("score_sales")
 score_cohort = _load("score_cohort")
 score_codebase = _load("score_codebase")
-dbx_server = None  # loaded lazily: importing it reads question.json
 convert_dbx = _load("convert_dbx")
+# dbx_server is loaded lazily inside the fixture below: importing it reads
+# question.json, which only exists once the fixture has built the database.
 
 METADATA = json.loads((FIXTURES / "mixed_grid_lifecycle_metadata.json").read_text())
 SCANS = [
@@ -76,7 +77,7 @@ def test_instruction_matches_the_upstream_prompt_shape(tmp_path):
 
 
 def test_stage_lookup_follows_metadata_ranges(tmp_path):
-    later = SCANS[1]  # scan 40 — stage 1, a different variant
+    later = SCANS[1]  # scan 40: stage 1, a different variant
     task_dir = _convert(later, tmp_path)
     assert task_dir.name == "bsm-s41"
     config = tomllib.loads((task_dir / "task.toml").read_text())

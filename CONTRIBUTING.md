@@ -1,26 +1,28 @@
 # Contributing to tide
 
-Thanks for considering it. tide stays small on purpose, so contributions are
-reviewed against a short list of design rules more than against style.
+tide stays small on purpose, so contributions are reviewed against a short
+list of design rules more than against style.
 
 ## The rules PRs are reviewed against
 
 1. **One frozen interface.** `Lab.run`'s signature and the results-table schema
    don't change; columns may be added, never renamed or retyped. If your
-   change needs to break this, open an issue first; it means the design is
-   wrong somewhere and we'd rather fix that.
+   change needs to break this, open an issue first: it means the design is
+   wrong somewhere, and that is the thing to fix.
 2. **Tasks stay stock Harbor.** No tide-specific fields in `task.toml`,
    ever. Benchmark structure lives in scripts *around* tasks.
-   `tests/test_task_suite.py` enforces this for every committed task.
+   `tests/test_task_suite.py` validates every committed `task.toml`
+   under Harbor's `TaskConfig`.
 3. **Abstractions are earned.** A helper enters the library when the same
    shape has appeared in at least two real scripts. Until then it lives in
    `examples/`.
 4. **Dependency direction.** Catalog conversion scripts depend on published
    formats, never tide's runtime internals. Metrics import pandas, never tide.
 5. **Trust boundaries are tested, not asserted.** Anything claiming to be an
-   anti-cheating measure needs a test that actually cheats and fails; see
-   the cheat cases in `tests/test_task_suite.py` for the pattern.
-6. **Loud beats lenient** for measurement code: a missing metric column, a
+   anti-cheating measure needs a test that actually cheats and fails. The
+   pattern is the zero-reward cases each task declares in
+   `tests/grader_tests.json`, which `tests/test_task_suite.py` runs.
+6. **Measurement code fails loudly.** A missing metric column, a
    duplicate store key, or a corrupt benchmark line raises. Only submitted
    solutions are handled leniently: they score 0 with a reason instead of
    raising.
@@ -31,13 +33,14 @@ reviewed against a short list of design rules more than against style.
 ## What's welcome
 
 - **Autoresearch tasks**: copy `tasks/_template`, work the TODO markers,
-  and `tests/test_task_suite.py` picks it up (oracle score, cheat suite,
-  stock-Harbor validation) with zero test code written.
+  and `tests/test_task_suite.py` picks it up (scoring cases, zero-reward
+  cases, stock-Harbor validation) with zero test code written. The
+  containerized oracle score is gated separately by `scripts/e2e_oracle.py`.
 - **Benchmark converters**. A converter PR should include: the conversion
   script, one converted sample task checked in as a test fixture, and a
   catalog row update with accurate status.
 - **Metrics**: one pure function + docstring declaring expected columns +
-  a small-frame test. That's the whole checklist.
+  a small-frame test. Nothing else is required.
 - **Executors** for new backends, implementing the `Executor` protocol.
 - **Example protocols** under `examples/`: real autoresearch scripts are
   how library helpers get earned.
@@ -48,6 +51,7 @@ reviewed against a short list of design rules more than against style.
 uv venv --python 3.12 && uv pip install -e ".[dev]"
 .venv/bin/python -m pytest tests/ -q
 .venv/bin/ruff check . && .venv/bin/ruff format .
+.venv/bin/mypy
 ```
 
 CI runs the tests, lint, and the offline examples on every PR. Harbor-

@@ -15,7 +15,7 @@ two-container design maps one-to-one onto Harbor's separate-verifier mode:
 | ``judge.eval_timeout`` | ``[verifier] timeout_sec`` |
 | ``rescale`` / ``parser`` / category | ``[metadata]`` (normalization stays query-time) |
 
-The interaction-time budget (EdgeBench evaluates at 2–12 h) is a *run*
+The interaction-time budget (EdgeBench evaluates at 2 to 12 h) is a *run*
 parameter, not a task property: set ``[agent] timeout_sec`` per run via
 ``lab.run(..., agent={"override_timeout_sec": ...})`` and tag the row with
 ``{"budget": h}``; ``metrics.scaling`` reads the curve.
@@ -26,8 +26,8 @@ structured JSON object with a ``score`` field (this mirrors EdgeBench's own
 ``parse_score.py`` handles both and writes Harbor's ``reward.json``.
 ``submit_exclude`` patterns are ignored (declared artifacts are copied
 whole), and upstream's live judge loop (an auto-eval thread submitting to
-a judge server during the session) is not reproduced — see
-tasks/edgebench/README.md for what that changes and the roadmap item that
+a judge server during the session) is not reproduced; see
+README.md in this folder for what that changes and the roadmap item that
 addresses it.
 
 Spec files: ``https://huggingface.co/datasets/ByteDance-Seed/EdgeBench``

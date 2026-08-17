@@ -1,17 +1,18 @@
-"""Fetch terminal-bench 2.0 — stock Harbor pass/fail tasks, pinned.
+"""Fetch terminal-bench 2.0: stock Harbor pass/fail tasks, pinned.
 
-    python tasks/terminal-bench/fetch.py                  # all 89 tasks
-    python tasks/terminal-bench/fetch.py chess-best-move  # just the named ones
-    python tasks/terminal-bench/fetch.py --limit 10       # first 10 — a starter stream
+    cd tasks/continual-learning/terminal-bench
+    python fetch.py                  # all 89 tasks
+    python fetch.py chess-best-move  # just the named ones
+    python fetch.py --limit 10       # first 10, a starter stream
 
 Only terminal-bench **2.0** is supported: the pin below is the exact
 commit the Harbor registry publishes as v2.0. terminal-bench 1.x predates
 the Harbor task format and is deliberately not included. Tasks land next
-to this script unchanged — they are already stock Harbor tasks, nothing
+to this script unchanged, since they are already stock Harbor tasks; nothing
 is converted. All 89 are committed to the repo; running this script
 re-syncs them from the pin. Then:
 
-    tide stream my-stream terminal-bench --agent claude-code --model anthropic/claude-opus-5
+    tide stream terminal-bench --agent claude-code --model anthropic/claude-opus-5
 """
 
 import argparse
@@ -40,7 +41,7 @@ def main() -> None:
         GIT_URL, COMMIT, dest, only=args.tasks or None, limit=args.limit
     )
     print(f"fetched {len(copied)} terminal-bench 2.0 task(s) -> {dest}")
-    print("stream them: tide stream my-stream terminal-bench --agent <a> --model <m>")
+    print("stream them: tide stream terminal-bench --agent <a> --model <m>")
 
 
 if __name__ == "__main__":

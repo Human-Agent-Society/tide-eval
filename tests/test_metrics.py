@@ -120,7 +120,7 @@ def test_forgetting_on_revisits():
     out = metrics.forgetting(df).set_index("task")
     assert out.loc["a", "forgetting"] == pytest.approx(0.3)
     assert out.loc["b", "forgetting"] == pytest.approx(-0.5)
-    assert "c" not in out.index  # visited once — excluded
+    assert "c" not in out.index  # visited once, excluded
     assert (out.loc["a", "first"], out.loc["a", "last"]) == (0, 2)
 
 

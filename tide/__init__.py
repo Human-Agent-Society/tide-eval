@@ -1,22 +1,18 @@
-"""tide — autoresearch and continual-learning evaluation on the Harbor
+"""tide: autoresearch and continual-learning evaluation on the Harbor
 task standard.
 
-One primitive:
+One primitive, the episode (one Harbor trial): a task run under an agent
+and scored by an isolated verifier. The judge's score for every submission
+along the way is recorded as ``trace`` rows beside it.
 
-- an **episode** (= one Harbor trial) is one trusted measurement: a Harbor
-  task run under an agent, scored by an isolated verifier. The scores the
-  agent gave itself along the way (its score log) are recorded as untrusted
-  ``trace`` rows next to the trusted one.
+Two modes on top. Autoresearch measures learning within one open-ended
+episode (the anytime curve of judge-scored submissions); streams measure
+what carries into later tasks (a :class:`Stream` of episodes under one
+carried agent state).
 
-Two modes on top: **autoresearch** measures learning from an evaluator
-within one open-ended episode (the anytime curve of judge-scored
-submissions), and **streams** measure what carries into later tasks
-(a :class:`Stream` of episodes under one carried agent state).
-
-The public surface is small: :class:`Lab` runs episodes into an
-append-only results store, :class:`Stream` sequences them with carried
-state, and :mod:`tide.metrics` turns the store into curves. See the
-README for the full tour.
+:class:`Lab` runs episodes into an append-only results store,
+:class:`Stream` sequences them with carried state, and
+:mod:`tide.metrics` turns the store into curves.
 """
 
 from tide import metrics

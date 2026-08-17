@@ -31,8 +31,8 @@ def test_frontiercs_export_is_stock_harbor():
 
 
 def test_frontiercs_iterative_submit_is_the_public_scorer_pattern():
-    # Their in-task `submit.sh` is exactly tide's untrusted self-evaluation
-    # convention: the agent can score itself; the verifier decides the grade.
+    # Their in-task `submit.sh` is the agent's own local evaluator, which
+    # tide neither ingests nor trusts. The verifier decides the grade.
     env_files = {p.name for p in (TASK_DIR / "environment").iterdir()}
     assert "submit.sh" in env_files or any("submit" in p for p in env_files), (
         f"expected an agent-facing submit entry, got {sorted(env_files)}"

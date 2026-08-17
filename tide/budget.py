@@ -1,32 +1,23 @@
 """Budget: how much an episode is allowed to spend.
 
-A budget is more than a clock. Autoresearch runs are bounded by whichever
-resource is scarce — wall-clock **time**, the number of judge **evaluations**
-(submissions), the **tokens** an LLM burns, or the **dollars** it costs — and
-"what does 2x the budget buy?" is a question about any of them.
+A run is bounded by whichever resource is scarce: wall-clock time, judge
+evaluations (submissions), tokens, or dollars. tide models all four the
+same way. Each dimension is set on the run, delivered to the agent as a
+``TIDE_*`` environment variable (:meth:`Budget.to_env`), and recorded as a
+``budget_*`` tag (:meth:`Budget.to_tags`). The actual spend comes back as
+``used_*`` columns.
 
-tide models all four uniformly. Each dimension is:
+Enforcement differs by dimension. ``time_h`` is hard: it becomes the
+container timeout, so the episode is killed at the deadline and the
+verifier still grades the best submission so far. ``max_submissions`` is
+enforced by the judge up to the task's own ``judge_config.json`` ceiling;
+a lower per-run value is a signal the agent is asked to honor, because
+Harbor cannot inject env into the judge sidecar. ``max_tokens`` and
+``max_cost_usd`` are soft signals: tide cannot halt a black-box harness
+mid-generation, so it passes the limit to the agent and records the true
+spend regardless.
 
-- **set** on the run (this object),
-- **delivered** to the agent as a ``TIDE_*`` environment variable so a harness
-  or method can pace itself against it (see :meth:`Budget.to_env`), and
-- **recorded** as a ``budget_*`` tag so runs group and pivot by it
-  (see :meth:`Budget.to_tags`); the *actual* spend comes back as ``used_*``
-  columns (see :class:`tide.types.EpisodeResult` ``usage``).
-
-Enforcement differs by dimension, and the docs are honest about it:
-
-- ``time_h`` is **hard** — it becomes the container timeout, so the episode is
-  killed at the deadline (a normal ending; the verifier still grades the
-  best-so-far).
-- ``max_submissions`` is enforced **hard by the judge** only up to the task's
-  own ``judge_config.json`` ceiling; a *lower* per-run value is a signal the
-  agent is asked to honor (Harbor cannot inject env into the judge sidecar).
-- ``max_tokens`` / ``max_cost_usd`` are **soft** signals — tide cannot halt a
-  black-box harness mid-generation, so it passes the limit to the agent and
-  records the true spend regardless.
-
-The scarce dimension is the one you set; leave the rest ``None``.
+Set the scarce dimension and leave the rest ``None``.
 """
 
 from __future__ import annotations
@@ -38,8 +29,8 @@ _UNIT_HOURS = {"s": 1 / 3600, "m": 1 / 60, "h": 1.0, "d": 24.0}
 
 
 def parse_duration_hours(text: str) -> float:
-    """A human duration → hours: ``2h``, ``30m``, ``90s``, ``1d`` — or a bare
-    number, read as hours for back-compat (``0.5`` == ``30m``)."""
+    """A human duration as hours: ``2h``, ``30m``, ``90s``, ``1d``. A bare
+    number is read as hours (``0.5`` is ``30m``)."""
     t = str(text).strip().lower()
     if not t:
         raise ValueError("empty duration")
@@ -76,7 +67,8 @@ class Budget:
         )
 
     def timeout_sec(self) -> float | None:
-        """The wall-clock budget as seconds — the container/`--local` timeout."""
+        """The wall-clock budget as seconds: the container or ``--local``
+        timeout."""
         return None if self.time_h is None else self.time_h * 3600.0
 
     def to_env(self) -> dict[str, str]:

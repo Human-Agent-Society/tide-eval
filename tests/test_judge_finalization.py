@@ -3,7 +3,7 @@
 The judge exposes two ports: an agent port (``POST /submit``, ``GET /status``,
 ``GET /health``) and a verifier port (``GET /final`` with token, ``GET /token``,
 ``GET /health``).  The agent port's ``/final`` returns 403 without executing
-``final.py`` — the agent cannot trigger or observe hidden evaluation.
+``final.py``: the agent cannot trigger or observe hidden evaluation.
 
 These tests start the real judge server as a subprocess on two ports and
 exercise the HTTP boundary directly.
@@ -110,7 +110,7 @@ def _get(url, path, token=None):
 
 
 # ---------------------------------------------------------------------------
-# Adversarial tests — the agent path cannot finalize
+# Adversarial tests: the agent path cannot finalize
 # ---------------------------------------------------------------------------
 
 
@@ -152,7 +152,7 @@ def test_agent_port_no_token_endpoint(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Normal-path tests — the trusted verifier can finalize
+# Normal-path tests: the trusted verifier can finalize
 # ---------------------------------------------------------------------------
 
 
@@ -196,7 +196,7 @@ def test_verifier_final_with_wrong_token_is_refused(tmp_path):
 
 
 def test_verifier_retry_returns_cached_result(tmp_path):
-    """Verifier retries are idempotent — same result, no re-execution."""
+    """Verifier retries are idempotent: same result, no re-execution."""
     agent, verifier, token, proc, marker = _start_judge(tmp_path, with_final=True)
     try:
         _submit(agent, {"x": 0.8})
@@ -204,7 +204,7 @@ def test_verifier_retry_returns_cached_result(tmp_path):
         assert code1 == 200
         assert marker.exists(), "final.py should have run on first call"
 
-        # second call — marker already exists, final.py should not run again
+        # second call: marker already exists, final.py should not run again
         marker.write_text("already")  # tamper to detect re-execution
         code2, body2 = _get(verifier, "/final", token)
         assert code2 == 200

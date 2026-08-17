@@ -1,11 +1,10 @@
 # Examples
 
-Three examples, one per thing worth learning first. The first two run
-with zero setup.
+Three examples, one per part of the API. The first two run with zero setup.
 
 | Script | What it shows | Needs |
 |---|---|---|
-| [`quickstart.py`](quickstart.py) | the Lab API: episodes, budgets, the results table (agents are simulated) | nothing |
+| [`quickstart.py`](quickstart.py) | the Lab API: episodes, resume, the results table (agents are simulated) | nothing |
 | [`stream_quickstart.py`](stream_quickstart.py) | a continual-learning stream: carried state, the learning curve, resume | nothing |
 | [`minimal_harness.py`](minimal_harness.py) | the smallest real agent harness: a ~25-line `BaseAgent` plus a submit-loop search through the full pipeline | Docker + `[harbor]` |
 

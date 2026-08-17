@@ -12,7 +12,7 @@ AGENT = {"name": "nop"}
 
 def learning_executor():
     """A fake agent that 'learns': it appends the task it saw to a memory file
-    in the carried state dir and scores by how much memory it has — so rewards
+    in the carried state dir and scores by how much memory it has, so rewards
     over a working stream are 1, 2, 3, ... and any reset/restore bug shows up
     as a wrong count."""
 
@@ -31,6 +31,14 @@ def memory_lines(path: Path) -> list[str]:
     return (path / "memory.txt").read_text().splitlines()
 
 
+def snapshot(snapshots: Path, position: int) -> Path:
+    """The snapshot for a position. Its name carries the prefix digest that
+    the episode key uses, so look it up rather than assuming one."""
+    hits = sorted(snapshots.glob(f"{position:03d}-*"))
+    assert len(hits) == 1, f"expected one snapshot for {position}, got {hits}"
+    return hits[0]
+
+
 async def test_state_carries_across_positions(tmp_path):
     lab = Lab(tmp_path / "lab", executor=learning_executor())
     stream = Stream("s1", ["tasks/a", "tasks/b", "tasks/c"])
@@ -45,8 +53,8 @@ async def test_state_carries_across_positions(tmp_path):
     ]
     # Each position's ending state is snapshotted, so every input is auditable.
     snapshots = stream.state_root(lab, AGENT) / "snapshots"
-    assert memory_lines(snapshots / "000") == ["tasks/a"]
-    assert memory_lines(snapshots / "002") == ["tasks/a", "tasks/b", "tasks/c"]
+    assert memory_lines(snapshot(snapshots, 0)) == ["tasks/a"]
+    assert memory_lines(snapshot(snapshots, 2)) == ["tasks/a", "tasks/b", "tasks/c"]
 
 
 async def test_rerun_skips_everything(tmp_path):
@@ -111,7 +119,9 @@ async def test_editing_history_invalidates_the_suffix(tmp_path):
     assert len(executor.calls) == 3 + 2
     assert [r.rewards["reward"] for r in rows] == [1.0, 2.0, 3.0]
     snapshots = Stream("s1", ["tasks/a"]).state_root(lab, AGENT) / "snapshots"
-    assert memory_lines(snapshots / "002") == ["tasks/a", "tasks/X", "tasks/c"]
+    # Position 2 now has two snapshots, one per history; take the new one.
+    latest = max(snapshots.glob("002-*"), key=lambda p: p.stat().st_mtime)
+    assert memory_lines(latest) == ["tasks/a", "tasks/X", "tasks/c"]
 
 
 async def test_distinct_agents_get_distinct_state_and_keys(tmp_path):
@@ -126,6 +136,24 @@ async def test_distinct_agents_get_distinct_state_and_keys(tmp_path):
     assert {r.key for r in rows_a}.isdisjoint({r.key for r in rows_b})
     # ... and each stream learned only from its own episodes.
     assert [r.rewards["reward"] for r in rows_b] == [1.0, 2.0]
+
+
+async def test_same_name_different_tasks_keep_separate_state(tmp_path):
+    """The state directory is per (name, setup, task list). Two streams that
+    share a name and an agent but run different tasks must not inherit or
+    overwrite each other's snapshots."""
+    executor = learning_executor()
+    lab = Lab(tmp_path / "lab", executor=executor)
+    first = Stream("s1", ["tasks/a", "tasks/b"])
+    second = Stream("s1", ["tasks/c", "tasks/d"])
+
+    await first.run(lab, AGENT)
+    rows = await second.run(lab, AGENT)
+
+    # The second stream starts from empty memory, not from the first's.
+    assert [r.rewards["reward"] for r in rows] == [1.0, 2.0]
+    snapshots = first.state_root(lab, AGENT) / "snapshots"
+    assert len(list(snapshots.glob("000-*"))) == 2  # one per task list
 
 
 async def test_seed_state_is_visible_and_captured(tmp_path):

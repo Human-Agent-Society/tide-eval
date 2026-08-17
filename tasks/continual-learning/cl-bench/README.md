@@ -55,7 +55,8 @@ enforces them exactly.
 The tasks are committed, so they run out of the box:
 
 ```bash
-tide stream my-stream tasks/cl-bench/poker-* --agent claude-code --model anthropic/claude-opus-5
+tide stream cl-bench --agent claude-code   # every domain, in order
+tide stream tasks/continual-learning/cl-bench/poker-* --agent claude-code
 tide fetch cl-bench bsm sales    # only to regenerate from the pinned sources
 ```
 

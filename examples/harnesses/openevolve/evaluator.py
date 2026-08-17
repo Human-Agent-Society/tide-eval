@@ -1,4 +1,4 @@
-"""OpenEvolve evaluator backed exclusively by Tide's judge."""
+"""OpenEvolve evaluator backed exclusively by tide's judge."""
 
 from __future__ import annotations
 

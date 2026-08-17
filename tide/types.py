@@ -4,8 +4,8 @@ The vocabulary is deliberately tiny:
 
 - An :class:`EpisodeSpec` says what to run (a Harbor task + an agent).
 - An :class:`EpisodeResult` is what an executor hands back.
-- A :class:`TracePoint` is one untrusted intermediate score emitted *during*
-  an episode (an agent self-evaluation).
+- A :class:`TracePoint` is one judge-scored submission from *during* an
+  episode.
 - A :class:`Row` is what actually lands in the results store.
 """
 
@@ -27,7 +27,7 @@ class EpisodeSpec:
     ``task`` is a Harbor task directory path or a registry id
     (e.g. ``"some-benchmark/some-task"``). ``agent`` uses Harbor's own
     ``AgentConfig`` field names verbatim (``name``, ``model_name``,
-    ``import_path``, ...) — tide adds no translation layer.
+    ``import_path``, ...), with no translation layer on top.
     ``overrides`` are passed through to Harbor's ``TrialConfig`` for anything
     else (verifier/environment settings, timeout multipliers, ...).
     """
@@ -39,7 +39,7 @@ class EpisodeSpec:
 
 @dataclass(frozen=True)
 class TracePoint:
-    """One untrusted intermediate score from inside an episode.
+    """One judge-scored submission from inside an episode.
 
     ``t`` is seconds since the episode started (or any monotonic offset the
     task convention defines). ``data`` carries anything else the score log
@@ -56,16 +56,16 @@ class EpisodeResult:
     """What an executor returns for one episode.
 
     ``rewards`` is the trusted verdict (from Harbor's verifier, or a fake in
-    tests). ``trace`` is the untrusted score log recovered from the
-    episode's artifacts. ``uri`` points at the provenance (the Harbor trial
-    directory) so every stored number stays auditable.
+    tests). ``trace`` is the judge's per-submission score log, recovered
+    from the episode's artifacts. ``uri`` points at the provenance (the
+    Harbor trial directory) so every stored number stays auditable.
 
-    ``usage`` is what the episode actually spent — the *measured* side of a
-    budget: ``n_input_tokens`` / ``n_output_tokens`` / ``n_cache_tokens`` /
-    ``cost_usd`` (measured token counts and model-cost estimates from the
-    agent adapter, reported by the harness's own accounting, so as accurate
-    as the provider's bill) and ``n_submissions`` (evals used). Every key is
-    optional; the Lab records whatever is present as ``used_*`` columns.
+    ``usage`` is what the episode actually spent, the measured side of a
+    budget: ``n_input_tokens``, ``n_output_tokens``, ``n_cache_tokens``,
+    ``cost_usd`` (token counts and model-cost estimates the agent adapter
+    reads off the harness's own accounting) and ``n_submissions`` (evals
+    used). Every key is optional; the Lab records whatever is present as
+    ``used_*`` columns.
     """
 
     rewards: Rewards
@@ -79,8 +79,8 @@ class EpisodeResult:
 class Row:
     """One record in the results store. ``kind`` is one of:
 
-    - ``episode`` — a trusted, verifier-backed score (one per episode)
-    - ``trace``   — an untrusted intermediate score (many per episode)
+    - ``episode``: the verifier's final verdict (one per episode)
+    - ``trace``: one judge-scored submission (many per episode)
 
     ``kind`` is an open string, not an enum: future evaluation regimes add
     new kinds (with their own key shapes) without touching this schema.

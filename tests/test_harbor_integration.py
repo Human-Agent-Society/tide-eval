@@ -59,7 +59,7 @@ def test_state_mount_maps_onto_trial_config():
 
 def test_exemplar_task_is_valid_stock_harbor(request):
     """The shipped autoresearch exemplar must parse under Harbor's TaskConfig
-    schema — the 'tasks stay 100% stock harbor' promise, enforced."""
+    schema: the 'tasks stay 100% stock harbor' promise, enforced."""
     import tomllib
     from pathlib import Path
 
