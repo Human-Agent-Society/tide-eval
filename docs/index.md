@@ -1,10 +1,10 @@
 # tide
 
-Evaluate agents that improve: on autoresearch tasks (open-ended
-optimization problems with hours of budget, a continuous score, and an
-agent iterating against a judge it cannot tamper with) and on
-continual-learning task streams (ordered task sequences under one agent
-that carries its memory from episode to episode).
+Evaluate learning from inference-time signals: feedback produced during
+the run itself, with no training step in between. Autoresearch measures
+a solution improving against an evaluator on one open-ended problem;
+continual learning measures an agent carrying what it learned into the
+next task.
 
 - **[Get started](introduction/get-started.md)**: install to a real agent
   score, including auth and network setup.

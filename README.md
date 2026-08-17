@@ -6,15 +6,18 @@
 
 **Autoresearch and continual-learning evaluation on the [Harbor](https://github.com/laude-institute/harbor) task standard.**
 
-tide evaluates agents that get better with experience, in two modes.
+More and more of what agents are asked to do requires learning from
+inference-time signals: feedback produced during the run itself, with no
+training step in between. tide evaluates the two forms this takes:
+learning from evaluators within one open-ended problem (autoresearch),
+and carrying what was learned into the next task (continual learning).
 
 **Autoresearch** is the kind of work DeepMind's
 [AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/)
 and [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) do:
-open-ended optimization problems with hours of budget, a continuous
-score, and an agent working toward a better solution the whole way.
-There is no "passed", only *how good, by when*. The learning happens
-**inside one task**:
+one open-ended optimization problem with a continuous score, hours of
+budget, and a judge scoring every submission. There is no "passed",
+only *how good, by when*. What improves is **the solution**:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-hero-dark.svg">
@@ -27,8 +30,8 @@ There is no "passed", only *how good, by when*. The learning happens
 benchmarks are [terminal-bench 2.0](tasks/terminal-bench),
 [SWE-bench Verified](tasks/swebench-verified), and all six
 [CL-Bench](tasks/cl-bench) domains), carrying its memory from task to
-task. What matters is not the score on any one task but *whether
-experience adds up*. The learning happens **across tasks**:
+task. The signal is what earlier tasks taught: the question is whether
+later tasks go better for it. What improves is **the agent**:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-stream-dark.svg">
