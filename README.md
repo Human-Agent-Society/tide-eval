@@ -7,8 +7,8 @@
 **Autoresearch and continual-learning evaluation on the [Harbor](https://github.com/laude-institute/harbor) task standard.**
 
 More and more of what agents are asked to do requires learning from
-inference-time signals: feedback produced during the run itself, with no
-training step in between. tide evaluates the two forms this takes:
+inference-time signals: feedback produced during the run itself. tide
+evaluates the two forms this takes:
 learning from evaluators within one open-ended problem (autoresearch),
 and carrying what was learned into the next task (continual learning).
 
