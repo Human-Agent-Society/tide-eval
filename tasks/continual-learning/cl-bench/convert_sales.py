@@ -54,7 +54,7 @@ timeout_sec = 300.0
 
 [agent]
 timeout_sec = 1800.0
-# Offline, as upstream: the harness adapter whitelists its own LLM API
+# Offline, as upstream: the harness adapter allowlists its own LLM API
 # hosts; the task itself allows no egress (for codebase tasks the fix
 # is a public PR — open internet would be a cheat channel).
 network_mode = "allowlist"

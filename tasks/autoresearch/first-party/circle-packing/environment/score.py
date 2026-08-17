@@ -1,4 +1,4 @@
-"""The scoring rule — run by the judge on every submission: recomputes the score from the declared artifact, from
+"""The scoring rule, run by the judge on every submission: recomputes the score from the declared artifact, from
 scratch, in exact rational arithmetic.
 
 Never reads the agent's claimed scores. Runs in a separate verifier container

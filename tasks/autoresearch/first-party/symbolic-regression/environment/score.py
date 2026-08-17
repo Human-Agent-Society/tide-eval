@@ -1,7 +1,7 @@
 """Session score: R-squared-style reward on the TRAINING points.
 
 The judge runs this on every submission. The held-out grading lives in
-final.py and runs exactly once, on the best submission — so the submission
+final.py and runs exactly once, on the best submission, so the submission
 budget cannot be spent probing the held-out set.
 """
 
@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from final import MAX_EXPR_LEN, evaluate  # noqa: E402 — same evaluator, one copy
+from final import MAX_EXPR_LEN, evaluate  # noqa: E402 (same evaluator, one copy)
 
 TRAIN = json.loads((Path(__file__).parent / "train.json").read_text())["points"]
 

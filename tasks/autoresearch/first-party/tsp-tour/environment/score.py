@@ -1,4 +1,4 @@
-"""The scoring rule — run by the judge on every submission: validates the permutation exactly, recomputes both lengths.
+"""The scoring rule, run by the judge on every submission: validates the permutation exactly, recomputes both lengths.
 
 The baseline (identity tour) is computed here from the same pinned city set,
 so reward 1.0 = "no better than visiting cities in file order" and anything

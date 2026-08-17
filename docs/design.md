@@ -49,9 +49,11 @@ task: the streaming setting of
   whatever it wants to remember;
 - **the measurement is the difference state makes**: the learning curve
   over positions, transfer against an isolated baseline, forgetting on
-  revisited tasks. AgentStream's isolated, sequential, and interleaved
-  scenarios map onto a plain `lab.run` sweep, target order, and a seeded
-  shuffle.
+  revisited tasks. AgentStream's sequential and interleaved scenarios map
+  onto target order and a seeded shuffle; its isolated scenario is one
+  stream per benchmark, with no state shared between them. The stateless
+  baseline `metrics.transfer` subtracts is a plain `lab.run` sweep, which
+  is a different thing again.
 
 Everything in tide follows from taking these properties seriously.
 

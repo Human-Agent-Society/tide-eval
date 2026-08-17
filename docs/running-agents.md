@@ -75,14 +75,15 @@ credentials injected:
   `~/.codex/auth.json` into the container);
 - **claude-code**: `ANTHROPIC_API_KEY` (or its own login flow).
 
-### Network egress
+### Network access
 
-Locked-down tasks (first-party autoresearch, CL-Bench) restrict the
-agent's network in `task.toml`. A container-brain agent needs two kinds
-of egress on top of that: **install egress** during setup (codex's CLI
-arrives via `apt` + `npm` inside the container) and **API egress** for
-the model endpoint. Widen the baseline per run, with no task edits,
-through the `environment.extra_allowed_hosts` override:
+Locked-down tasks (first-party autoresearch, CL-Bench) set
+`allowed_hosts` in `task.toml`, and the container reaches nothing else.
+An agent whose CLI runs in the container needs hosts added in both of
+Harbor's phases: the **setup phase**, where the CLI installs itself over
+`apt` and `npm`, and the **agent phase**, where it calls the model
+endpoint. Widen the allowlist per run, with no task edits, through the
+`environment.extra_allowed_hosts` override:
 
 ```python
 import asyncio

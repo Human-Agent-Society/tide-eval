@@ -1,4 +1,4 @@
-"""The scoring rule — run by the judge on every submission: recomputes 1/(1+f) from the artifact alone."""
+"""The scoring rule, run by the judge on every submission: recomputes 1/(1+f) from the artifact alone."""
 
 import json
 import math

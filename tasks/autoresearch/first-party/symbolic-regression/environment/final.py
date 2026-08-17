@@ -1,4 +1,4 @@
-"""The FINAL judge — this task's teaching point: held-out grading.
+"""The FINAL judge, this task's teaching point: held-out grading.
 
 The agent only ever sees the training points; this file runs ONCE, on the
 best submission, and scores the
@@ -6,7 +6,7 @@ expression on HELD-OUT points the agent has never seen. Memorizing the
 training set (a giant interpolating polynomial) collapses on the held-out
 range; only the true structure generalizes.
 
-Expressions are evaluated through an AST whitelist — never eval() — so the
+Expressions are evaluated through an AST allowlist, never eval(), so the
 artifact cannot execute anything.
 """
 

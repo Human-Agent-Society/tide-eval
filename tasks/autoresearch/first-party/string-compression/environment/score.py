@@ -1,4 +1,4 @@
-"""The scoring rule — run by the judge on every submission — teaching point: grading code the agent SHIPS, safely.
+"""The scoring rule, run by the judge on every submission. Teaching point: grading code the agent SHIPS, safely.
 
 The artifact contains a decompressor program plus a payload. The grader runs
 the decompressor in a subprocess and requires a byte-exact round trip;
