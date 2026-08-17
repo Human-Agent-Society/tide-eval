@@ -62,35 +62,60 @@ def _tasks_under(path: Path) -> list[Path]:
     )
 
 
+def _expand(target: str, candidate: Path) -> list[str] | None:
+    """A task dir resolves to itself; a folder expands to the tasks inside."""
+    if _is_task_dir(candidate):
+        return [str(candidate)]
+    if candidate.is_dir():
+        inside = _tasks_under(candidate)
+        if not inside:
+            raise SystemExit(
+                f"'{target}' is a directory but contains no task.toml — "
+                "fetch its tasks first? (see its README / `tide fetch`)"
+            )
+        return [str(t) for t in inside]
+    return None
+
+
+def _fetch_known_benchmark(target: str) -> list[str] | None:
+    """Download a known benchmark on first use (pip installs have no tasks/)."""
+    from tide import fetch
+
+    name = target.split("/", 1)[0]
+    if name not in fetch.BENCHMARKS and name != "swebench-verified":
+        return None
+    root = fetch.benchmark(name)
+    parts = target.split("/", 1)
+    candidate = root / parts[1] if len(parts) == 2 else root
+    return _expand(target, candidate)
+
+
 def resolve_targets(targets: list[str], tasks_root: Path | None) -> list[str]:
     """Expand CLI targets into runnable task references.
 
-    Returns task-dir paths (as strings) and/or Harbor registry ids.
+    Local paths win, then the tasks catalog (at either level), then known
+    benchmarks download into the cache, and anything else passes through
+    to Harbor as a registry id.
     """
     resolved: list[str] = []
     for target in targets:
-        path = Path(target)
-        candidates = [path]
+        candidates = [Path(target)]
         if tasks_root is not None:
             candidates.append(tasks_root / target)
             # Benchmarks live one level down (tasks/<mode>/<benchmark>), so
             # bare names like "edgebench" or "terminal-bench" resolve too.
             candidates.extend(sorted(tasks_root.glob(f"*/{target}")))
         for candidate in candidates:
-            if _is_task_dir(candidate):
-                resolved.append(str(candidate))
-                break
-            if candidate.is_dir():
-                inside = _tasks_under(candidate)
-                if not inside:
-                    raise SystemExit(
-                        f"'{target}' is a directory but contains no task.toml — "
-                        "fetch its tasks first? (see its README / `tide fetch`)"
-                    )
-                resolved.extend(str(t) for t in inside)
+            hit = _expand(target, candidate)
+            if hit is not None:
+                resolved.extend(hit)
                 break
         else:
-            resolved.append(target)  # a Harbor registry id
+            hit = _fetch_known_benchmark(target)
+            if hit is not None:
+                resolved.extend(hit)
+            else:
+                resolved.append(target)  # a Harbor registry id
     return resolved
 
 
@@ -325,18 +350,24 @@ def cmd_report(args: argparse.Namespace) -> int:
 
 
 def cmd_fetch(args: argparse.Namespace) -> int:
+    # In a checkout, a benchmark's own fetch.py regenerates from upstream.
     tasks_root = _find_tasks_root(args.tasks_dir)
-    if tasks_root is None:
-        raise SystemExit("no tasks/ directory found — run from a tide checkout")
-    matches = sorted(tasks_root.glob(f"*/{args.benchmark}/fetch.py")) + [
-        tasks_root / args.benchmark / "fetch.py"
-    ]
-    script = next((m for m in matches if m.is_file()), None)
+    script = None
+    if tasks_root is not None:
+        matches = sorted(tasks_root.glob(f"*/{args.benchmark}/fetch.py")) + [
+            tasks_root / args.benchmark / "fetch.py"
+        ]
+        script = next((m for m in matches if m.is_file()), None)
     if script is None:
-        available = sorted(p.parent.name for p in tasks_root.glob("*/*/fetch.py"))
-        raise SystemExit(
-            f"no fetch script for '{args.benchmark}'; available: {available}"
-        )
+        from tide import fetch
+
+        if args.benchmark in fetch.BENCHMARKS or args.benchmark == "swebench-verified":
+            dest = fetch.benchmark(args.benchmark)
+            print(f"downloaded to {dest}")
+            print(f"run with: tide run {args.benchmark}/<task> --agent <a>")
+            return 0
+        known = sorted([*fetch.BENCHMARKS, "swebench-verified"])
+        raise SystemExit(f"unknown benchmark '{args.benchmark}'; known: {known}")
     import subprocess
 
     return subprocess.run(

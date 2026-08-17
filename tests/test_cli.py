@@ -150,5 +150,5 @@ def test_list_and_fetch_errors(capsys):
     assert main(["--tasks-dir", str(TASKS_ROOT), "list"]) == 0
     out = capsys.readouterr().out
     assert "autoresearch/first-party/circle-packing" in out
-    with pytest.raises(SystemExit, match="available"):
+    with pytest.raises(SystemExit, match="known"):
         main(["--tasks-dir", str(TASKS_ROOT), "fetch", "nonsense-bench"])

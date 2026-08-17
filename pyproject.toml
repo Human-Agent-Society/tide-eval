@@ -1,7 +1,7 @@
 [project]
 name = "tide-eval"
 version = "0.1.0"
-description = "Autoresearch evaluation infrastructure on the Harbor task standard: budgeted open-ended tasks, tamper-proof scoring, score trajectories, and resumable sweeps."
+description = "Autoresearch and continual-learning evaluation on the Harbor task standard: budgeted open-ended tasks, task streams with carried memory, tamper-proof scoring, and resumable sweeps."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "Apache-2.0" }
@@ -46,6 +46,10 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["tide"]
+
+[tool.hatch.build.targets.sdist]
+# The package ships code only; benchmark tasks download on first use.
+include = ["/tide", "/README.md", "/LICENSE"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
