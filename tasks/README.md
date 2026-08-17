@@ -14,7 +14,9 @@ standard way to prove a task's pipeline works. Every task runs two ways,
 always:
 
 ```python
-await lab.run("tasks/autoresearch/first-party/tsp-tour", {"name": "oracle"})  # through tide
+await lab.run(
+    "tasks/autoresearch/first-party/tsp-tour", {"name": "oracle"}
+)  # through tide
 ```
 ```bash
 harbor trial start -p tasks/autoresearch/first-party/tsp-tour                  # stock Harbor, standalone
