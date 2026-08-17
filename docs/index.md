@@ -10,6 +10,7 @@ next task.
   score, including auth and network setup.
 - **[Design](introduction/design.md)**: the trust model, where the judge owns all
   scoring.
+- **[Glossary](introduction/glossary.md)**: every term in one place.
 - **[Evaluating your agent](guides/integration.md)**: bring your own agent
   or method.
 - **[Authoring tasks](guides/authoring-tasks.md)**: new tasks and benchmark
