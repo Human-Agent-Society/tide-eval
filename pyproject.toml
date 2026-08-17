@@ -63,12 +63,12 @@ target-version = "py312"
 # Fixtures and imported task instructions include third-party code.
 extend-exclude = [
     "tests/fixtures",
-    "tasks/frontier-cs",
-    "tasks/cl-bench",
-    "tasks/swebench-verified",
-    "tasks/terminal-bench",
-    "tasks/edgebench/*/instruction.md",
-    "tasks/edgebench/*/tests",
+    "tasks/autoresearch/frontier-cs",
+    "tasks/continual-learning/cl-bench",
+    "tasks/continual-learning/swebench-verified",
+    "tasks/continual-learning/terminal-bench",
+    "tasks/autoresearch/edgebench/*/instruction.md",
+    "tasks/autoresearch/edgebench/*/tests",
 ]
 
 [tool.ruff.lint]

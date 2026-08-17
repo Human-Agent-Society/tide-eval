@@ -19,7 +19,13 @@ from pathlib import Path
 
 from tide import Lab, metrics
 
-TASK = str(Path(__file__).parent.parent / "tasks" / "autoresearch" / "circle-packing")
+TASK = str(
+    Path(__file__).parent.parent
+    / "tasks"
+    / "autoresearch"
+    / "first-party"
+    / "circle-packing"
+)
 
 
 async def main(agent: str, model: str | None):

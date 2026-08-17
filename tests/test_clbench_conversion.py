@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-CLBENCH = Path(__file__).parent.parent / "tasks" / "cl-bench"
+CLBENCH = Path(__file__).parent.parent / "tasks" / "continual-learning" / "cl-bench"
 FIXTURES = Path(__file__).parent / "fixtures" / "clbench"
 
 

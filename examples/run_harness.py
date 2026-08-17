@@ -15,7 +15,13 @@ from pathlib import Path
 
 from tide import Lab
 
-TASK = str(Path(__file__).parent.parent / "tasks" / "autoresearch" / "circle-packing")
+TASK = str(
+    Path(__file__).parent.parent
+    / "tasks"
+    / "autoresearch"
+    / "first-party"
+    / "circle-packing"
+)
 AGENTS = {
     "openevolve": "examples.harnesses.openevolve.agent:OpenEvolveHarness",
     "codex": "examples.harnesses.codex.agent:CodexHarness",

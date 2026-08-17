@@ -63,7 +63,7 @@ Three decisions carry the model:
   the session: later submissions are refused and repeat calls return the
   cached verdict, so an agent that calls it early terminates its own
   session.
-   [symbolic-regression](../../tasks/autoresearch/symbolic-regression) is the
+   [symbolic-regression](../../tasks/autoresearch/first-party/symbolic-regression) is the
   reference: session feedback on training points, final grade on held-out
   points that no submission budget can probe.
 

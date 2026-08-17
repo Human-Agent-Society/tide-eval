@@ -27,9 +27,9 @@ only *how good, by when*. What improves is **the solution**:
 **Continual learning** puts one agent through a
 [stream](docs/api/streams.md) of tasks in order (the
 [AgentStream](https://arxiv.org/abs/2608.00155) setting; the supported
-benchmarks are [terminal-bench 2.0](tasks/terminal-bench),
-[SWE-bench Verified](tasks/swebench-verified), and all six
-[CL-Bench](tasks/cl-bench) domains), carrying its memory from task to
+benchmarks are [terminal-bench 2.0](tasks/continual-learning/terminal-bench),
+[SWE-bench Verified](tasks/continual-learning/swebench-verified), and all six
+[CL-Bench](tasks/continual-learning/cl-bench) domains), carrying its memory from task to
 task. The signal is what earlier tasks taught: the question is whether
 later tasks go better for it. What improves is **the agent**:
 
@@ -76,9 +76,9 @@ git clone https://github.com/Human-Agent-Society/tide-eval && cd tide-eval
 pip install -e ".[harbor]"               # container runs; plain -e . covers --local and the API
 
 tide list                                # what's runnable
-tide run autoresearch --agent oracle     # oracle = built-in agent that runs each task's reference solution
-tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2h     # time (2h / 30m / 90s; bare = hours)
-tide run autoresearch/tsp-tour --agent codex --model openai/gpt-5 --max-tokens 500k                # or: tokens / --max-evals / --max-cost
+tide run autoresearch/first-party --agent oracle     # oracle = built-in agent that runs each task's reference solution
+tide run autoresearch/first-party/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2h     # time (2h / 30m / 90s; bare = hours)
+tide run autoresearch/first-party/tsp-tour --agent codex --model openai/gpt-5 --max-tokens 500k                # or: tokens / --max-evals / --max-cost
 tide stream my-stream terminal-bench --agent claude-code --model anthropic/claude-opus-5               # continual learning: memory carried across tasks
 tide report                              # summarize the results store
 ```
@@ -93,7 +93,7 @@ budget axes are `--max-tokens` (e.g. `500k`), `--max-evals`, and `--max-cost`
 your command against it, with no containers involved:
 
 ```bash
-tide run autoresearch/circle-packing --local \
+tide run autoresearch/first-party/circle-packing --local \
   --command "python examples/minimal_harness_search.py" --budget 30s
 ```
 
@@ -124,7 +124,7 @@ from tide import Lab, Budget, metrics
 
 lab = Lab("runs/exp1")
 row = await lab.run(
-    "tasks/autoresearch/circle-packing",  # any task dir or Harbor registry id
+    "tasks/autoresearch/first-party/circle-packing",  # any task dir or Harbor registry id
     agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"},
     budget=Budget(time_h=2),  # the budget: time, or tokens / evals / cost
     tags={"suite": "smoke"},  # free-form tags = your schema
@@ -134,7 +134,7 @@ row.uri  # the trial directory, for auditing
 
 # Budget is more than a clock; bound whichever resource is scarce:
 await lab.run(
-    "tasks/autoresearch/circle-packing",
+    "tasks/autoresearch/first-party/circle-packing",
     agent={"name": "codex", "model_name": "openai/gpt-5"},
     budget=Budget(max_tokens=500_000),
 )  # or max_evals=50, max_cost_usd=3
@@ -168,9 +168,9 @@ lab = Lab("runs/cl")
 stream = Stream(
     "my-stream",  # ordered tasks, repeats allowed; the revisit is how forgetting shows
     [
-        "tasks/terminal-bench/chess-best-move",
-        "tasks/terminal-bench/build-pmars",
-        "tasks/terminal-bench/chess-best-move",
+        "tasks/continual-learning/terminal-bench/chess-best-move",
+        "tasks/continual-learning/terminal-bench/build-pmars",
+        "tasks/continual-learning/terminal-bench/chess-best-move",
     ],
 )
 rows = await stream.run(
@@ -221,9 +221,9 @@ with the `BaseAgent` skeleton and the OpenEvolve pattern:
 
 | Benchmark | Tasks | Upstream | Run |
 |---|---|---|---|
-| [first-party](tasks/autoresearch) ↓ | 6 | this repo | `tide run autoresearch --agent <a>` |
-| [EdgeBench](tasks/edgebench) | 51 · 2-12 h budgets | [ByteDance-Seed/EdgeBench](https://github.com/ByteDance-Seed/EdgeBench) | `tide run edgebench/<task> --budget <h>` |
-| [FrontierCS](tasks/frontier-cs) | 188 algorithmic + 20 research · incl. 4 GPU kernel | [FrontierCS/Frontier-CS](https://github.com/FrontierCS/Frontier-CS) | `tide run frontier-cs/<task> --agent <a>` |
+| [first-party](tasks/autoresearch) ↓ | 6 | this repo | `tide run autoresearch/first-party --agent <a>` |
+| [EdgeBench](tasks/autoresearch/edgebench) | 51 · 2-12 h budgets | [ByteDance-Seed/EdgeBench](https://github.com/ByteDance-Seed/EdgeBench) | `tide run edgebench/<task> --budget <h>` |
+| [FrontierCS](tasks/autoresearch/frontier-cs) | 188 algorithmic + 20 research · incl. 4 GPU kernel | [FrontierCS/Frontier-CS](https://github.com/FrontierCS/Frontier-CS) | `tide run frontier-cs/<task> --agent <a>` |
 
 The next converters, vetted for autoresearch fit, are tracked in the
 [roadmap](https://github.com/Human-Agent-Society/tide-eval/issues/19).
@@ -237,15 +237,15 @@ license, so its tasks are fetched onto your machine instead:
 
 | Benchmark | Tasks | Upstream | Run |
 |---|---|---|---|
-| [terminal-bench](tasks/terminal-bench) | 89 · **v2.0 only** (1.x unsupported) · committed | [terminal-bench-2](https://github.com/laude-institute/terminal-bench-2) (Apache-2.0) | `tide stream my-stream terminal-bench --agent <a>` |
-| [SWE-bench Verified](tasks/swebench-verified) | 500 · fetched (upstream has no license) | [harbor-datasets](https://github.com/laude-institute/harbor-datasets) | `tide fetch swebench-verified --limit 50`, then `tide stream my-stream swebench-verified --agent <a>` |
-| [CL-Bench](tasks/cl-bench) | 301 · **all 6 domains** · committed | [continual-learning-bench](https://github.com/pgasawa/continual-learning-bench) (Apache-2.0) | `tide stream my-stream tasks/cl-bench/poker-* --agent <a>` |
+| [terminal-bench](tasks/continual-learning/terminal-bench) | 89 · **v2.0 only** (1.x unsupported) · committed | [terminal-bench-2](https://github.com/laude-institute/terminal-bench-2) (Apache-2.0) | `tide stream my-stream terminal-bench --agent <a>` |
+| [SWE-bench Verified](tasks/continual-learning/swebench-verified) | 500 · fetched (upstream has no license) | [harbor-datasets](https://github.com/laude-institute/harbor-datasets) | `tide fetch swebench-verified --limit 50`, then `tide stream my-stream swebench-verified --agent <a>` |
+| [CL-Bench](tasks/continual-learning/cl-bench) | 301 · **all 6 domains** · committed | [continual-learning-bench](https://github.com/pgasawa/continual-learning-bench) (Apache-2.0) | `tide stream my-stream tasks/continual-learning/cl-bench/poker-* --agent <a>` |
 
 SWE-bench Verified is there because [AgentStream](https://arxiv.org/abs/2608.00155)
 builds its streams from six benchmarks, and it is the hardest of them with
 a published Harbor version; the two the paper measures as hardest, HLE
 and BrowseComp-Plus, have none yet.
-[CL-Bench](tasks/cl-bench) ([paper](https://arxiv.org/pdf/2606.05661)) is
+[CL-Bench](tasks/continual-learning/cl-bench) ([paper](https://arxiv.org/pdf/2606.05661)) is
 a continual-learning benchmark in the strict sense (sequential instances
 of one environment where remembering should help), and its *gain metric*
 (stateful minus stateless reward) is `metrics.transfer`. All six
@@ -266,17 +266,17 @@ Each first-party task teaches one hard part of the autoresearch category
 
 | Task | Teaches |
 |---|---|
-| [`circle-packing`](tasks/autoresearch/circle-packing) | the full protocol; exact-arithmetic grading |
-| [`function-minimization`](tasks/autoresearch/function-minimization) | exploration vs local search |
-| [`tsp-tour`](tasks/autoresearch/tsp-tour) | combinatorial search, continuous signal |
-| [`bin-packing`](tasks/autoresearch/bin-packing) | exact constraint checking |
-| [`symbolic-regression`](tasks/autoresearch/symbolic-regression) | the final judge: session on training points, the grade on held-out points |
-| [`string-compression`](tasks/autoresearch/string-compression) | safely grading agent-shipped code |
+| [`circle-packing`](tasks/autoresearch/first-party/circle-packing) | the full protocol; exact-arithmetic grading |
+| [`function-minimization`](tasks/autoresearch/first-party/function-minimization) | exploration vs local search |
+| [`tsp-tour`](tasks/autoresearch/first-party/tsp-tour) | combinatorial search, continuous signal |
+| [`bin-packing`](tasks/autoresearch/first-party/bin-packing) | exact constraint checking |
+| [`symbolic-regression`](tasks/autoresearch/first-party/symbolic-regression) | the final judge: session on training points, the grade on held-out points |
+| [`string-compression`](tasks/autoresearch/first-party/string-compression) | safely grading agent-shipped code |
 
 ### Define a new task
 
 ```bash
-cp -r tasks/_template tasks/autoresearch/my-task
+cp -r tasks/_template tasks/autoresearch/first-party/my-task
 pytest tests/test_task_suite.py          # picked up automatically, and already green
 ```
 

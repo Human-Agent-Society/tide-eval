@@ -66,7 +66,11 @@ def test_exemplar_task_is_valid_stock_harbor(request):
     from harbor.models.task.config import TaskConfig
 
     task_dir = (
-        Path(request.config.rootpath) / "tasks" / "autoresearch" / "circle-packing"
+        Path(request.config.rootpath)
+        / "tasks"
+        / "autoresearch"
+        / "first-party"
+        / "circle-packing"
     )
     raw = tomllib.loads((task_dir / "task.toml").read_text())
     cfg = TaskConfig.model_validate(raw)

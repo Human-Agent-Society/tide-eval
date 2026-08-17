@@ -14,7 +14,9 @@ import pytest
 
 from tide import Lab, LocalExecutor
 
-TASKS = sorted((Path(__file__).parent.parent / "tasks" / "autoresearch").iterdir())
+TASKS = sorted(
+    (Path(__file__).parent.parent / "tasks" / "autoresearch" / "first-party").iterdir()
+)
 
 
 @pytest.mark.parametrize("task_dir", TASKS, ids=lambda p: p.name)

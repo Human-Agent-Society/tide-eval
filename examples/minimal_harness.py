@@ -17,7 +17,13 @@ from harbor.agents.base import BaseAgent
 
 from tide import Lab, metrics
 
-TASK = str(Path(__file__).parent.parent / "tasks" / "autoresearch" / "circle-packing")
+TASK = str(
+    Path(__file__).parent.parent
+    / "tasks"
+    / "autoresearch"
+    / "first-party"
+    / "circle-packing"
+)
 SEARCH_SCRIPT = Path(__file__).with_name("minimal_harness_search.py")
 
 

@@ -29,12 +29,12 @@ jobs:
       - name: CLI smoke (offline)
         run: |
           uv run tide list
-          uv run tide run autoresearch --agent oracle --fake --lab runs/ci-smoke
-          uv run tide stream ci-week autoresearch --agent oracle --fake --lab runs/ci-smoke
+          uv run tide run autoresearch/first-party --agent oracle --fake --lab runs/ci-smoke
+          uv run tide stream ci-week autoresearch/first-party --agent oracle --fake --lab runs/ci-smoke
           uv run tide report --lab runs/ci-smoke
       - name: Local mode (real scoring, no Docker)
         run: |
-          uv run tide run autoresearch/circle-packing --local \
+          uv run tide run autoresearch/first-party/circle-packing --local \
             --command "python examples/minimal_harness_search.py" \
             --budget 0.002 --lab runs/ci-local
           uv run tide report --lab runs/ci-local
