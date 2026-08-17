@@ -9,6 +9,7 @@ repository downloads roughly those tasks and nothing else.
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import tempfile
@@ -83,3 +84,57 @@ def _git(cwd: Path, *args: str) -> str:
     if proc.returncode:
         raise RuntimeError(f"git {args[0]} failed: {proc.stderr.strip()[-500:]}")
     return proc.stdout
+
+
+# ---- benchmark downloads ----
+#
+# The package ships code only; benchmark tasks download on first use, the
+# way dataset libraries do. Committed benchmarks come from this repo at a
+# release ref; SWE-bench Verified comes from its upstream source because
+# its dataset repo has no license to redistribute under.
+
+TASKS_REPO = "https://github.com/Human-Agent-Society/tide-eval.git"
+TASKS_REF = "v0.1.0"  # bumped with each release
+
+BENCHMARKS = {
+    "first-party": "tasks/autoresearch/first-party",
+    "edgebench": "tasks/autoresearch/edgebench",
+    "frontier-cs": "tasks/autoresearch/frontier-cs",
+    "terminal-bench": "tasks/continual-learning/terminal-bench",
+    "cl-bench": "tasks/continual-learning/cl-bench",
+}
+SWEBENCH_REPO = "https://github.com/laude-institute/harbor-datasets.git"
+SWEBENCH_REF = "86723674f04e4209ac479d0fb75d9d9f44b4377e"
+SWEBENCH_SUBDIR = "datasets/swebench-verified"
+
+
+def cache_home() -> Path:
+    if "TIDE_CACHE" in os.environ:
+        return Path(os.environ["TIDE_CACHE"])
+    return Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "tide"
+
+
+def benchmark(name: str, *, limit: int | None = None) -> Path:
+    """Return a local directory with the benchmark's tasks, downloading on
+    first use.
+
+    Tasks are cached under ``~/.cache/tide`` (override with ``TIDE_CACHE``)
+    per release ref, so a given tide version always sees the same tasks. A
+    repo checkout does not need this: its ``tasks/`` folder already has
+    everything.
+    """
+    if name == "swebench-verified":
+        repo, ref, subdir = SWEBENCH_REPO, SWEBENCH_REF, SWEBENCH_SUBDIR
+    elif name in BENCHMARKS:
+        repo = os.environ.get("TIDE_TASKS_REPO", TASKS_REPO)
+        ref = os.environ.get("TIDE_TASKS_REF", TASKS_REF)
+        subdir = BENCHMARKS[name]
+    else:
+        known = [*BENCHMARKS, "swebench-verified"]
+        raise ValueError(f"unknown benchmark {name!r}; known: {', '.join(known)}")
+
+    dest = cache_home() / "tasks" / ref / name
+    if dest.is_dir() and any(dest.iterdir()) and limit is None:
+        return dest
+    fetch_pinned_tasks(repo, ref, dest, subdir=subdir, limit=limit)
+    return dest

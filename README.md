@@ -71,7 +71,8 @@ to a real agent score, including agent auth and network egress setup.
 ### Run
 
 ```bash
-# from source, until the PyPI release lands:
+pip install "tide-eval[harbor]"          # benchmark tasks download on first use
+# or from source, with every task already in tasks/:
 git clone https://github.com/Human-Agent-Society/tide-eval && cd tide-eval
 pip install -e ".[harbor]"               # container runs; plain -e . covers --local and the API
 
