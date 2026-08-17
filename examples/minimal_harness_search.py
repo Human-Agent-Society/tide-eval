@@ -18,6 +18,7 @@ import urllib.request
 
 JUDGE_URL = os.environ["JUDGE_URL"]
 BUDGET_SEC = float(os.environ.get("BUDGET_SEC", "30"))
+random.seed(os.environ.get("SEED"))  # unset = system entropy, the default
 
 
 def submit(solution: dict) -> dict | None:
