@@ -4,25 +4,14 @@
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
 
-**Evaluation infrastructure for continual learning: agents that learn from inference-time signals and keep what they learn, on the [Harbor](https://github.com/laude-institute/harbor) task standard.**
+**Evaluation infrastructure for self-evolving agents, on the [Harbor](https://github.com/laude-institute/harbor) task standard.**
 
-Continual learning here is the broad sense: something the agent learned
-persists past the moment it was produced, as memory, a skill library, an
-evolved harness, or updated weights. The signal it learns from is
-produced during the run itself. Adaptation that ends with the episode,
-like in-context reasoning, a retry after an error, or a test-time
-search, is not what tide measures, and weight updates over a task
-sequence are one case of the definition rather than the whole of it.
-
-What form the learning persists in is the method's business, and tide
-never trains anything itself: a method that updates weights runs its own
-loop, and tide measures the result. What tide provides is the two task
-regimes where persistence shows up, and trusted measurements of whether
-anything actually persisted. The regime does not decide the mechanism:
-an autoresearch run whose agent evolves its own harness is continual
-learning inside one problem, and a stream whose agent carries nothing is
-not continual learning at all (that second case is exactly the stateless
-baseline `metrics.transfer` compares against).
+An agent self-evolves when something it learned during a run persists
+past it: memory, a skill library, an evolved harness, updated weights.
+tide measures whether anything actually persisted, in the two task
+regimes where that shows up. It never trains anything itself; the method
+does the learning, tide does the measurement ([why, in
+detail](docs/design.md)).
 
 **Autoresearch** is the kind of work DeepMind's
 [AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/)
@@ -39,12 +28,9 @@ before the budget ends:
 
 **A stream of tasks** puts one agent through a
 [stream](docs/get-started.md#streams) of tasks in order (the
-[AgentStream](https://arxiv.org/abs/2608.00155) setting; the supported
-benchmarks are [terminal-bench 2.0](tasks/continual-learning/terminal-bench),
-[SWE-bench Verified](tasks/continual-learning/swebench-verified), and all six
-[CL-Bench](tasks/continual-learning/cl-bench) domains), carrying its memory from task to
-task. The signal is what earlier tasks taught, and the question is what
-carries into the next task:
+[AgentStream](https://arxiv.org/abs/2608.00155) setting), carrying its
+memory from task to task. The signal is what earlier tasks taught, and
+the question is what carries into the next task:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-stream-dark.svg">
@@ -145,7 +131,7 @@ metrics.auc(curve)  # the anytime score
 Re-running any script resumes it. Reference:
 [get started](docs/get-started.md) · [metrics](docs/metrics.md).
 
-### Continual learning: task streams
+### Task streams
 
 A `Stream` runs an ordered task list under one agent. Every task's
 container gets the same state directory mounted in (`$TIDE_STATE_DIR`),

@@ -1,10 +1,10 @@
 # tide docs
 
-Evaluation infrastructure for continual learning in the broad sense:
-agents that learn from signals produced during the run itself, and keep
-what they learn as memory, skills, an evolved harness, or weights. tide
-measures that persistence in the two task regimes where it shows up, one
-open-ended problem (autoresearch) and an ordered stream of tasks.
+Evaluation infrastructure for self-evolving agents: agents that learn
+from signals produced during the run itself and keep what they learned,
+as memory, skills, an evolved harness, or weights. tide measures that
+persistence in the two task regimes where it shows up, one open-ended
+problem (autoresearch) and an ordered stream of tasks.
 
 Read in this order:
 

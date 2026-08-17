@@ -4,14 +4,23 @@ What tide evaluates, and why it is shaped the way it is.
 For the practical pages see [get started](get-started.md) and
 [running agents](running-agents.md).
 
-tide is evaluation infrastructure for continual learning in the broad
-sense: the agent learns from signals produced during the run itself, and
-something it learned persists past the moment it was produced, as
-memory, a skill library, an evolved harness, or updated weights. What
-form it takes is the method's business. What tide provides is the two
-task regimes where persistence shows up, and the measurements that show
-whether anything did: the regime is the shape of the work, not the
-mechanism.
+tide is evaluation infrastructure for self-evolving agents: agents that
+learn from signals produced during the run itself and keep what they
+learned. Continual learning in the broad sense is the same idea, and the
+narrow one, weight updates over a task sequence, is one case of it
+rather than the whole. Adaptation that ends with the episode, like
+in-context reasoning, a retry after an error, or a test-time search, is
+not what tide measures.
+
+What form the learning persists in is the method's business, and tide
+never trains anything itself: a method that updates weights runs its own
+loop, and tide measures the result. What tide provides is the two task
+regimes where persistence shows up, and the measurements that show
+whether anything did. The regime is the shape of the work, not the
+mechanism: an autoresearch run whose agent evolves its own harness is
+continual learning inside one problem, and a stream whose agent carries
+nothing is not continual learning at all, which is exactly the stateless
+baseline `metrics.transfer` compares against.
 
 ## The two regimes
 
