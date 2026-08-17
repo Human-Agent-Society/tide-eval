@@ -8,7 +8,12 @@ placeholder task (maximize `x` in `[0, 1]`), so the suite passes before you
 change anything. Verify standalone with `harbor trial start -p <dir>`, then
 run it under tide.
 
-## Anatomy of a task
+Two kinds of tasks. An **autoresearch task** ships its own judge; its
+anatomy fills most of this page. A **continual-learning task** is any
+stock Harbor task at all; see
+[the continual-learning section](#a-continual-learning-task) below.
+
+## Anatomy of an autoresearch task
 
 Two containers: the agent's, and the judge's. All scoring lives with the
 judge; the agent only ever sees scores come back over HTTP.
@@ -33,9 +38,9 @@ my-task/
 
 ## The judge protocol
 
-The agent gets `$JUDGE_URL` and a submission budget; everything else about
-how it works is its own business (it may write its own local evaluator;
-the objective is stated in the instruction):
+The agent gets `$JUDGE_URL` and a submission budget; tide places no
+constraints on anything else (it may write its own local evaluator; the
+objective is stated in the instruction):
 
 | Request | Who calls it | What happens |
 |---|---|---|
@@ -210,12 +215,33 @@ shared/heterogeneous hosts are noisy. Prefer scoring against a reference
 implementation run in the same container, same session (relative speedup),
 and record the GPU model as a tag so curves never mix hardware.
 
+## A continual-learning task
+
+Any stock Harbor task runs in a [stream](../api/streams.md) unchanged:
+tide mounts the carried memory directory itself, so the task neither
+knows nor cares, and a pass/fail verifier is a fine score (a pass is a
+0-or-1 reward). None of the judge machinery above is required. Two
+conventions from the committed benchmarks are worth copying:
+
+- **Hidden state lives in a sidecar.** When something must stay out of
+  the agent's reach at runtime (CL-Bench's metered database, its poker
+  deck), reuse the judge pattern: an HTTP sidecar holds the secret and
+  enforces the interaction budget.
+- **Scoring is the upstream metric.** A converted benchmark keeps its
+  published scorer, ported verbatim where possible, so numbers stay
+  comparable with the source paper.
+
 ## A benchmark converter
 
 A converter turns a published external format into a folder of task dirs.
 Converters live beside the benchmark they maintain and depend only on its
 published format, keeping benchmark-specific tooling out of tide's runtime
-package. The reference implementation is `tasks/autoresearch/edgebench/convert.py`; its
-tests pin the converter to unmodified published spec files; do the same for
-any new converter: check one real spec into `tests/fixtures/` and validate
-the emitted task under Harbor's `TaskConfig`.
+package. Each folder also carries a `fetch.py` pinned to an upstream
+commit, so the committed tasks can be regenerated and verified. The
+reference implementations are
+`tasks/autoresearch/edgebench/convert.py` and, for continual learning,
+the per-domain converters in
+[`tasks/continual-learning/cl-bench`](../../tasks/continual-learning/cl-bench).
+Their tests pin the converter to unmodified published spec files; do the
+same for any new converter: check one real spec into `tests/fixtures/`
+and validate the emitted task under Harbor's `TaskConfig`.
