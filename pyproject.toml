@@ -1,11 +1,11 @@
 [project]
 name = "tide-eval"
 version = "0.1.0"
-description = "Evaluation for agents that learn from inference-time signals, on the Harbor task standard: autoresearch and task streams, tamper-proof scoring, budgets on four axes, and resumable sweeps."
+description = "Evaluation infrastructure for self-evolving agents on the Harbor task standard: autoresearch and task streams, tamper-proof scoring, budgets on four axes, and resumable sweeps."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "Apache-2.0" }
-keywords = ["evaluation", "benchmarks", "agents", "autoresearch", "harbor"]
+keywords = ["evaluation", "benchmarks", "agents", "self-evolving", "continual-learning", "autoresearch", "harbor"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
