@@ -248,8 +248,10 @@ pytest tests/test_task_suite.py          # picked up automatically, and already 
 ```
 
 The template ships as a complete working task: replace one `TODO(task)`
-piece at a time and the suite keeps validating it. Guide:
-**[docs/guides/authoring-tasks.md](docs/guides/authoring-tasks.md)**.
+piece at a time and the suite keeps validating it. A benchmark is just a
+directory of such tasks; `fetch.register(name, repo, ref)` makes a
+git-hosted one downloadable by name, the way gym environments register.
+Guide: **[docs/guides/authoring-tasks.md](docs/guides/authoring-tasks.md)**.
 
 ## Contributing
 

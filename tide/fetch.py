@@ -13,6 +13,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 
 
@@ -103,9 +104,42 @@ BENCHMARKS = {
     "terminal-bench": "tasks/continual-learning/terminal-bench",
     "cl-bench": "tasks/continual-learning/cl-bench",
 }
-SWEBENCH_REPO = "https://github.com/laude-institute/harbor-datasets.git"
-SWEBENCH_REF = "86723674f04e4209ac479d0fb75d9d9f44b4377e"
-SWEBENCH_SUBDIR = "datasets/swebench-verified"
+
+
+@dataclass(frozen=True)
+class Source:
+    """Where a benchmark's task folders live: a repo, a pinned ref, a subdir."""
+
+    repo: str
+    ref: str
+    subdir: str = ""
+
+
+REGISTRY: dict[str, Source] = {
+    "swebench-verified": Source(
+        "https://github.com/laude-institute/harbor-datasets.git",
+        "86723674f04e4209ac479d0fb75d9d9f44b4377e",
+        "datasets/swebench-verified",
+    ),
+}
+
+
+def register(name: str, repo: str, ref: str, *, subdir: str = "") -> None:
+    """Make ``benchmark(name)`` resolve a benchmark hosted in any git repo.
+
+    A benchmark is a directory whose immediate children are Harbor task
+    folders; *subdir* points at it inside the repo (the root by default).
+    Pin *ref* to a commit or tag so the tasks are reproducible. The
+    registry is per process, so ship the ``register`` call in your
+    package's import, the way gym environments register. Registering an
+    existing name replaces it, which is how a fork takes over a built-in.
+    """
+    REGISTRY[name] = Source(repo, ref, subdir)
+
+
+def known_benchmarks() -> list[str]:
+    """Every name ``benchmark`` accepts right now, sorted."""
+    return sorted({*BENCHMARKS, *REGISTRY})
 
 
 def cache_home() -> Path:
@@ -123,15 +157,17 @@ def benchmark(name: str, *, limit: int | None = None) -> Path:
     repo checkout does not need this: its ``tasks/`` folder already has
     everything.
     """
-    if name == "swebench-verified":
-        repo, ref, subdir = SWEBENCH_REPO, SWEBENCH_REF, SWEBENCH_SUBDIR
+    if name in REGISTRY:
+        source = REGISTRY[name]
+        repo, ref, subdir = source.repo, source.ref, source.subdir
     elif name in BENCHMARKS:
         repo = os.environ.get("TIDE_TASKS_REPO", TASKS_REPO)
         ref = os.environ.get("TIDE_TASKS_REF", TASKS_REF)
         subdir = BENCHMARKS[name]
     else:
-        known = [*BENCHMARKS, "swebench-verified"]
-        raise ValueError(f"unknown benchmark {name!r}; known: {', '.join(known)}")
+        raise ValueError(
+            f"unknown benchmark {name!r}; known: {', '.join(known_benchmarks())}"
+        )
 
     dest = cache_home() / "tasks" / ref / name
     if dest.is_dir() and any(dest.iterdir()) and limit is None:
