@@ -244,6 +244,7 @@ any task list you build yourself, repeats allowed; see
 ### Define a new task
 
 ```bash
+mkdir -p tasks/autoresearch/my-suite     # a new benchmark is just a folder
 cp -r tasks/_template tasks/autoresearch/my-suite/my-task
 pytest tests/test_task_suite.py          # picked up automatically, and already green
 ```

@@ -25,7 +25,8 @@ harbor trial start -p tasks/autoresearch/first-party/tsp-tour                  #
 ## Make your own in five minutes
 
 ```bash
-cp -r tasks/_template tasks/autoresearch/first-party/my-task
+mkdir -p tasks/autoresearch/my-suite     # a benchmark is just a folder
+cp -r tasks/_template tasks/autoresearch/my-suite/my-task
 ```
 
 Work through the `TODO(task)` markers (six files), then run
