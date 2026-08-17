@@ -1,13 +1,15 @@
 # Evaluating your agent, harness, or method
 
 An "agent" is anything Harbor can run against the task container. Three
-integration levels follow, cheapest first. Whichever you pick, the task,
-the judge, and the results store are identical, so numbers stay comparable
-across methods.
+integration levels follow, cheapest first; one integration runs in both
+modes, a single task or a [stream](../api/streams.md). Whichever you
+pick, the task, the scoring, and the results store are identical, so
+numbers stay comparable across methods.
 
-## The contract, first
+## The autoresearch contract
 
-Every task gives your agent two environment variables and one protocol:
+Every autoresearch task gives your agent two environment variables and
+one protocol:
 
 | | |
 |---|---|
@@ -28,6 +30,20 @@ also carries `TIDE_MAX_SUBMISSIONS`, `TIDE_MAX_TOKENS`, and/or
 `TIDE_MAX_COST_USD`. Reading them lets your method pace itself; you don't
 have to, since tide records the actual spend either way.
 
+## The continual-learning contract
+
+A [stream](../api/streams.md) episode is an ordinary Harbor task graded
+by its verifier; there is no judge to talk to. The one addition is
+`$TIDE_STATE_DIR`: a directory mounted into every container of the
+stream and carried from task to task. Read it at the start, write
+whatever your future self should know; tide snapshots it after every
+task and never reads it. There is no prescribed format: notes, a skill
+library, an evolved harness.
+
+tide only sets the variable. Making the agent use it is part of your
+method: a custom harness reads it directly, and a supported harness
+needs the run's instruction or system prompt to point at it.
+
 ## Level 1: a supported harness (zero code)
 
 `claude-code`, `codex`, `aider`, `cursor-cli`, `terminus-2`, … plus
@@ -37,6 +53,7 @@ have to, since tide records the actual spend either way.
 ```bash
 tide run frontier-cs/frontier-cs-2-0-vllm-llm-serving-optimization --agent claude-code --model anthropic/claude-opus-5
 tide run frontier-cs/frontier-cs-algorithm-1 --agent codex --budget 2h
+tide stream demo cl-bench --agent claude-code --model anthropic/claude-opus-5
 ```
 
 The instruction tells the harness the submission protocol; `--budget` sets
@@ -152,6 +169,9 @@ credentials, and adaptation notes.
 - **Compare methods at the same `budget` tag**, on the same tasks. All
   scores are judge-computed, so the curve comparison is as trustworthy as
   the endpoint comparison. `oracle` and `nop` bracket the plausible range.
+- **In streams, compare against the stateless baseline**: the same tasks
+  through plain `lab.run`; `metrics.transfer` is the gain the carried
+  memory bought.
 - **Sanity-check cheaply**: `--agent oracle` proves the task, `--agent nop`
   proves no leakage, `--fake` exercises your run script with no
   containers, and `--local --command "..."` runs your method against the

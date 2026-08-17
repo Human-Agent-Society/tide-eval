@@ -185,6 +185,20 @@ are identical, so numbers stay comparable across methods:
 The only thing you cannot bring is your own judge. Full guide:
 **[docs/guides/integration.md](docs/guides/integration.md)**.
 
+### Examples
+
+One script per thing worth learning first; the first two run with zero
+setup:
+
+| Script | What it shows | Needs |
+|---|---|---|
+| [`quickstart.py`](examples/quickstart.py) | the Lab API: episodes, budgets, the results table (agents are simulated) | nothing |
+| [`stream_quickstart.py`](examples/stream_quickstart.py) | a continual-learning stream: carried state, the learning curve, resume | nothing |
+| [`minimal_harness.py`](examples/minimal_harness.py) | the smallest real agent harness through the full pipeline | Docker + `[harbor]` |
+
+[`examples/harnesses`](examples/harnesses) adds OpenEvolve, Codex, and
+CORAL adapters as comparison baselines.
+
 ## Benchmarks
 
 ### Autoresearch
