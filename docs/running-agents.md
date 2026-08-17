@@ -2,7 +2,7 @@
 
 An "agent" is anything Harbor can run against the task container. Three
 integration levels follow, cheapest first; one integration runs in both
-modes, a single task or a [stream](get-started.md#streams). Whichever
+regimes, a single task or a [stream](get-started.md#streams). Whichever
 you pick, the task, the scoring, and the results store are identical, so
 numbers stay comparable across methods.
 
@@ -43,6 +43,11 @@ library, an evolved harness.
 tide only sets the variable. Making the agent use it is part of your
 method: a custom harness reads it directly, and a supported harness
 needs the run's instruction or system prompt to point at it.
+
+Carrying state is not tied to streams. `lab.run(task, agent=...,
+state_dir="path/to/memory")` mounts the same directory into a single
+episode, which is how a method accumulates something persistent inside
+one autoresearch problem.
 
 ## Level 1: a supported harness (zero code)
 

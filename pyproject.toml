@@ -1,7 +1,7 @@
 [project]
 name = "tide-eval"
 version = "0.1.0"
-description = "Autoresearch and continual-learning evaluation on the Harbor task standard: budgeted open-ended tasks, task streams with carried memory, tamper-proof scoring, and resumable sweeps."
+description = "Evaluation for agents that learn from inference-time signals, on the Harbor task standard: autoresearch and task streams, tamper-proof scoring, budgets on four axes, and resumable sweeps."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "Apache-2.0" }

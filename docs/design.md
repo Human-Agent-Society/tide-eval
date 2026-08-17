@@ -5,13 +5,14 @@ For the practical pages see [get started](get-started.md) and
 [running agents](running-agents.md).
 
 tide evaluates learning from inference-time signals: feedback produced
-during the run itself. Its two modes measure two different things
-improving. In **autoresearch**, what improves is the solution: the agent
-iterates on one open-ended problem against an evaluator. In **continual
-learning**, what improves is the agent: it carries state across a stream
-of tasks, and the question is whether later tasks go better for it.
+during the run itself. The learning worth measuring is the kind that
+persists past the moment it was produced, as memory, a skill library, an
+evolved harness, or updated weights. What form it takes is the method's
+business. What tide provides is the two task regimes where persistence
+shows up, and the measurements that show whether anything did: the
+regime is the shape of the work, not the mechanism.
 
-## What the two modes measure
+## The two regimes
 
 An autoresearch task is an open-ended optimization problem with three
 properties that break a pass/fail harness:
@@ -46,7 +47,7 @@ Everything in tide follows from taking these properties seriously.
 
 ## Trust: scoring stays out of the agent's hands
 
-Both modes share one rule: the agent can never reach the code or data
+Both regimes share one rule: the agent can never reach the code or data
 that grades it.
 
 In autoresearch, scoring lives in a **judge**: an HTTP server in its own

@@ -11,7 +11,8 @@ Every term tide uses, in one place. Terms link to the page that owns them.
 | trial | Harbor's name for the same thing. Every episode's `uri` points at its trial directory, so results stay auditable. |
 | agent, harness | Whatever does the work inside the task container: `claude-code`, `codex`, your own `BaseAgent`, or a plain script. See [running agents](running-agents.md). |
 | oracle | Harbor's built-in agent that runs a task's reference `solution/`. Used to prove a task's pipeline end to end. |
-| mode | Which kind of learning is being measured: autoresearch (within one problem) or continual learning (across a stream). See [design](design.md). |
+| regime | The shape of the work being measured: autoresearch (one open-ended problem) or a stream of tasks. The regime does not decide what the agent persists. See [design](design.md). |
+| continual learning | Learning that persists past the episode that produced it, as memory, skills, an evolved harness, or weights. It can show up in either regime, and tide measures it rather than performing it. |
 
 ## Scoring
 

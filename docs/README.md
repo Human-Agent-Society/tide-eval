@@ -1,9 +1,10 @@
 # tide docs
 
-Evaluate learning from inference-time signals: feedback produced during
-the run itself. Autoresearch measures a solution improving against an
-evaluator on one open-ended problem; continual learning measures an
-agent carrying what it learned into the next task.
+Evaluate agents that learn from inference-time signals: feedback
+produced during the run itself. What tide measures is the learning that
+persists past the moment it was produced, in the two task regimes where
+it shows up: one open-ended problem (autoresearch) and an ordered stream
+of tasks.
 
 Read in this order:
 

@@ -1,6 +1,6 @@
 # Get started
 
-Install to a real score, in both modes. For the ideas behind the
+Install to a real score, in both regimes. For the ideas behind the
 pipeline see [design](design.md); for evaluating your own agent see
 [running agents](running-agents.md).
 

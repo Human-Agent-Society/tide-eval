@@ -4,34 +4,47 @@
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
 
-**Autoresearch and continual-learning evaluation on the [Harbor](https://github.com/laude-institute/harbor) task standard.**
+**Evaluate agents that learn from inference-time signals: autoresearch and task streams, on the [Harbor](https://github.com/laude-institute/harbor) task standard.**
 
 More and more of what agents are asked to do requires learning from
-inference-time signals: feedback produced during the run itself. tide
-evaluates the two forms this takes:
-learning from evaluators within one open-ended problem (autoresearch),
-and carrying what was learned into the next task (continual learning).
+inference-time signals: feedback produced during the run itself. Some of
+that learning is ephemeral and ends with the episode, like in-context
+reasoning, a retry after an error, or a test-time search. tide is built
+for the other kind, the learning that persists past the moment it was
+produced.
+
+What form it persists in is the method's business: memory, a skill
+library, an evolved harness, updated weights. What tide provides is the
+two task regimes where persistence shows up, and trusted measurements of
+whether anything actually persisted. The regime does not decide the
+mechanism: an autoresearch run whose agent evolves its own harness is
+continual learning inside one problem, and a stream whose agent carries
+nothing is not continual learning at all (that second case is exactly
+the stateless baseline `metrics.transfer` compares against). tide never
+trains anything itself; a method that updates weights runs its own loop,
+and tide measures the result.
 
 **Autoresearch** is the kind of work DeepMind's
 [AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/)
 and [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) do:
 one open-ended optimization problem with a continuous score, hours of
 budget, and a judge scoring every submission. There is no "passed",
-only *how good, by when*. What improves is **the solution**:
+only *how good, by when*. The question is what the agent accumulates
+before the budget ends:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-hero-dark.svg">
   <img src="docs/assets/readme-hero-light.svg" alt="The agent searches however it likes and submits what is worth scoring, within a submission limit. The judge holds all scoring code and data and scores every submission into a log. An optional final judge with hidden tests runs once on the best submission and locks the session. The reward and the submission log land in one table shared by every run, where agents can be compared." width="100%">
 </picture>
 
-**Continual learning** puts one agent through a
+**A stream of tasks** puts one agent through a
 [stream](docs/get-started.md#streams) of tasks in order (the
 [AgentStream](https://arxiv.org/abs/2608.00155) setting; the supported
 benchmarks are [terminal-bench 2.0](tasks/continual-learning/terminal-bench),
 [SWE-bench Verified](tasks/continual-learning/swebench-verified), and all six
 [CL-Bench](tasks/continual-learning/cl-bench) domains), carrying its memory from task to
-task. The signal is what earlier tasks taught: the question is whether
-later tasks go better for it. What improves is **the agent**:
+task. The signal is what earlier tasks taught, and the question is what
+carries into the next task:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-stream-dark.svg">
@@ -45,8 +58,8 @@ that can work inside a container, including your own harness or method.
 
 Harbor solves the hard infrastructure (the task format, running agents
 against containers, the ecosystem of agent adapters), and tide uses it as
-a library for exactly that. Both modes need five things on top, and they
-are the reason tide exists:
+a library for exactly that. Both regimes need five things on top, and
+they are the reason tide exists:
 
 | What you want | Plain Harbor | tide |
 |---|---|---|
@@ -214,7 +227,7 @@ oracle scores is in [docs/tasks.md](docs/tasks.md). The next
 converters are tracked in the
 [roadmap](https://github.com/Human-Agent-Society/tide-eval/issues/19).
 
-### Continual learning
+### Task streams
 
 Three stream benchmarks. terminal-bench and CL-Bench tasks are committed
 to this repo (Apache-2.0) and run out of the box, with a pinned
