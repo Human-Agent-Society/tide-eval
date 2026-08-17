@@ -29,12 +29,9 @@ mkdir -p tasks/autoresearch/my-suite     # a benchmark is just a folder
 cp -r tasks/_template tasks/autoresearch/my-suite/my-task
 ```
 
-Work through the `TODO(task)` markers (six files), then run
-`pytest tests/test_task_suite.py`. Your task is picked up automatically:
-its scoring cases, its zero-reward cases, and stock-Harbor validation, with
-zero test code to write. `python scripts/e2e_oracle.py <name>` adds the
-containerized oracle check.
-[`_template/README.md`](_template/README.md) walks every step.
+The copy is already a working task, and `pytest tests/test_task_suite.py`
+picks it up with no test code written.
+[`_template/README.md`](_template/README.md) walks the `TODO(task)` markers.
 
 ## Autoresearch: open-ended optimization, continuous scores, budget semantics
 

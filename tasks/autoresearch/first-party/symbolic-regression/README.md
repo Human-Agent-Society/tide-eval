@@ -11,7 +11,3 @@ Recover a hidden formula from samples; reward = 1/(1+RMSE) on HELD-OUT points.
 
 **What this task teaches:** The final judge: the session judge scores training points, and a final judge scores the best submission once on held-out points the agent never saw; no submission budget can probe them. Expressions run through an AST allowlist, never eval().
 
-Files: `instruction.md` (the problem + the submission protocol) ·
-`environment/` (the agent's container, plus the judge: `score.py`, budget,
-sidecar wiring) · `tests/grader_tests.json` (the scoring rule's cheat
-suite) · `solution/` (the reference solution; submits once).

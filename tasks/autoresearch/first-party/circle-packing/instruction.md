@@ -4,8 +4,6 @@ Place **3 non-overlapping circles inside the unit square** to maximize the
 **sum of their radii**. Circles must lie entirely inside the square and must
 not overlap (tangency is allowed).
 
-## Output format
-
 ## Solution format
 
 ```json

@@ -3,8 +3,6 @@
 `/app/train.json` holds 40 noiseless samples (x, y) of an unknown function
 on roughly x ∈ [−3, 3]. Recover the formula.
 
-## Output format
-
 ## Solution format
 
 ```json

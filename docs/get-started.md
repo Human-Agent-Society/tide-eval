@@ -54,7 +54,6 @@ variable, is tagged on the episode (`budget`, `budget_max_tokens`, ...)
 so runs group by it, and the actual spend comes back as `used_*`
 columns: submission counts from the judge's log, token and cost totals
 from the harness's own usage report, the numbers the provider billed.
-The rule is to trust the measurement, not the promise.
 
 ## Streams
 

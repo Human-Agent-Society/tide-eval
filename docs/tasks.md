@@ -1,42 +1,29 @@
-# Tasks
+# Benchmarks
 
-The benchmark catalog: six first-party autoresearch tasks, plus external
-benchmarks converted to the same Harbor task format. Every task is a stock
-Harbor task, so it runs two ways, always:
+Everything tide ships, in one table. Each benchmark is a directory of stock
+Harbor tasks, so every task runs two ways:
 
 ```bash
 tide run cl-bench/bsm-s01 --agent oracle                        # through tide
-harbor trial start -p tasks/continual-learning/cl-bench/bsm-s01 # stock Harbor, standalone
+harbor trial start -p tasks/continual-learning/cl-bench/bsm-s01 # stock Harbor
 ```
 
-`tide list` shows everything runnable. To author your own, start from
+`tide list` shows what is runnable where you are.
+
+| Benchmark | Regime | Tasks | Run |
+|---|---|---|---|
+| [first-party](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/autoresearch/first-party) | autoresearch | 6 | `tide run autoresearch/first-party --agent oracle` |
+| [EdgeBench](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/autoresearch/edgebench) | autoresearch | 51 | `tide run edgebench/<task> --budget <h>` |
+| [FrontierCS](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/autoresearch/frontier-cs) | autoresearch | 208 | `tide run frontier-cs/<task> --agent <a>` |
+| [terminal-bench](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/continual-learning/terminal-bench) | stream | 89 | `tide stream terminal-bench --agent <a>` |
+| [CL-Bench](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/continual-learning/cl-bench) | stream | 301 | `tide stream cl-bench --agent <a>` |
+| [SWE-bench Verified](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/continual-learning/swebench-verified) | stream | 500 | `tide fetch swebench-verified --limit 50` first |
+
+The first-party tasks each teach one hard part of autoresearch, and each
+benchmark states its upstream, license, and oracle scores in
+[the catalog](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks),
+next to the tasks themselves.
+
+To write your own, start from
 [`tasks/_template`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/_template)
 and follow [Authoring tasks](authoring-tasks.md).
-
-## Autoresearch
-
-First-party, offline, oracle-verified in CI (real containers). Each task
-teaches one hard part of the category.
-
-| Task | One line | Oracle → best known | Teaches |
-|---|---|---|---|
-| [`circle-packing`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/autoresearch/first-party/circle-packing) | pack 3 circles, maximize Σ radii | 0.75 → 1.0076 | the full protocol, exact-arithmetic grading |
-| [`function-minimization`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/autoresearch/first-party/function-minimization) | minimize deceptive Levi N.13 | 0.333 → 1.0 | exploration vs local search |
-| [`tsp-tour`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/autoresearch/first-party/tsp-tour) | shorten a 40-city tour | 1.0 → ~2.0 | combinatorial search, continuous signal |
-| [`bin-packing`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/autoresearch/first-party/bin-packing) | beat first-fit on 60 items | 1.0 → >1.0 | exact constraint checking |
-| [`symbolic-regression`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/autoresearch/first-party/symbolic-regression) | recover a hidden formula | 0.610 → 1.0 | **held-out grading**: scored on points the agent never saw |
-| [`string-compression`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/autoresearch/first-party/string-compression) | ship decompressor + payload | 3.47 → higher | **grading agent-shipped code safely** |
-
-```bash
-tide run autoresearch/first-party --agent oracle   # the whole suite
-```
-
-## External benchmarks
-
-Converted to the same task format and committed to the repo; each suite's
-`fetch.py` / `convert.py` regenerates it from the published sources.
-
-| Suite | Tasks | Run |
-|---|---|---|
-| [EdgeBench](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/autoresearch/edgebench) ([upstream](https://github.com/ByteDance-Seed/EdgeBench), CC-BY-4.0) | 51 · 2-12 h budgets | `tide run edgebench/<task> --budget <h>` |
-| [FrontierCS](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/autoresearch/frontier-cs) ([upstream](https://github.com/FrontierCS/Frontier-CS), MIT) | 188 algorithmic + 20 research · incl. 4 GPU kernel | `tide run frontier-cs/<task> --agent <a>` |
