@@ -4,13 +4,14 @@ What tide evaluates, and why it is shaped the way it is.
 For the practical pages see [get started](get-started.md) and
 [running agents](running-agents.md).
 
-tide evaluates learning from inference-time signals: feedback produced
-during the run itself. The learning worth measuring is the kind that
-persists past the moment it was produced, as memory, a skill library, an
-evolved harness, or updated weights. What form it takes is the method's
-business. What tide provides is the two task regimes where persistence
-shows up, and the measurements that show whether anything did: the
-regime is the shape of the work, not the mechanism.
+tide is evaluation infrastructure for continual learning in the broad
+sense: the agent learns from signals produced during the run itself, and
+something it learned persists past the moment it was produced, as
+memory, a skill library, an evolved harness, or updated weights. What
+form it takes is the method's business. What tide provides is the two
+task regimes where persistence shows up, and the measurements that show
+whether anything did: the regime is the shape of the work, not the
+mechanism.
 
 ## The two regimes
 

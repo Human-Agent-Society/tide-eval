@@ -4,25 +4,25 @@
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
 
-**Evaluate agents that learn from inference-time signals: autoresearch and task streams, on the [Harbor](https://github.com/laude-institute/harbor) task standard.**
+**Evaluation infrastructure for continual learning: agents that learn from inference-time signals and keep what they learn, on the [Harbor](https://github.com/laude-institute/harbor) task standard.**
 
-More and more of what agents are asked to do requires learning from
-inference-time signals: feedback produced during the run itself. Some of
-that learning is ephemeral and ends with the episode, like in-context
-reasoning, a retry after an error, or a test-time search. tide is built
-for the other kind, the learning that persists past the moment it was
-produced.
+Continual learning here is the broad sense: something the agent learned
+persists past the moment it was produced, as memory, a skill library, an
+evolved harness, or updated weights. The signal it learns from is
+produced during the run itself. Adaptation that ends with the episode,
+like in-context reasoning, a retry after an error, or a test-time
+search, is not what tide measures, and weight updates over a task
+sequence are one case of the definition rather than the whole of it.
 
-What form it persists in is the method's business: memory, a skill
-library, an evolved harness, updated weights. What tide provides is the
-two task regimes where persistence shows up, and trusted measurements of
-whether anything actually persisted. The regime does not decide the
-mechanism: an autoresearch run whose agent evolves its own harness is
-continual learning inside one problem, and a stream whose agent carries
-nothing is not continual learning at all (that second case is exactly
-the stateless baseline `metrics.transfer` compares against). tide never
-trains anything itself; a method that updates weights runs its own loop,
-and tide measures the result.
+What form the learning persists in is the method's business, and tide
+never trains anything itself: a method that updates weights runs its own
+loop, and tide measures the result. What tide provides is the two task
+regimes where persistence shows up, and trusted measurements of whether
+anything actually persisted. The regime does not decide the mechanism:
+an autoresearch run whose agent evolves its own harness is continual
+learning inside one problem, and a stream whose agent carries nothing is
+not continual learning at all (that second case is exactly the stateless
+baseline `metrics.transfer` compares against).
 
 **Autoresearch** is the kind of work DeepMind's
 [AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/)
