@@ -67,6 +67,7 @@ Full design (trust model, task conventions, data model, extensibility):
 
 First run? **[docs/get-started.md](docs/get-started.md)** walks from install
 to a real agent score, including agent auth and network egress setup.
+The full docs read in order from **[docs/](docs/README.md)**.
 
 ### Run
 
