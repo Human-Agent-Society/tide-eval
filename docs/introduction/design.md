@@ -117,8 +117,8 @@ table can be audited back to its evidence.
 
 ## The second mode: task streams
 
-Autoresearch measures learning within one episode. A
-[stream](../api/streams.md) measures it across episodes: an ordered
+Autoresearch measures learning from an evaluator within one episode. A
+[stream](../api/streams.md) measures what carries across episodes: an ordered
 sequence of stock Harbor tasks run under one agent, with a state
 directory carried from task to task: the streaming setting of
 [AgentStream](https://arxiv.org/abs/2608.00155). Pass/fail tasks work

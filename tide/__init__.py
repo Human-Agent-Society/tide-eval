@@ -8,10 +8,10 @@ One primitive:
   agent gave itself along the way (its score log) are recorded as untrusted
   ``trace`` rows next to the trusted one.
 
-Two modes on top: **autoresearch** measures learning within one episode
-(the anytime curve of judge-scored submissions), and **streams** measure
-learning across episodes (a :class:`Stream` of tasks under one carried
-agent state).
+Two modes on top: **autoresearch** measures learning from an evaluator
+within one open-ended episode (the anytime curve of judge-scored
+submissions), and **streams** measure what carries into later tasks
+(a :class:`Stream` of episodes under one carried agent state).
 
 The public surface is small: :class:`Lab` runs episodes into an
 append-only results store, :class:`Stream` sequences them with carried
