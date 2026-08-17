@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import logging
 import os
 import sys
 from pathlib import Path
@@ -142,6 +143,23 @@ def _parse_tags(pairs: list[str] | None) -> dict:
     return tags
 
 
+def _enable_progress() -> None:
+    """Show the tide logger's per-episode progress lines on stderr."""
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    logger = logging.getLogger("tide")
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
+
+
+def _first_build_hint(args: argparse.Namespace) -> None:
+    if not getattr(args, "fake", False) and not getattr(args, "local", False):
+        print(
+            "note: first runs build container images and may download data; "
+            "Docker caches both, so later runs start fast"
+        )
+
+
 def _make_lab(args: argparse.Namespace) -> Lab:
     from tide import FakeExecutor, Lab, LocalExecutor
     from tide.executors import Executor
@@ -194,6 +212,8 @@ def cmd_run(args: argparse.Namespace) -> int:
     base_tags = _parse_tags(args.tag)
     budget = _build_budget(args)
 
+    _enable_progress()
+    _first_build_hint(args)
     lab = _make_lab(args)
 
     async def _run() -> list:
@@ -257,6 +277,8 @@ def cmd_stream(args: argparse.Namespace) -> int:
 
     from tide import Stream
 
+    _enable_progress()
+    _first_build_hint(args)
     stream = Stream(args.name, targets)
     lab = _make_lab(args)
     print(

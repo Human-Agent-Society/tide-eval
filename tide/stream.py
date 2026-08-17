@@ -88,6 +88,7 @@ class Stream:
                 prev_snap = snap
                 continue
             self._reset_state(live, prev_snap, init=snapshots / "init")
+            logger.info("[%d/%d] %s", position + 1, len(self.tasks), task)
             row = await lab.run(
                 task,
                 agent,
