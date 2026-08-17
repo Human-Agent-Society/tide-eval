@@ -244,18 +244,61 @@ def _make_lab(args: argparse.Namespace) -> Lab:
 # ------------------------------------------------------------------ commands
 
 
+def _downloaded_benchmarks() -> list[tuple[str, Path]]:
+    """Benchmarks already downloaded into the cache, as (name, directory).
+
+    A pip install has no ``tasks/`` folder, so this is where its tasks live
+    once ``tide fetch`` has run.
+    """
+    from tide import fetch
+
+    root = fetch.cache_home() / "tasks"
+    if not root.is_dir():
+        return []
+    found = []
+    for ref_dir in sorted(root.iterdir()):
+        if not ref_dir.is_dir():
+            continue
+        for bench in sorted(ref_dir.iterdir()):
+            if bench.is_dir():
+                found.append((bench.name, bench))
+    return found
+
+
 def cmd_list(args: argparse.Namespace) -> int:
+    from tide import fetch
+
     tasks_root = _find_tasks_root(args.tasks_dir)
-    if tasks_root is None:
-        print("No tasks/ directory found here. Run from a tide checkout, or pass")
-        print("--tasks-dir. Harbor registry ids always work: tide run <id> ...")
+    listed = False
+    from_checkout = False
+
+    if tasks_root is not None:
+        tasks = _tasks_under(tasks_root)
+        if tasks:
+            listed = from_checkout = True
+            print(f"tasks under {tasks_root}:\n")
+            for task in tasks:
+                print(f"  {task.relative_to(tasks_root)}")
+
+    for name, path in _downloaded_benchmarks():
+        count = len(_tasks_under(path))
+        if not count:
+            continue
+        listed = True
+        print(f"\ndownloaded: {name} ({count} tasks) in {path}")
+        print(f"  run with: tide run {name}/<task> --agent <a>")
+
+    if not listed:
+        print("Nothing runnable here yet.\n")
+        print("Download a benchmark:  tide fetch <name>")
+        print(f"  known: {', '.join(fetch.known_benchmarks())}")
+        print("\nA source checkout ships every task in tasks/; from anywhere")
+        print("else, pass --tasks-dir, or give `tide run` a Harbor id (org/name).")
         return 1
-    print(f"tasks under {tasks_root}:\n")
-    for task in _tasks_under(tasks_root):
-        rel = task.relative_to(tasks_root)
-        print(f"  {rel}")
+
     print("\nRun one:      tide run <name-above> --agent oracle")
-    print("Run a folder: tide run autoresearch --agent oracle")
+    if from_checkout:
+        print("Run a folder: tide run autoresearch/first-party --agent oracle")
     return 0
 
 

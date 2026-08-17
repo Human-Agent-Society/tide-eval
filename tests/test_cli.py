@@ -219,6 +219,28 @@ def test_stream_shuffle_is_deterministic_and_seed_scoped(tmp_path, capsys):
     assert by_seed[7] != by_seed[8]  # ...order differs
 
 
+def test_list_shows_downloaded_benchmarks(tmp_path, capsys, monkeypatch):
+    """A pip install has no tasks/ folder, so `tide list` has to look in the
+    download cache too, or it reports nothing right after `tide fetch`."""
+    cache = tmp_path / ".cache" / "tide"
+    bench = cache / "tasks" / "v9.9.9" / "demo-bench" / "a-task"
+    bench.mkdir(parents=True)
+    (bench / "task.toml").write_text('name = "a-task"\n')
+    monkeypatch.setenv("TIDE_CACHE", str(cache))
+
+    assert main(["--tasks-dir", str(tmp_path / "no-such-tasks"), "list"]) == 0
+    out = capsys.readouterr().out
+    assert "demo-bench (1 tasks)" in out
+    assert "tide run demo-bench/<task>" in out
+
+
+def test_list_with_nothing_available_points_at_fetch(tmp_path, capsys, monkeypatch):
+    monkeypatch.setenv("TIDE_CACHE", str(tmp_path / "empty-cache"))
+    assert main(["--tasks-dir", str(tmp_path / "no-such-tasks"), "list"]) == 1
+    out = capsys.readouterr().out
+    assert "tide fetch" in out and "cl-bench" in out
+
+
 def test_list_and_fetch_errors(capsys):
     assert main(["--tasks-dir", str(TASKS_ROOT), "list"]) == 0
     out = capsys.readouterr().out
