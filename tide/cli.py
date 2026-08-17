@@ -82,7 +82,7 @@ def _fetch_known_benchmark(target: str) -> list[str] | None:
     from tide import fetch
 
     name = target.split("/", 1)[0]
-    if name not in fetch.BENCHMARKS and name != "swebench-verified":
+    if name not in fetch.BENCHMARKS and name not in fetch.REGISTRY:
         return None
     root = fetch.benchmark(name)
     parts = target.split("/", 1)
@@ -361,12 +361,12 @@ def cmd_fetch(args: argparse.Namespace) -> int:
     if script is None:
         from tide import fetch
 
-        if args.benchmark in fetch.BENCHMARKS or args.benchmark == "swebench-verified":
+        if args.benchmark in fetch.BENCHMARKS or args.benchmark in fetch.REGISTRY:
             dest = fetch.benchmark(args.benchmark)
             print(f"downloaded to {dest}")
             print(f"run with: tide run {args.benchmark}/<task> --agent <a>")
             return 0
-        known = sorted([*fetch.BENCHMARKS, "swebench-verified"])
+        known = fetch.known_benchmarks()
         raise SystemExit(f"unknown benchmark '{args.benchmark}'; known: {known}")
     import subprocess
 

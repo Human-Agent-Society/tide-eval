@@ -143,3 +143,43 @@ def test_resolve_targets_downloads_known_benchmarks(tmp_path, monkeypatch):
     assert resolve_targets(["first-party/alpha"], None) == [str(bench / "alpha")]
     # Unregistered names still pass through as Harbor registry ids.
     assert resolve_targets(["org/some-task"], None) == ["org/some-task"]
+
+
+# ------------------------------------------------------------- register
+
+
+def test_register_makes_a_benchmark_downloadable(upstream, tmp_path, monkeypatch):
+    from tide import fetch
+
+    url, sha = upstream
+    monkeypatch.setenv("TIDE_CACHE", str(tmp_path / "cache"))
+    monkeypatch.setitem(fetch.REGISTRY, "my-bench", fetch.Source(url, sha))
+
+    dest = fetch.benchmark("my-bench")
+    assert (dest / "alpha" / "task.toml").exists()
+    assert "my-bench" in fetch.known_benchmarks()
+
+
+def test_register_resolves_in_the_cli(upstream, tmp_path, monkeypatch):
+    from tide import fetch
+    from tide.cli import resolve_targets
+
+    url, sha = upstream
+    monkeypatch.setenv("TIDE_CACHE", str(tmp_path / "cache"))
+    monkeypatch.setitem(fetch.REGISTRY, "my-bench", fetch.Source(url, sha))
+
+    hits = resolve_targets(["my-bench/beta"], None)
+    assert len(hits) == 1 and hits[0].endswith("my-bench/beta")
+
+
+def test_register_overrides_a_builtin():
+    """The registry wins over the built-in table, so a fork can take a name."""
+    from tide import fetch
+
+    fetch.register("cl-bench", "https://example.com/fork.git", "abc123")
+    try:
+        assert fetch.REGISTRY["cl-bench"] == fetch.Source(
+            "https://example.com/fork.git", "abc123"
+        )
+    finally:
+        del fetch.REGISTRY["cl-bench"]

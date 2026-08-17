@@ -231,6 +231,47 @@ conventions from the committed benchmarks are worth copying:
   published scorer, ported verbatim where possible, so numbers stay
   comparable with the source paper.
 
+## Define a benchmark
+
+A benchmark is a directory whose immediate children are task folders.
+That is the whole format; there is no manifest and no registration step
+to develop one:
+
+```
+my-bench/
+├── task-01/    # a stock Harbor task: task.toml, instruction.md, ...
+└── task-02/
+```
+
+A path runs as-is, and a folder placed in the catalog resolves by name:
+
+```bash
+tide run path/to/my-bench --agent oracle       # any directory of tasks
+tide run my-bench --agent oracle               # once it sits in tasks/<mode>/my-bench
+```
+
+In a checkout, `tests/test_task_suite.py` picks up every task it finds
+under `tasks/`, so a new benchmark is validated the moment the folder
+exists.
+
+To distribute one, publish the directory in any git repository and
+register the pin, the way gym environments register:
+
+```python
+from tide import fetch
+
+fetch.register("my-bench", "https://github.com/me/my-bench.git", "<commit or tag>")
+tasks = fetch.benchmark("my-bench")  # downloads on first use, then cached
+```
+
+`subdir=` points inside the repo when the tasks are not at its root.
+The registry is per process, the way gym's is: a script that calls
+`register` can pass `fetch.benchmark("my-bench") / "task-01"` straight
+to `Lab.run`, while the shell `tide` command sees only the built-ins
+(pass the fetched path there). Ship the `register` call in your
+package's import. Registering an existing name replaces it, which is
+how a fork takes over a built-in.
+
 ## A benchmark converter
 
 A converter turns a published external format into a folder of task dirs.
