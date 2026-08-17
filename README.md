@@ -143,8 +143,8 @@ from tide import Lab, Stream, metrics
 
 lab = Lab("runs/cl")
 stream = Stream(
-    "my-stream",  # ordered tasks, repeats allowed; the revisit is how forgetting shows
-    [
+    "my-stream",  # the name; a new one reruns the same tasks from empty memory
+    [  # ordered tasks, repeats allowed; the revisit is how forgetting shows
         "tasks/continual-learning/terminal-bench/chess-best-move",
         "tasks/continual-learning/terminal-bench/build-pmars",
         "tasks/continual-learning/terminal-bench/chess-best-move",
@@ -162,10 +162,14 @@ metrics.forgetting(df)  # did the revisited task degrade?
 metrics.transfer(df, baseline_df)  # vs the same tasks run isolated (plain lab.run)
 ```
 
-Re-running the same stream name resumes it; a new name starts fresh with
-empty memory. Each task is an ordinary Harbor trial in its own container,
-with the memory snapshotted at every step, so a crashed stream picks up
-where it left off. Full details: **[docs/get-started.md](docs/get-started.md#streams)**.
+Re-running the same stream resumes it. A stream is identified by its name
+together with its agent, tags, budget, and task list, so changing any of
+those is a separate stream with its own memory; give it a new name to run
+the same tasks again from empty memory. On the CLI that name is `--name`,
+and it defaults to one derived from the targets. Each task is an ordinary
+Harbor trial in its own container, with the memory snapshotted at every
+step, so a crashed stream picks up where it left off. Full details:
+**[docs/get-started.md](docs/get-started.md#streams)**.
 
 ### Evaluate your own agent
 

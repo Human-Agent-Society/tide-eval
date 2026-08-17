@@ -176,7 +176,10 @@ batch:
 - **Resume with stable history.** Recorded positions are skipped as
   always, and a position's key covers the task list up to that position:
   appending tasks extends a finished stream, editing an earlier position
-  re-runs everything after it.
+  re-runs everything after it. Each snapshot is named by that same
+  prefix, so a snapshot is only ever reused by a stream whose history up
+  to that point matches, and two streams sharing a name cannot inherit
+  each other's memory.
 
 Episode rows from a stream land in the same table, tagged `stream` and
 `position`; the continual-learning metrics are queries like every other

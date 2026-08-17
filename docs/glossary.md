@@ -43,4 +43,4 @@ Every term tide uses, in one place. Terms link to the page that owns them.
 | position | An episode's index within its stream, recorded as a tag. |
 | state directory | The carried directory, mounted into every task's container as `$TIDE_STATE_DIR`. The agent writes whatever it wants its future self to know; tide never reads it. |
 | snapshot | The state directory saved after each position. The next position starts from it, which makes starting states deterministic and resume clean. |
-| variant | A digest of a stream's setup (agent, tags, budget, overrides). The same stream name under two setups keeps separate state and keys. |
+| variant | A digest of a stream's setup (agent, tags, budget, overrides). Together with the name and the task list it decides which state and keys a stream gets, so two streams that differ in any of them stay separate. |
