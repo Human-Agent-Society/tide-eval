@@ -71,17 +71,12 @@ to a real agent score, including agent auth and network egress setup.
 ### Run
 
 ```bash
-pip install "tide-eval[harbor]"          # benchmark tasks download on first use
-# or from source, with every task already in tasks/:
-git clone https://github.com/Human-Agent-Society/tide-eval && cd tide-eval
-pip install -e ".[harbor]"               # container runs; plain -e . covers --local and the API
+pip install "tide-eval[harbor]"    # or from a source checkout: pip install -e ".[harbor]"
 
-tide list                                # what's runnable
-tide run cl-bench/bsm-s01 --agent oracle              # oracle = built-in agent that runs the reference solution (must score 1.0)
-tide run frontier-cs/frontier-cs-2-0-vllm-llm-serving-optimization --agent claude-code --model anthropic/claude-opus-5 --budget 2h   # time (2h / 30m / 90s; bare = hours)
-tide run frontier-cs/frontier-cs-algorithm-1 --agent codex --model openai/gpt-5 --max-tokens 500k              # or: tokens / --max-evals / --max-cost
-tide stream my-stream tasks/continual-learning/cl-bench/poker-* --agent claude-code --model anthropic/claude-opus-5   # continual learning: memory carried across tasks
-tide report                              # summarize the results store
+tide list                          # what's runnable
+tide fetch cl-bench                # download a benchmark's tasks (a source checkout has them all already)
+tide run frontier-cs/frontier-cs-2-0-vllm-llm-serving-optimization --agent claude-code --model anthropic/claude-opus-5 --budget 2h
+tide stream demo cl-bench --agent claude-code --model anthropic/claude-opus-5
 ```
 
 `--budget` is time (`2h` / `30m` / `90s`; a bare number is hours); the other
@@ -98,22 +93,17 @@ tide run autoresearch/first-party/circle-packing --local \
   --command "python examples/minimal_harness_search.py" --budget 30s
 ```
 
-Your command reads `$JUDGE_URL` and `$BUDGET_SEC`, POSTs solutions to
-`$JUDGE_URL/submit`, and the judge's verdict is the result, from the same
-judge code that runs as a sidecar in containers. Note that local mode has
-no isolation: everything, including any hidden tests, is readable on
-your own machine. That is acceptable for development, because local
-scores are never treated as trusted results; the container run is where
-the judge is actually out of reach, and local rows carry a `local://`
-uri to mark the difference. Develop locally, report container numbers. (`python examples/quickstart.py`
-and `--fake` still work with zero setup, but their scores are simulated.)
+Your command reads `$JUDGE_URL` and `$BUDGET_SEC` and POSTs solutions to
+`$JUDGE_URL/submit`; the same judge code that runs as a container sidecar
+scores them. Local mode has no isolation (even hidden tests are readable
+on your machine), so local rows carry a `local://` uri and are never
+trusted results. Develop locally, report container numbers.
 
-When you have Docker,
-`tide run cl-bench/bsm-s01 --agent oracle` proves the real pipeline end
-to end (the oracle must score exactly 1.0), and
-`python examples/minimal_harness.py` is the smallest complete container
-harness: about twenty-five lines of adapter around the same random-search
-loop.
+When you have Docker, `tide run cl-bench/bsm-s01 --agent oracle` proves
+the real pipeline end to end (the oracle runs the task's reference
+solution and must score exactly 1.0), and
+[`examples/minimal_harness.py`](examples/minimal_harness.py) is the
+smallest complete container harness.
 
 ### The Python API
 
@@ -128,27 +118,14 @@ lab = Lab("runs/exp1")
 row = await lab.run(
     "tasks/autoresearch/frontier-cs/frontier-cs-2-0-vllm-llm-serving-optimization",  # any task dir or Harbor registry id
     agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"},
-    budget=Budget(time_h=2),  # the budget: time, or tokens / evals / cost
+    budget=Budget(time_h=2),  # or max_tokens=500_000, max_evals=50, max_cost_usd=3
     tags={"suite": "smoke"},  # free-form tags = your schema
 )
 row.rewards  # the judge's final verdict
 row.uri  # the trial directory, for auditing
 
-# Budget is more than a clock; bound whichever resource is scarce:
-await lab.run(
-    "tasks/autoresearch/frontier-cs/frontier-cs-algorithm-1",
-    agent={"name": "codex", "model_name": "openai/gpt-5"},
-    budget=Budget(max_tokens=500_000),
-)  # or max_evals=50, max_cost_usd=3
-
 curve = metrics.anytime(lab.df("trace"))  # every submission's score, over time
 metrics.auc(curve)  # the anytime score
-metrics.scaling(
-    lab.df("episode"), budget="budget_max_tokens"
-)  # what does more budget buy?
-metrics.efficiency(
-    lab.df("episode"), spend="used_cost_usd"
-)  # reward per dollar actually spent
 ```
 
 Re-running any script resumes it. Reference:
@@ -187,17 +164,10 @@ metrics.forgetting(df)  # did the revisited task degrade?
 metrics.transfer(df, baseline_df)  # vs the same tasks run isolated (plain lab.run)
 ```
 
-`"my-stream"` is just a name you choose for the stream: re-running the
-same name resumes it, a new name starts fresh with empty memory, and
-every row carries the name as a `stream` tag for querying.
-
-Every task in the stream is an ordinary Harbor trial in its own
-container. Before each one, the memory is reset to the snapshot from the
-previous step; after it, a new snapshot is kept, so a crashed stream
-picks up where it left off, and what the agent knew at every step can be
-checked later. Adding tasks to the end continues a finished stream;
-changing an earlier task re-runs everything after it. Full details:
-**[docs/api/streams.md](docs/api/streams.md)**.
+Re-running the same stream name resumes it; a new name starts fresh with
+empty memory. Each task is an ordinary Harbor trial in its own container,
+with the memory snapshotted at every step, so a crashed stream picks up
+where it left off. Full details: **[docs/api/streams.md](docs/api/streams.md)**.
 
 ### Evaluate your own agent
 
@@ -212,9 +182,7 @@ are identical, so numbers stay comparable across methods:
 | OpenEvolve, Codex, or CORAL | version-pinned runnable adapters: [`examples/run_harness.py`](examples/run_harness.py) |
 | another method that isn't an "agent" (evolutionary search, a solver) | POST candidates to `$JUDGE_URL/submit`, stop at 429 (about 20 lines) |
 
-The protocol is identical across every task, so one integration covers
-the suite. The only thing you cannot bring is your own judge. Full guide
-with the `BaseAgent` skeleton and the OpenEvolve pattern:
+The only thing you cannot bring is your own judge. Full guide:
 **[docs/guides/integration.md](docs/guides/integration.md)**.
 
 ## Benchmarks
@@ -223,11 +191,14 @@ with the `BaseAgent` skeleton and the OpenEvolve pattern:
 
 | Benchmark | Tasks | Upstream | Run |
 |---|---|---|---|
-| [first-party](tasks/autoresearch) ↓ | 6 | this repo | `tide run autoresearch/first-party --agent <a>` |
+| [first-party](tasks/autoresearch/first-party) | 6 | this repo | `tide run autoresearch/first-party --agent <a>` |
 | [EdgeBench](tasks/autoresearch/edgebench) | 51 · 2-12 h budgets | [ByteDance-Seed/EdgeBench](https://github.com/ByteDance-Seed/EdgeBench) | `tide run edgebench/<task> --budget <h>` |
 | [FrontierCS](tasks/autoresearch/frontier-cs) | 188 algorithmic + 20 research · incl. 4 GPU kernel | [FrontierCS/Frontier-CS](https://github.com/FrontierCS/Frontier-CS) | `tide run frontier-cs/<task> --agent <a>` |
 
-The next converters, vetted for autoresearch fit, are tracked in the
+Each first-party task teaches one hard part of the category (held-out
+grading, safely grading agent-shipped code, ...); the full catalog with
+oracle scores is in [docs/tasks](docs/tasks/index.md). The next
+converters are tracked in the
 [roadmap](https://github.com/Human-Agent-Society/tide-eval/issues/19).
 
 ### Continual learning
@@ -241,39 +212,19 @@ license, so its tasks are fetched onto your machine instead:
 |---|---|---|---|
 | [terminal-bench](tasks/continual-learning/terminal-bench) | 89 · **v2.0 only** (1.x unsupported) · committed | [terminal-bench-2](https://github.com/laude-institute/terminal-bench-2) (Apache-2.0) | `tide stream my-stream terminal-bench --agent <a>` |
 | [SWE-bench Verified](tasks/continual-learning/swebench-verified) | 500 · fetched (upstream has no license) | [harbor-datasets](https://github.com/laude-institute/harbor-datasets) | `tide fetch swebench-verified --limit 50`, then `tide stream my-stream swebench-verified --agent <a>` |
-| [CL-Bench](tasks/continual-learning/cl-bench) | 301 · **all 6 domains** · committed | [continual-learning-bench](https://github.com/pgasawa/continual-learning-bench) (Apache-2.0) | `tide stream my-stream tasks/continual-learning/cl-bench/poker-* --agent <a>` |
+| [CL-Bench](tasks/continual-learning/cl-bench) | 301 · **all 6 domains** · committed | [continual-learning-bench](https://github.com/pgasawa/continual-learning-bench) (Apache-2.0) | `tide stream my-stream cl-bench --agent <a>` |
 
-SWE-bench Verified is there because [AgentStream](https://arxiv.org/abs/2608.00155)
-builds its streams from six benchmarks, and it is the hardest of them with
-a published Harbor version; the two the paper measures as hardest, HLE
-and BrowseComp-Plus, have none yet.
+SWE-bench Verified is the hardest of the benchmarks
+[AgentStream](https://arxiv.org/abs/2608.00155) builds its streams from
+that has a published Harbor version.
 [CL-Bench](tasks/continual-learning/cl-bench) ([paper](https://arxiv.org/pdf/2606.05661)) is
-a continual-learning benchmark in the strict sense (sequential instances
-of one environment where remembering should help), and its *gain metric*
-(stateful minus stateless reward) is `metrics.transfer`. All six
-domains are converted, the benchmark's full 301 instances: spectrum
-monitoring, sales forecasting, cohort studies, sequential PR bugfixes,
-metered database exploration, and heads-up poker against exploitable
-opponents. Scoring is the upstream metric in every domain, deterministic
-and offline; where a domain has hidden state (the poker deck, the metered
-database), it lives in a judge sidecar the agent reaches only over HTTP.
-A stream also takes any task list you build yourself, repeats allowed
-(that is how forgetting is measured); see
+a continual-learning benchmark in the strict sense: sequential instances
+of one environment where remembering should help, scored by the upstream
+metric in every domain (its *gain metric* is `metrics.transfer`). Where a
+domain has hidden state (the poker deck, the metered database), it lives
+in a judge sidecar the agent reaches only over HTTP. A stream also takes
+any task list you build yourself, repeats allowed; see
 [streams](docs/api/streams.md).
-
-### What each first-party task teaches
-
-Each first-party task teaches one hard part of the autoresearch category
-(oracle-verified in real containers, cheat cases re-tested in CI):
-
-| Task | Teaches |
-|---|---|
-| [`circle-packing`](tasks/autoresearch/first-party/circle-packing) | the full protocol; exact-arithmetic grading |
-| [`function-minimization`](tasks/autoresearch/first-party/function-minimization) | exploration vs local search |
-| [`tsp-tour`](tasks/autoresearch/first-party/tsp-tour) | combinatorial search, continuous signal |
-| [`bin-packing`](tasks/autoresearch/first-party/bin-packing) | exact constraint checking |
-| [`symbolic-regression`](tasks/autoresearch/first-party/symbolic-regression) | the final judge: session on training points, the grade on held-out points |
-| [`string-compression`](tasks/autoresearch/first-party/string-compression) | safely grading agent-shipped code |
 
 ### Define a new task
 
@@ -282,19 +233,14 @@ cp -r tasks/_template tasks/autoresearch/my-suite/my-task
 pytest tests/test_task_suite.py          # picked up automatically, and already green
 ```
 
-The template ships as a complete working task, so you start from green
-and replace one `TODO(task)` piece at a time: the instruction, one
-`score.py` the judge runs on every submission, the submission budget, the
-cheat cases, the reference solution, and optionally a `final.py` with
-hidden tests, run once on the best submission. GPU tasks add two lines of
-config. Guide: **[docs/guides/authoring-tasks.md](docs/guides/authoring-tasks.md)**.
+The template ships as a complete working task: replace one `TODO(task)`
+piece at a time and the suite keeps validating it. Guide:
+**[docs/guides/authoring-tasks.md](docs/guides/authoring-tasks.md)**.
 
 ## Contributing
 
-New tasks are the most welcome contribution: copy the template, work the
-`TODO(task)` markers, and the suite validates the task for you; see
-[define a new task](#define-a-new-task) above and the guide
-**[docs/guides/authoring-tasks.md](docs/guides/authoring-tasks.md)**.
+New tasks are the most welcome contribution; see
+[define a new task](#define-a-new-task) above.
 
 For benchmark converters, metrics, and runtime work, use a dev checkout:
 
