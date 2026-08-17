@@ -1,7 +1,7 @@
 # tide
 
 Evaluate learning from inference-time signals: feedback produced during
-the run itself, with no training step in between. Autoresearch measures
+the run itself. Autoresearch measures
 a solution improving against an evaluator on one open-ended problem;
 continual learning measures an agent carrying what it learned into the
 next task.
