@@ -11,6 +11,8 @@ Every term tide uses, in one place. Terms link to the page that owns them.
 | trial | Harbor's name for the same thing. Every episode's `uri` points at its trial directory, so results stay auditable. |
 | agent, harness | Whatever does the work inside the task container: `claude-code`, `codex`, your own `BaseAgent`, or a plain script. See [running agents](running-agents.md). |
 | oracle | Harbor's built-in agent that runs a task's reference `solution/`. Used to prove a task's pipeline end to end. |
+| autoresearch | One open-ended optimization problem with a continuous score, worked at for a whole budget, with a judge scoring every submission. One of the two regimes. See [design](design.md). |
+| session | One task's run against its judge, from the first submission to finalization. The final judge locks it, after which submissions are refused. |
 | regime | The shape of the work being measured: autoresearch (one open-ended problem) or a stream of tasks. The regime does not decide what the agent persists. See [design](design.md). |
 | self-evolving, continual learning | Something the agent learned persists past the run that produced it, as memory, skills, an evolved harness, or weights. It can show up in either regime, and tide measures it rather than performing it. |
 
@@ -44,3 +46,21 @@ Every term tide uses, in one place. Terms link to the page that owns them.
 | state directory | The carried directory, mounted into every task's container as `$TIDE_STATE_DIR`. The agent writes whatever it wants its future self to know; tide never reads it. |
 | snapshot | The state directory saved after each position. The next position starts from it, which makes starting states deterministic and resume clean. |
 | variant | A digest of a stream's setup (agent, tags, budget, overrides). Together with the name and the task list it decides which state and keys a stream gets, so two streams that differ in any of them stay separate. |
+
+## Metrics
+
+| Term | Meaning |
+|---|---|
+| anytime | The property that a run has a usable answer at every moment, improving as it goes. The anytime curve is the best-so-far score over time. See [metrics](metrics.md). |
+| anytime score | The anytime curve's time-average, from `metrics.auc`. Comparable across runs only when they are averaged over the same window. |
+| learning curve | Score over stream position, the continual-learning progress curve. Not the training-set-size curve the term means elsewhere in ML. |
+| transfer | What carrying state was worth: a stream task's score minus the same task run on its own. CL-Bench's gain metric, not the forward transfer of the continual-learning literature. |
+| forgetting | How much a revisited task degraded: the best of its earlier visits minus its last. Positive means the agent forgot. |
+
+## Environment
+
+| Term | Meaning |
+|---|---|
+| allowlist | `network_mode = "allowlist"` in `task.toml`: the container reaches the hosts in `allowed_hosts` and nothing else. The usual setting is the judge alone. |
+| allowed_hosts | The hosts a task permits. `extra_allowed_hosts` widens the set for one run without editing the task. See [running agents](running-agents.md#network-access). |
+| sidecar | A second container beside the agent's, in the same task. The judge is one, and so is the process that enforces the allowlist. |

@@ -34,7 +34,7 @@ How the conversions work (`convert_<domain>.py` in this folder):
   and the deal are enforced out of the agent's hands. Decks match the
   upstream harness card for card.
 - Agent containers run offline (`network_mode = "allowlist"`), as
-  upstream; harness adapters whitelist their own LLM API hosts.
+  upstream; harness adapters allowlist their own LLM API hosts.
 
 Every task ships a reference solution with a known exact score: the
 truth-derived report (bsm and sales 1.0; cohort scores its per-instance

@@ -134,3 +134,17 @@ def test_rescale_linear_and_anchored():
 
     with pytest.raises(ValueError):
         metrics.rescale_linear(s, lo=1, hi=1)
+
+
+def test_auc_over_a_fixed_window_rewards_reaching_a_score_early():
+    """The default window is first-to-last submission, which is per-run and so
+    not comparable across runs. Over a fixed window, getting there early wins."""
+    early = metrics.anytime(pd.DataFrame({"t": [10, 1700], "score": [0.9, 0.9]}))
+    late = metrics.anytime(pd.DataFrame({"t": [1690, 1700], "score": [0.9, 0.9]}))
+
+    # Same number by default: both spans are flat at 0.9.
+    assert metrics.auc(early) == pytest.approx(metrics.auc(late))
+
+    # Over the run's actual budget they separate.
+    assert metrics.auc(early, start=0, end=1700) > 0.85
+    assert metrics.auc(late, start=0, end=1700) < 0.05

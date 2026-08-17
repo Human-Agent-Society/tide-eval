@@ -1,4 +1,4 @@
-"""The scoring rule — run by the judge on every submission: validates the packing exactly, recomputes the first-fit
+"""The scoring rule, run by the judge on every submission: validates the packing exactly, recomputes the first-fit
 baseline from the same pinned item set. Reward = first-fit bins / your bins;
 1.0 = as good as first-fit, above 1.0 = genuinely better."""
 

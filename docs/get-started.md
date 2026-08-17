@@ -13,24 +13,25 @@ git clone https://github.com/Human-Agent-Society/tide-eval && cd tide-eval
 pip install -e ".[harbor]"
 ```
 
-Docker runs the tasks. One caveat: many tasks use an `allowlist` network
-policy, enforced with an nftables egress sidecar; Docker Desktop older
-than ~4.30 lacks the kernel support and Harbor will refuse the run (see
-[troubleshooting](#troubleshooting)).
+Docker runs the tasks. One caveat: most tasks set `network_mode =
+"allowlist"`, so the container reaches only the hosts the task names and
+nothing else on the internet. Harbor enforces that with an nftables
+sidecar, and Docker Desktop older than ~4.30 lacks the kernel support, so
+it will refuse the run (see [troubleshooting](#troubleshooting)).
 
 ## Run a task
 
 The `oracle` agent runs a task's reference solution in-container, with
-no keys and no network, so it isolates the plumbing. Start there:
+no credentials and no internet, so it isolates the plumbing. Start there:
 
 ```bash
 tide list                                 # what's runnable
 tide run cl-bench/bsm-s01 --agent oracle  # must score exactly 1.0
 ```
 
-Then a real agent (its CLI runs inside the container and needs
-credentials and network egress; see
-[running agents](running-agents.md)):
+Then a real agent. Its CLI runs inside the container, so it needs
+credentials there and its hosts added to the allowlist; see
+[running agents](running-agents.md):
 
 ```bash
 tide run frontier-cs/frontier-cs-algorithm-1 --agent claude-code --model anthropic/claude-opus-5 --budget 2h
@@ -44,7 +45,7 @@ the rest unset:
 | Axis | CLI flag | `Budget` field | Enforcement |
 |---|---|---|---|
 | time | `--budget` (`2h`, `30m`, `90s`; bare = hours) | `time_h` | hard: the container timeout; the deadline is a normal ending, the verifier still grades what exists |
-| evals | `--max-evals` | `max_submissions` | hard at the task's own ceiling (the judge returns 429 past it); a lower per-run cap is signalled |
+| evals | `--max-evals` | `max_submissions` (the flag and the field differ) | hard at the task's own ceiling (the judge returns 429 past it); a lower per-run cap is signalled |
 | tokens | `--max-tokens` (`500k`, `2m`) | `max_tokens` | soft: signalled, actual spend recorded |
 | cost (USD) | `--max-cost` | `max_cost_usd` | soft: signalled, actual spend recorded |
 
@@ -105,7 +106,7 @@ lab = Lab("runs/exp1")
 row = await lab.run(  # asyncio: inside an async function or a notebook
     "tasks/autoresearch/frontier-cs/frontier-cs-algorithm-1",
     agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"},
-    budget=Budget(time_h=2),  # or max_tokens=..., max_evals=..., max_cost_usd=...
+    budget=Budget(time_h=2),  # or max_tokens=..., max_submissions=..., max_cost_usd=...
     tags={"suite": "smoke"},  # free-form tags = your result schema
 )
 row.rewards  # the trusted verdict
@@ -174,6 +175,6 @@ trial directory, so any number can be audited to its evidence.
   Upgrade Docker; until then `--local` develops against the real judge.
 - **An agent CLI fails during setup with npm/apt errors**: its install
   hosts are missing from the allowlist, or the setup timeout is too
-  small; see [running agents](running-agents.md#network-egress).
+  small; see [running agents](running-agents.md#network-access).
 - **An agent CLI fails immediately with 401**: no credentials; see
   [running agents](running-agents.md#credentials).

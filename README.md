@@ -65,8 +65,11 @@ Full design (trust model, task conventions, data model, extensibility):
 ## Using tide
 
 First run? **[docs/get-started.md](docs/get-started.md)** walks from install
-to a real agent score, including agent auth and network egress setup.
-The full docs read in order from **[docs/](docs/README.md)**.
+to a scored task. To point a real agent at one,
+**[docs/running-agents.md](docs/running-agents.md)** covers the two things
+it needs: API credentials inside the container, and the hosts its network
+policy has to allow. The full docs read in order from
+**[docs/](docs/README.md)**.
 
 ### Run
 
@@ -118,7 +121,9 @@ lab = Lab("runs/exp1")
 row = await lab.run(
     "tasks/autoresearch/frontier-cs/frontier-cs-2-0-vllm-llm-serving-optimization",  # any task dir or Harbor registry id
     agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"},
-    budget=Budget(time_h=2),  # or max_tokens=500_000, max_evals=50, max_cost_usd=3
+    budget=Budget(
+        time_h=2
+    ),  # or max_tokens=500_000, max_submissions=50, max_cost_usd=3
     tags={"suite": "smoke"},  # free-form tags = your schema
 )
 row.rewards  # the judge's final verdict

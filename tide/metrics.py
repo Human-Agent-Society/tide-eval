@@ -19,13 +19,13 @@ Budgets, over episode rows:
 Streams, over episode rows tagged ``stream`` and ``position``:
 
 - :func:`learning_curve`: score over stream position
-- :func:`transfer`: stream performance against an isolated baseline
+- :func:`transfer`: what carrying state was worth, against a stateless run
 - :func:`forgetting`: how much revisited tasks degraded
 
 Normalizers:
 
 - :func:`rescale_linear`: map raw scores to 0-100
-- :func:`rescale_anchored`: 0-100, stretching past 100 beyond the best known
+- :func:`rescale_anchored`: 0-100, stretching past 100 instead of clipping
 
 Conventions: ``score`` names the value column (``"reward"`` for episode
 rows, ``"score"`` for trace rows; every function takes it as a
@@ -73,16 +73,48 @@ def anytime(
     return out
 
 
-def auc(curve: pd.DataFrame, *, time: str = "t", value: str = "best_so_far") -> float:
-    """Area under an anytime curve, normalized by the time span: the
-    anytime score. Expects the output of :func:`anytime` (one group)."""
+def auc(
+    curve: pd.DataFrame,
+    *,
+    time: str = "t",
+    value: str = "best_so_far",
+    start: float | None = None,
+    end: float | None = None,
+) -> float:
+    """Time-averaged best-so-far: the anytime score. Expects the output of
+    :func:`anytime` (one group).
+
+    By default the average runs from the first submission to the last, so
+    it says how good the run was while it was submitting. That window
+    differs per run, which makes the number comparable only across runs
+    that submitted at the same times. Pass *start* and *end* (normally 0
+    and the budget, in the same unit as *time*) to average over a fixed
+    window instead: before the first submission the best-so-far counts as
+    0, and the last one is held to *end*. Two runs scored over the same
+    window are comparable, and reaching a score earlier scores higher.
+    """
     c = curve.sort_values(time)
-    if len(c) < 2:
-        return float(c[value].iloc[-1]) if len(c) else 0.0
-    dt = c[time].diff().iloc[1:]
-    heights = c[value].iloc[:-1].to_numpy()  # left Riemann: hold best until next point
-    span = c[time].iloc[-1] - c[time].iloc[0]
-    return float((heights * dt.to_numpy()).sum() / span) if span > 0 else 0.0
+    if c.empty:
+        return 0.0
+    times = c[time].astype(float).tolist()
+    values = c[value].astype(float).tolist()
+
+    if start is not None:
+        # Nothing was submitted yet, so there is no best-so-far to credit.
+        times.insert(0, float(start))
+        values.insert(0, 0.0)
+    if end is not None:
+        times.append(float(end))
+        values.append(values[-1])
+
+    if len(times) < 2:
+        return values[-1]
+    span = times[-1] - times[0]
+    if span <= 0:
+        return values[-1]
+    # Left Riemann: each best-so-far is held until the next point.
+    area = sum(values[i] * (times[i + 1] - times[i]) for i in range(len(times) - 1))
+    return float(area / span)
 
 
 def scaling(
@@ -241,13 +273,18 @@ def transfer(
     score: str = "reward",
     on: str = "task",
 ) -> pd.DataFrame:
-    """Forward transfer: stream performance against an isolated baseline.
+    """What carrying state was worth: stream score minus isolated score.
 
     Expects columns *on* and *score* in both frames: *stream_df* holds
     episodes run inside a stream, *baseline_df* the same tasks run
     isolated (a plain ``lab.run`` sweep). Returns one row per stream task
     with mean ``stream`` and ``isolated`` scores and their difference
     ``transfer``; tasks with no baseline get NaN.
+
+    This is CL-Bench's gain metric, not the forward transfer of the
+    continual-learning literature: that one scores a task the agent has
+    not worked on yet, while both frames here score a task the agent did
+    work on, differing only in whether earlier tasks came first.
     """
     s = stream_df.groupby(on)[score].mean().rename("stream").reset_index()
     b = baseline_df.groupby(on)[score].mean().rename("isolated").reset_index()
@@ -304,10 +341,16 @@ def rescale_anchored(
     top: float,
     super_anchor: float | None = None,
 ) -> pd.Series:
-    """EdgeBench-style piecewise rescale: ``baseline`` becomes 0 and ``top``
-    becomes 100. With ``super_anchor``, scores beyond ``top`` stretch linearly
-    above 100, so beating the best known result is visible rather than
-    clipped."""
+    """Two-segment rescale: ``baseline`` becomes 0 and ``top`` becomes 100.
+    With ``super_anchor``, scores above ``top`` stretch linearly instead of
+    clipping, so beating the best known result stays visible; a score at
+    ``super_anchor`` lands on 200.
+
+    EdgeBench's own normalization is a different, four-anchor curve capped
+    at 100. Its converted tasks carry all four values (``rescale_baseline``,
+    ``rescale_rank30``, ``rescale_rank1``, ``rescale_super_anchor``) in
+    ``task.toml``, so reproducing it exactly is a task-side calculation, not
+    this function."""
     scaled = rescale_linear(s, lo=baseline, hi=top)
     if super_anchor is not None:
         over = s > top

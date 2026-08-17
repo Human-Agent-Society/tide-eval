@@ -47,7 +47,7 @@ Normalizers:
 
 | Function | Expects | Answers |
 |---|---|---|
-| `rescale_linear` / `rescale_anchored` | a Series | 0-100 normalization; anchored stretches past 100 beyond the best known result |
+| `rescale_linear` / `rescale_anchored` | a Series | 0-100 normalization; anchored stretches past 100 beyond the best known result, rather than clipping |
 
 ## The column contract
 
