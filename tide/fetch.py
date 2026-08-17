@@ -42,9 +42,13 @@ def fetch_pinned_tasks(
         _git(tmp, "remote", "add", "origin", git_url)
         print(f"fetching {git_url} @ {commit[:12]} ...", flush=True)
         _git(tmp, "fetch", "-q", "--depth", "1", "--filter=blob:none", "origin", commit)
+        # Fetching a tag or branch name leaves no local ref behind, so name
+        # what came back rather than the pin: only FETCH_HEAD resolves for
+        # every kind of ref, a commit sha included.
+        pinned = _git(tmp, "rev-parse", "FETCH_HEAD").strip()
 
         found: set[str] = set()
-        for line in _git(tmp, "ls-tree", "-r", "--name-only", commit).splitlines():
+        for line in _git(tmp, "ls-tree", "-r", "--name-only", pinned).splitlines():
             if not line.startswith(prefix):
                 continue
             rest = line[len(prefix) :]
@@ -67,7 +71,7 @@ def fetch_pinned_tasks(
             names = names[:limit]
 
         print(f"copying {len(names)} task folder(s) ...", flush=True)
-        _git(tmp, "checkout", "-q", commit, "--", *(prefix + n for n in names))
+        _git(tmp, "checkout", "-q", pinned, "--", *(prefix + n for n in names))
         dest.mkdir(parents=True, exist_ok=True)
         for name in names:
             src = tmp / subdir / name if subdir else tmp / name

@@ -36,7 +36,18 @@ def upstream(tmp_path):
     _git(repo, "add", "-A")
     _git(repo, "commit", "-q", "-m", "pin")
     sha = _git(repo, "rev-parse", "HEAD").strip()
+    _git(repo, "tag", "v9.9.9")  # releases are pinned by tag, not by sha
     return f"file://{repo}", sha
+
+
+def test_fetches_a_pin_given_as_a_tag(upstream, tmp_path):
+    """Committed benchmarks pin to a release tag (fetch.TASKS_REF), not a sha.
+    Fetching a tag leaves no local ref behind, so naming the tag again would
+    fail even though the objects are there."""
+    url, _ = upstream
+    dest = tmp_path / "dest"
+    assert fetch_pinned_tasks(url, "v9.9.9", dest) == ["alpha", "beta"]
+    assert (dest / "alpha" / "task.toml").exists()
 
 
 def test_fetches_root_tasks_and_skips_non_tasks(upstream, tmp_path):
