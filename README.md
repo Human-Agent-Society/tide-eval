@@ -9,9 +9,8 @@
 An agent self-evolves when something it learned during a run persists
 past it: memory, a skill library, an evolved harness, updated weights.
 tide measures whether anything actually persisted, in the two task
-regimes where that shows up. It never trains anything itself; the method
-does the learning, tide does the measurement ([why, in
-detail](docs/design.md)).
+regimes where that shows up. The method does the learning; tide does the
+measurement ([why, in detail](docs/design.md)).
 
 **Autoresearch** is the kind of work DeepMind's
 [AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/)
@@ -29,8 +28,7 @@ before the budget ends:
 **A stream of tasks** puts one agent through a
 [stream](docs/get-started.md#streams) of tasks in order (the
 [AgentStream](https://arxiv.org/abs/2608.00155) setting), carrying its
-memory from task to task. The signal is what earlier tasks taught, and
-the question is what carries into the next task:
+memory from task to task. The question is what carries into the next task:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-stream-dark.svg">
@@ -44,8 +42,7 @@ that can work inside a container, including your own harness or method.
 
 Harbor solves the hard infrastructure (the task format, running agents
 against containers, the ecosystem of agent adapters), and tide uses it as
-a library for exactly that. Both regimes need five things on top, and
-they are the reason tide exists:
+a library for exactly that. Both regimes need five things on top:
 
 | What you want | Plain Harbor | tide |
 |---|---|---|
@@ -141,7 +138,7 @@ Re-running any script resumes it. Reference:
 A `Stream` runs an ordered task list under one agent. Every task's
 container gets the same state directory mounted in (`$TIDE_STATE_DIR`),
 so the agent's memory, skill library, or evolved harness is carried from
-task to task, and whether that helps is what gets measured:
+task to task:
 
 ```python
 from tide import Lab, Stream, metrics
@@ -194,16 +191,13 @@ The only thing you cannot bring is your own judge. Full guide:
 
 ### Examples
 
-One script per part of the API; the first two run with zero setup:
-
-| Script | What it shows | Needs |
-|---|---|---|
-| [`quickstart.py`](examples/quickstart.py) | the Lab API: episodes, resume, the results table (agents are simulated) | nothing |
-| [`stream_quickstart.py`](examples/stream_quickstart.py) | a continual-learning stream: carried state, the learning curve, resume | nothing |
-| [`minimal_harness.py`](examples/minimal_harness.py) | the smallest real agent harness through the full pipeline | Docker + `[harbor]` |
-
-[`examples/harnesses`](examples/harnesses) adds OpenEvolve, Codex, and
-CORAL adapters as comparison baselines.
+[`quickstart.py`](examples/quickstart.py) and
+[`stream_quickstart.py`](examples/stream_quickstart.py) run with zero setup;
+[`minimal_harness.py`](examples/minimal_harness.py) is the smallest real
+harness and needs Docker and `[harbor]`;
+[`examples/harnesses`](examples/harnesses) adds OpenEvolve, Codex, and CORAL
+as comparison baselines. What each one shows:
+[`examples/`](examples/README.md).
 
 ## Benchmarks
 
@@ -265,15 +259,6 @@ Guide: **[docs/authoring-tasks.md](docs/authoring-tasks.md)**.
 New tasks are the most welcome contribution; see
 [define a new task](#define-a-new-task) above.
 
-For benchmark converters, metrics, and runtime work, use a dev checkout:
-
-```bash
-git clone https://github.com/Human-Agent-Society/tide-eval && cd tide-eval
-uv venv --python 3.12 && uv pip install -e ".[dev]"
-.venv/bin/python -m pytest tests/ -q     # harbor tests skip if absent
-.venv/bin/ruff check . && .venv/bin/ruff format --check .
-.venv/bin/mypy
-```
-
-PRs are reviewed against the design rules in
-[CONTRIBUTING.md](CONTRIBUTING.md).
+For benchmark converters, metrics, and runtime work,
+[CONTRIBUTING.md](CONTRIBUTING.md) has the dev setup and the design rules
+PRs are reviewed against.

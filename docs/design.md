@@ -55,7 +55,6 @@ task: the streaming setting of
   baseline `metrics.transfer` subtracts is a plain `lab.run` sweep, which
   is a different thing again.
 
-Everything in tide follows from taking these properties seriously.
 
 ## Trust: scoring stays out of the agent's hands
 
@@ -127,9 +126,9 @@ known score.
 Because every submission is judge-scored, the submission log, ingested
 as `trace` rows, is a **trusted** score-over-time record. The anytime curve, its
 AUC, time-to-threshold, and improvement counts are queries over real
-measurements, not the agent's claims. This is the payoff of paying one
-judge evaluation per submission, and the submission budget is what keeps
-that price bounded. Streams get the equivalent for free: each position's
+measurements, not the agent's claims. The price is one judge evaluation
+per submission, and the submission budget bounds it. Streams get the
+equivalent for free: each position's
 reward is verifier-graded, so the learning curve is trusted point by
 point.
 
@@ -143,7 +142,7 @@ two kinds:
 | `episode` | one task run (= one Harbor trial) | `<key>` | the verifier's verdict (for judge tasks, the judge's final grade) |
 | `trace` | one submission | `<key>#t<i>` | the judge's submission log |
 
-Three load-bearing decisions:
+Three decisions:
 
 - **Re-running resumes.** Every episode gets a stable ID derived from
   (task, agent, tags, overrides), or supplied explicitly. An ID that
@@ -201,9 +200,8 @@ implementations, submission-log ingestion, and pure-pandas metrics.
 
 ## Extensibility
 
-The frozen interface is deliberately minimal, just `Lab.run`'s signature
-and the store schema (columns may be added, never changed), and the extension
-points are structural rather than speculative:
+The frozen interface is `Lab.run`'s signature and the store schema
+(columns may be added, never changed). The extension points:
 
 - `Row.kind` is an open string: a future regime adds new kinds with their
   own key shapes, no schema change;
@@ -221,12 +219,9 @@ the [roadmap issue](https://github.com/Human-Agent-Society/tide-eval/issues/19).
 
 ## Design rules
 
-1. **One frozen interface.** `Lab.run`'s signature and the store schema.
-2. **Tasks stay stock Harbor.** No tide-specific fields in `task.toml`, ever.
-3. **Scoring stays out of the agent's hands.** Judge for autoresearch,
-   verifier and sidecars for streams; every anti-cheating claim ships
-   with tests that actually cheat.
-4. **Persistence lives in data, not processes.** No daemon; re-running any
-   crashed script resumes it.
-5. **Abstractions are earned.** A helper enters the library when it has
-   repeated in at least two real scripts, not before.
+Each section above argues one rule: scoring stays out of the agent's hands,
+persistence lives in data rather than in a running process, tasks stay stock
+Harbor, and the frozen interface is `Lab.run`'s signature plus the store
+schema. [CONTRIBUTING.md](https://github.com/Human-Agent-Society/tide-eval/blob/main/CONTRIBUTING.md)
+states them as the list a PR is reviewed against, with the test that enforces
+each one.
