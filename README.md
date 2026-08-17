@@ -108,8 +108,9 @@ the judge is actually out of reach, and local rows carry a `local://`
 uri to mark the difference. Develop locally, report container numbers. (`python examples/quickstart.py`
 and `--fake` still work with zero setup, but their scores are simulated.)
 
-When you have Docker, `python examples/run_circle_packing.py` proves the
-real pipeline end to end (the oracle must score exactly 0.75), and
+When you have Docker,
+`tide run autoresearch/first-party/circle-packing --agent oracle` proves
+the real pipeline end to end (the oracle must score exactly 0.75), and
 `python examples/minimal_harness.py` is the smallest complete container
 harness: about twenty-five lines of adapter around the same random-search
 loop.

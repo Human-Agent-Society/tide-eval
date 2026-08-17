@@ -26,6 +26,7 @@ jobs:
       - name: Examples run offline
         run: |
           uv run python examples/quickstart.py
+          uv run python examples/stream_quickstart.py
       - name: CLI smoke (offline)
         run: |
           uv run tide list
