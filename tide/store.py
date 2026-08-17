@@ -1,6 +1,6 @@
 """The results store: one append-only SQLite table, viewed as a DataFrame.
 
-Design rules (see docs/introduction/design.md):
+Design rules (see docs/design.md):
 
 - **Dimensions are tags, not schema.** Rows carry a free-form JSON tag dict;
   ``df()`` expands tags into columns. Metrics never require a fixed schema —

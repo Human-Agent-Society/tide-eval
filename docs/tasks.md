@@ -11,7 +11,7 @@ harbor trial start -p tasks/continual-learning/cl-bench/bsm-s01 # stock Harbor, 
 
 `tide list` shows everything runnable. To author your own, start from
 [`tasks/_template`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/_template)
-and follow [Authoring tasks & benchmarks](../guides/authoring-tasks.md).
+and follow [Authoring tasks](authoring-tasks.md).
 
 ## Autoresearch
 

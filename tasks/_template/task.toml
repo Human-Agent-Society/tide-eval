@@ -25,4 +25,4 @@ network_mode = "allowlist"
 allowed_hosts = ["judge"]              # the judge sidecar is the only reachable host
 # gpus = 1                                   # GPU tasks: cloud backends honor this;
                                              # local Docker needs an environment/docker-compose.yaml
-                                             # device reservation too — see docs/guides/authoring-tasks.md
+                                             # device reservation too — see docs/authoring-tasks.md

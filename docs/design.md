@@ -1,8 +1,8 @@
 # Design
 
 What tide evaluates, and why it is shaped the way it is.
-For the module-by-module reference see the [API](../api/lab.md); for
-integrating an agent see [integration.md](../guides/integration.md).
+For the practical pages see [get started](get-started.md) and
+[running agents](running-agents.md).
 
 tide evaluates learning from inference-time signals: feedback produced
 during the run itself. Its two modes measure two different things
@@ -18,14 +18,14 @@ properties that break a pass/fail harness:
 
 - **continuous score**: "how good", not "did it pass";
 - **a budget, not a finish line**: the agent works until the budget runs
-  out (time, evals, tokens, or cost; see [budget](../api/budget.md)),
+  out (time, evals, tokens, or cost; see [budgets](get-started.md#budgets)),
   and being stopped at the deadline is a normal ending that must still
   produce a grade;
 - **iteration in the loop**: the agent tries many candidates and needs
   feedback on them, and any feedback machinery it can reach it can also
   tamper with.
 
-A [stream](../api/streams.md) is an ordered sequence of stock Harbor
+A [stream](get-started.md#streams) is an ordered sequence of stock Harbor
 tasks run under one agent, with a state directory carried from task to
 task: the streaming setting of
 [AgentStream](https://arxiv.org/abs/2608.00155). Its defining properties:
@@ -89,7 +89,7 @@ Three decisions carry the judge model:
   the session: later submissions are refused and repeat calls return the
   cached verdict, so an agent that calls it early terminates its own
   session.
-  [symbolic-regression](../../tasks/autoresearch/first-party/symbolic-regression)
+  [symbolic-regression](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/autoresearch/first-party/symbolic-regression)
   is the reference: session feedback on training points, final grade on
   held-out points that no submission budget can probe.
 
@@ -97,7 +97,7 @@ In streams, pass/fail tasks are graded by Harbor's verifier after the
 episode, and tasks with hidden state reuse the judge pattern: a sidecar
 the agent reaches only over HTTP holds what must stay out of reach (the
 metered database and the poker deck in
-[CL-Bench](../../tasks/continual-learning/cl-bench), which also enforces
+[CL-Bench](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/continual-learning/cl-bench), which also enforces
 their budgets). The carried state directory is the one new surface, and
 it is agent-written and untrusted: no judge or verifier ever sees it, so
 it can only influence the agent's own future behavior.
@@ -181,8 +181,7 @@ test): every task here also runs standalone under `harbor trial start`, and
 Harbor registry ids run here unchanged. tide's own surface stays small on
 purpose, roughly: `Lab` (orchestration + store), `Stream` (sequencing +
 carried state), an `Executor` protocol with Harbor and local
-implementations, submission-log ingestion, and pure-pandas metrics. See
-the [API reference](../api/lab.md) for each module's invariants.
+implementations, submission-log ingestion, and pure-pandas metrics.
 
 ## Extensibility
 
@@ -198,7 +197,7 @@ points are structural rather than speculative:
 - metrics are standalone functions over the one table: a new metric is one
   function plus a docstring declaring its expected columns.
 
-This is how [streams](../api/streams.md) landed (`Stream` sequences
+This is how [streams](get-started.md#streams) landed (`Stream` sequences
 ordinary episodes around the same store, the executors gained one shared
 override, and the metrics are three new functions), and it is how live
 infinite-horizon tasks would land too. What is actually on deck lives in

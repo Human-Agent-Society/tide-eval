@@ -32,10 +32,10 @@ Budgets, over episode rows:
 | Function | Expects columns | Answers |
 |---|---|---|
 | `scaling(df, budget=…, by=…)` | *budget col*, `reward` | score vs budget on any axis; pass `budget="budget_max_tokens"`, `"budget"` (hours), … |
-| `efficiency(df, spend=…, per=…, by=…)` | a `used_*` col, `reward` | reward per unit actually spent (per 1k tokens, per dollar, per eval); see [budget](budget.md) |
+| `efficiency(df, spend=…, per=…, by=…)` | a `used_*` col, `reward` | reward per unit actually spent (per 1k tokens, per dollar, per eval); see [budgets](get-started.md#budgets) |
 
 Streams, over episode rows tagged `stream` and `position` (see
-[streams](streams.md)):
+[streams](get-started.md#streams)):
 
 | Function | Expects columns | Answers |
 |---|---|---|

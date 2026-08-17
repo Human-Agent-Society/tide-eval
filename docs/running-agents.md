@@ -1,9 +1,9 @@
-# Evaluating your agent, harness, or method
+# Running agents
 
 An "agent" is anything Harbor can run against the task container. Three
 integration levels follow, cheapest first; one integration runs in both
-modes, a single task or a [stream](../api/streams.md). Whichever you
-pick, the task, the scoring, and the results store are identical, so
+modes, a single task or a [stream](get-started.md#streams). Whichever
+you pick, the task, the scoring, and the results store are identical, so
 numbers stay comparable across methods.
 
 ## The autoresearch contract
@@ -25,14 +25,14 @@ trigger or observe it. Everything else (how you search, what you
 evaluate locally, whether you build your own scorer) is up to you;
 tide places no constraints on the agent's side.
 
-If the run set a [budget](../api/budget.md) beyond time, the container
+If the run set a [budget](get-started.md#budgets) beyond time, the container
 also carries `TIDE_MAX_SUBMISSIONS`, `TIDE_MAX_TOKENS`, and/or
 `TIDE_MAX_COST_USD`. Reading them lets your method pace itself; you don't
 have to, since tide records the actual spend either way.
 
 ## The continual-learning contract
 
-A [stream](../api/streams.md) episode is an ordinary Harbor task graded
+A [stream](get-started.md#streams) episode is an ordinary Harbor task graded
 by its verifier; there is no judge to talk to. The one addition is
 `$TIDE_STATE_DIR`: a directory mounted into every container of the
 stream and carried from task to task. Read it at the start, write
@@ -59,6 +59,67 @@ tide stream demo cl-bench --agent claude-code --model anthropic/claude-opus-5
 The instruction tells the harness the submission protocol; `--budget` sets
 the timeout and a `budget` tag. Extra `AgentConfig` fields pass via
 `--agent-arg key=value`.
+
+### Credentials
+
+Installed harnesses run their CLI *inside* the task container and need
+credentials injected:
+
+- **codex**: `export OPENAI_API_KEY=...`, or reuse your local
+  `codex login` session with `CODEX_FORCE_AUTH_JSON=1` (Harbor uploads
+  `~/.codex/auth.json` into the container);
+- **claude-code**: `ANTHROPIC_API_KEY` (or its own login flow).
+
+### Network egress
+
+Locked-down tasks (first-party autoresearch, CL-Bench) restrict the
+agent's network in `task.toml`. A container-brain agent needs two kinds
+of egress on top of that: **install egress** during setup (codex's CLI
+arrives via `apt` + `npm` inside the container) and **API egress** for
+the model endpoint. Widen the baseline per run, with no task edits,
+through the `environment.extra_allowed_hosts` override:
+
+```python
+import asyncio
+from tide import Lab
+
+INSTALL_HOSTS = [  # setup phase: apt / nvm / node / npm
+    "deb.debian.org",
+    "security.debian.org",
+    "raw.githubusercontent.com",
+    "github.com",
+    "codeload.github.com",
+    "nodejs.org",
+    "registry.npmjs.org",
+]
+API_HOSTS = [  # agent phase: codex talking to OpenAI
+    "chatgpt.com",
+    "auth.openai.com",
+    "api.openai.com",
+]
+
+
+async def main():
+    lab = Lab("runs/codex")
+    row = await lab.run(
+        "tasks/continual-learning/cl-bench/bsm-s01",
+        agent={
+            "name": "codex",
+            "model_name": "openai/gpt-5.6-sol",
+            "override_setup_timeout_sec": 1200,  # npm install can be slow
+        },
+        environment={"extra_allowed_hosts": INSTALL_HOSTS + API_HOSTS},
+    )
+    print(row.rewards)  # the reference solution scores 1.0
+
+
+asyncio.run(main())
+```
+
+The agent-phase-only equivalent, `agent.extra_allowed_hosts`, is
+reachable from the CLI as `--agent-arg extra_allowed_hosts='[...]'` but
+does not cover setup. On tasks whose network is already open (the
+`frontier-cs` folders), the plain CLI works with no overrides.
 
 ## Level 2: your own harness (one class)
 
@@ -94,7 +155,7 @@ row = await lab.run(
 )
 ```
 
-Runnable version: [`examples/minimal_harness.py`](../../examples/minimal_harness.py),
+Runnable version: [`examples/minimal_harness.py`](https://github.com/Human-Agent-Society/tide-eval/blob/main/examples/minimal_harness.py),
 a ~25-line adapter around a random-search loop, no LLM, no keys.
 
 Two placements for your method, both fine:
@@ -114,7 +175,7 @@ Two placements for your method, both fine:
 An evolutionary search, a solver portfolio, a bare sampling loop. The
 whole integration is: read `$JUDGE_URL`, POST candidates worth scoring,
 stop at 429. The minimal version is ~20 lines
-([`examples/minimal_harness_search.py`](../../examples/minimal_harness_search.py)).
+([`examples/minimal_harness_search.py`](https://github.com/Human-Agent-Society/tide-eval/blob/main/examples/minimal_harness_search.py)).
 
 An OpenEvolve-style loop plugs in the same way: its `evaluate()` function
 POSTs the candidate to `$JUDGE_URL/submit` and returns the judge's score.
@@ -124,7 +185,7 @@ from the instruction) and spend submissions on survivors.
 
 ## Ready-to-run long-horizon harnesses
 
-[`examples/run_harness.py`](../../examples/run_harness.py) supplies concrete,
+[`examples/run_harness.py`](https://github.com/Human-Agent-Society/tide-eval/blob/main/examples/run_harness.py) supplies concrete,
 version-pinned adapters for the three long-horizon patterns above:
 
 ```bash
@@ -134,37 +195,19 @@ python examples/run_harness.py codex --model gpt-5.6-terra
 python examples/run_harness.py coral --model gpt-5.6-terra --agents 2
 ```
 
-- **OpenEvolve** evolves a task-specific candidate program. Its evaluator
-  executes the candidate, POSTs its JSON to Tide, and returns the judge score.
-- **Codex** subclasses Harbor's built-in Codex agent and pins the CLI version.
-  Harbor runs the task through standard non-interactive `codex exec --json`
-  and retains its trajectory and usage metrics. Because the verifier grades
-  the judge's submission log, a best-effort fallback submits the final
-  `solution.json` after the agent stops when the run never submitted;
-  an agent that did submit is left untouched under best-of semantics.
-- **CORAL** runs multiple Codex workers over a shared repository. Its packaged
-  `TaskGrader` makes `coral eval` spend one Tide submission and returns that
-  feedback to the organization.
-
-All three adapters record actual model usage in Harbor's standard agent result:
-input tokens (including cache), cached input tokens, and output tokens. Tide
-copies those totals plus the LiteLLM price-table estimate into episode columns
-`used_n_input_tokens`, `used_n_cache_tokens`, `used_n_output_tokens`, and
-`used_cost_usd`. Harbor
-extracts Codex usage from its native session trajectory, CORAL sums every
-worker's Codex JSONL turn usage, and OpenEvolve meters each successful SDK
-response.
-
-All three run inside the Harbor task environment and therefore share its time,
-submission, and network budgets. Their final reward still comes from Harbor's
-verifier. See the [harness README](../../examples/harnesses/README.md) for versions,
-credentials, and adaptation notes.
+OpenEvolve evolves a candidate program whose evaluator POSTs to the
+judge; Codex runs Harbor's built-in Codex agent with a pinned CLI; CORAL
+runs multiple Codex workers over a shared repository. All three run
+inside the task environment, share its budgets, record real token and
+cost usage into the `used_*` columns, and are graded by the verifier
+like any other agent. Versions, credentials, and adaptation notes:
+[harness README](https://github.com/Human-Agent-Society/tide-eval/blob/main/examples/harnesses/README.md).
 
 ## Rules of the game
 
 - **You cannot bring your own judge.** Scores come from the task's judge
    or they don't exist. Different scoring rule = a new task
-   ([`tasks/_template`](../../tasks/_template)), not a new judge for an
+   ([`tasks/_template`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/_template)), not a new judge for an
   existing one.
 - **Compare methods at the same `budget` tag**, on the same tasks. All
   scores are judge-computed, so the curve comparison is as trustworthy as

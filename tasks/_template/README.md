@@ -31,4 +31,4 @@ Prove the task in containers with
 
 Full reference for the judge protocol, the scoring contract, the
 `grader_tests.json` schema, network policy, and GPU tasks:
-[docs/guides/authoring-tasks.md](../../docs/guides/authoring-tasks.md).
+[docs/authoring-tasks.md](../../docs/authoring-tasks.md).
