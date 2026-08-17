@@ -40,21 +40,32 @@ that can work inside a container, including your own harness or method.
 
 ## Why not plain Harbor?
 
-Harbor solves the hard infrastructure (the task format, running agents
-against containers, the ecosystem of agent adapters), and tide uses it as
-a library for exactly that. Both regimes need five things on top:
+Harbor runs the trial, and tide imports it for exactly that: the task
+format, containers, the agent adapters, the verifier, trajectories,
+`harbor job resume`, and `harbor view` for browsing and comparing what
+ran. tide adds the two things its regimes need, and one table underneath
+both.
 
-| What you want | Plain Harbor | tide |
-|---|---|---|
-| **The whole score trajectory, not just the endpoint** | One reward number per trial; how the agent got there is lost | The judge records every submission, so the anytime curve, its AUC, and time-to-threshold are one query each, and every point is trusted |
-| **Learning across tasks, not only within one** | Every trial starts from zero | A [stream](docs/get-started.md#streams) carries the agent's memory (a state directory) from task to task, with a snapshot at every step; learning curves, transfer, and forgetting are queries |
-| **Compare across budgets** ("what does 8 h buy over 2 h?") | Statistics live inside a single job (pass@k) | Budget is an ordinary tag, so scaling curves are a pivot over any set of runs |
-| **Resume from failure on long, multi-day sweeps** | A crash throws the whole job away, and covering a suite × variance × budgets takes days of compute | Re-run the same script and finished episodes are skipped; only the unfinished work re-runs |
-| **Compare agents across many runs** | Each run is a throwaway job directory | Every run lands in one table, so comparing agents is a single query that `tide report` reads |
+**Scoring the agent asks for.** Harbor grades a trial where the task says
+to, once at the end or once per declared step, and a reward carries no
+time. An autoresearch task instead hands the agent a judge it can POST to
+whenever it has a candidate worth scoring, and every submission is graded
+into a timestamped log. That log is the anytime curve, and the judge
+computed it, so it is evidence rather than the agent's own report.
 
-One known limit: resume works at episode granularity. A batch of runs
-picks up where it crashed, but a crashed 12-hour episode itself starts
-over.
+**A sequence whose state is snapshotted.** Harbor will already mount a
+directory into every trial and, one trial at a time, run them in order.
+What it has no notion of is the position: tide snapshots the carried
+state after each task and restores it before the next, so every task
+starts from a known state, a crashed stream resumes, and appending a task
+extends a finished stream rather than re-running it.
+
+Both land in one table. Every episode, from any script on any day, is a
+row keyed by (task, agent, tags), with tags as its columns, so score
+against budget, benchmark against benchmark, and a stream against its
+stateless baseline are queries over the same rows. Re-running a script
+skips whatever finished, at episode granularity: a crashed 12-hour
+episode starts over.
 
 Full design (trust model, task conventions, data model, extensibility):
 **[docs/design.md](docs/design.md)**.
