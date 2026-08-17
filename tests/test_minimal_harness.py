@@ -10,7 +10,7 @@ import pytest
 from tide import Lab, LocalExecutor
 
 ROOT = Path(__file__).parent.parent
-TASK = str(ROOT / "tasks" / "autoresearch" / "circle-packing")
+TASK = str(ROOT / "tasks" / "autoresearch" / "first-party" / "circle-packing")
 SEARCH = ROOT / "examples" / "minimal_harness_search.py"
 
 

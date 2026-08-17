@@ -1,6 +1,6 @@
 # Get started
 
-Zero to a real agent score on `autoresearch/circle-packing`, including the
+Zero to a real agent score on `autoresearch/first-party/circle-packing`, including the
 two things that actually go wrong on a first run: agent authentication and
 network egress. For the concepts behind the pipeline see
 [design.md](design.md); for integrating your own method see
@@ -30,7 +30,7 @@ pip install -e ".[harbor]"     # container runs; plain -e . covers --local and t
 | Path | Command | What it proves |
 |---|---|---|
 | simulated | `python examples/quickstart.py` | the Lab API; scores are fake | 
-| local | `tide run autoresearch/circle-packing --local --command "python examples/minimal_harness_search.py" --budget 0.01` | the *real* judge, no Docker, no isolation |
+| local | `tide run autoresearch/first-party/circle-packing --local --command "python examples/minimal_harness_search.py" --budget 0.01` | the *real* judge, no Docker, no isolation |
 | containers | below | the real pipeline; this is what you report |
 
 ## Smoke test: the oracle
@@ -39,7 +39,7 @@ The `oracle` agent runs each task's reference `solution/` in-container. It
 needs no keys and no network, so it isolates the plumbing:
 
 ```bash
-tide run autoresearch/circle-packing --agent oracle
+tide run autoresearch/first-party/circle-packing --agent oracle
 #   OK  circle-packing: {'reward': 0.75}     <- exactly 0.75, or something is broken
 ```
 
@@ -81,7 +81,7 @@ API_HOSTS = [  # agent phase: codex talking to OpenAI
 async def main():
     lab = Lab("runs/codex")
     row = await lab.run(
-        "tasks/autoresearch/circle-packing",
+        "tasks/autoresearch/first-party/circle-packing",
         agent={
             "name": "codex",
             "model_name": "openai/gpt-5.6-sol",  # any codex model slug

@@ -8,12 +8,12 @@ TASKS_ROOT = Path(__file__).parent.parent / "tasks"
 
 
 def test_resolve_single_task_dir():
-    target = str(TASKS_ROOT / "autoresearch" / "tsp-tour")
+    target = str(TASKS_ROOT / "autoresearch" / "first-party" / "tsp-tour")
     assert resolve_targets([target], TASKS_ROOT) == [target]
 
 
 def test_resolve_category_expands_and_skips_template():
-    resolved = resolve_targets(["autoresearch"], TASKS_ROOT)
+    resolved = resolve_targets(["autoresearch/first-party"], TASKS_ROOT)
     names = [Path(r).name for r in resolved]
     assert "tsp-tour" in names and "circle-packing" in names
     assert len(names) == 6
@@ -39,8 +39,8 @@ def test_run_fake_end_to_end(tmp_path, capsys):
             "--tasks-dir",
             str(TASKS_ROOT),
             "run",
-            "autoresearch/tsp-tour",
-            "autoresearch/bin-packing",
+            "autoresearch/first-party/tsp-tour",
+            "autoresearch/first-party/bin-packing",
             "--agent",
             "oracle",
             "--fake",
@@ -59,7 +59,7 @@ def test_run_fake_end_to_end(tmp_path, capsys):
     code = main(["report", "--lab", lab])
     out = capsys.readouterr().out
     assert code == 0
-    assert "autoresearch/tsp-tour" in out
+    assert "first-party/tsp-tour" in out
     assert " 2 " in out  # count column: 2 attempts each
 
 
@@ -69,7 +69,7 @@ def test_run_is_idempotent_across_invocations(tmp_path, capsys):
         "--tasks-dir",
         str(TASKS_ROOT),
         "run",
-        "autoresearch/tsp-tour",
+        "autoresearch/first-party/tsp-tour",
         "--agent",
         "oracle",
         "--fake",
@@ -91,8 +91,8 @@ def test_stream_fake_end_to_end(tmp_path, capsys):
         str(TASKS_ROOT),
         "stream",
         "week1",
-        "autoresearch/tsp-tour",
-        "autoresearch/bin-packing",
+        "autoresearch/first-party/tsp-tour",
+        "autoresearch/first-party/bin-packing",
         "--agent",
         "oracle",
         "--fake",
@@ -120,7 +120,7 @@ def test_stream_shuffle_is_deterministic_and_seed_scoped(tmp_path, capsys):
         str(TASKS_ROOT),
         "stream",
         "mix",
-        "autoresearch",
+        "autoresearch/first-party",
         "--agent",
         "oracle",
         "--fake",
@@ -149,6 +149,6 @@ def test_stream_shuffle_is_deterministic_and_seed_scoped(tmp_path, capsys):
 def test_list_and_fetch_errors(capsys):
     assert main(["--tasks-dir", str(TASKS_ROOT), "list"]) == 0
     out = capsys.readouterr().out
-    assert "autoresearch/circle-packing" in out
+    assert "autoresearch/first-party/circle-packing" in out
     with pytest.raises(SystemExit, match="available"):
         main(["--tasks-dir", str(TASKS_ROOT), "fetch", "nonsense-bench"])

@@ -16,9 +16,9 @@ budget" then means the same value on **whichever axis you're studying**: an
 8h-vs-2h time curve, or reward-per-million-tokens across models.
 
 ```bash
-tide run autoresearch/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2h
-tide run autoresearch/tsp-tour --agent codex        --max-tokens 500k
-tide run autoresearch/tsp-tour --agent aider        --max-evals 50 --max-cost 3
+tide run autoresearch/first-party/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2h
+tide run autoresearch/first-party/tsp-tour --agent codex        --max-tokens 500k
+tide run autoresearch/first-party/tsp-tour --agent aider        --max-evals 50 --max-cost 3
 ```
 
 ```python
@@ -26,7 +26,7 @@ from tide import Lab, Budget
 
 lab = Lab("runs/exp")
 await lab.run(
-    "tasks/autoresearch/tsp-tour",
+    "tasks/autoresearch/first-party/tsp-tour",
     agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"},
     budget=Budget(max_tokens=500_000),
 )  # a bare number is hours: budget=2

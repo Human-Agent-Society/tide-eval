@@ -72,6 +72,9 @@ def resolve_targets(targets: list[str], tasks_root: Path | None) -> list[str]:
         candidates = [path]
         if tasks_root is not None:
             candidates.append(tasks_root / target)
+            # Benchmarks live one level down (tasks/<mode>/<benchmark>), so
+            # bare names like "edgebench" or "terminal-bench" resolve too.
+            candidates.extend(sorted(tasks_root.glob(f"*/{target}")))
         for candidate in candidates:
             if _is_task_dir(candidate):
                 resolved.append(str(candidate))
@@ -303,9 +306,12 @@ def cmd_fetch(args: argparse.Namespace) -> int:
     tasks_root = _find_tasks_root(args.tasks_dir)
     if tasks_root is None:
         raise SystemExit("no tasks/ directory found — run from a tide checkout")
-    script = tasks_root / args.benchmark / "fetch.py"
-    if not script.is_file():
-        available = sorted(p.parent.name for p in tasks_root.glob("*/fetch.py"))
+    matches = sorted(tasks_root.glob(f"*/{args.benchmark}/fetch.py")) + [
+        tasks_root / args.benchmark / "fetch.py"
+    ]
+    script = next((m for m in matches if m.is_file()), None)
+    if script is None:
+        available = sorted(p.parent.name for p in tasks_root.glob("*/*/fetch.py"))
         raise SystemExit(
             f"no fetch script for '{args.benchmark}'; available: {available}"
         )

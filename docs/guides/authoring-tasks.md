@@ -104,7 +104,7 @@ The agent never observes the final evaluation or its result.
 Same signature as `score.py`, run exactly once, on the best submission,
 when the verifier finalizes. This is where hidden tests live: held-out
 data, stricter checks, anything the session score must not leak.
-[symbolic-regression](../../tasks/autoresearch/symbolic-regression) is the
+[symbolic-regression](../../tasks/autoresearch/first-party/symbolic-regression) is the
 reference: the session scores on training points; the final judge scores
 once on held-out points, so no submission budget can be spent probing
 them. Without `final.py`, the final verdict is simply the best session
@@ -215,7 +215,7 @@ and record the GPU model as a tag so curves never mix hardware.
 A converter turns a published external format into a folder of task dirs.
 Converters live beside the benchmark they maintain and depend only on its
 published format, keeping benchmark-specific tooling out of tide's runtime
-package. The reference implementation is `tasks/edgebench/convert.py`; its
+package. The reference implementation is `tasks/autoresearch/edgebench/convert.py`; its
 tests pin the converter to unmodified published spec files; do the same for
 any new converter: check one real spec into `tests/fixtures/` and validate
 the emitted task under Harbor's `TaskConfig`.

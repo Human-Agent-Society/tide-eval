@@ -23,12 +23,12 @@ TASKS_ROOT = Path(__file__).parent.parent / "tasks"
 # The template ships as a complete working task and is held to the same
 # contract, so copying it always starts from green.
 GRADER_TESTED_TASKS = sorted(
-    p.parent.parent for p in TASKS_ROOT.glob("*/*/tests/grader_tests.json")
+    p.parent.parent for p in TASKS_ROOT.glob("**/tests/grader_tests.json")
 ) + [TASKS_ROOT / "_template"]
 ALL_TASKS = sorted(
     p.parent
-    for p in TASKS_ROOT.glob("*/*/task.toml")
-    if not any(part.startswith("_") for part in p.parts)
+    for p in TASKS_ROOT.glob("**/task.toml")
+    if not any(part.startswith(("_", ".")) for part in p.parts)
 )
 
 
@@ -125,7 +125,7 @@ def test_every_committed_task_validates(task_dir):
 
 @pytest.mark.parametrize(
     "task_dir",
-    sorted(TASKS_ROOT.glob("autoresearch/*/")),
+    sorted(TASKS_ROOT.glob("autoresearch/first-party/*/")),
     ids=lambda p: p.name,
 )
 def test_first_party_tasks_ship_grader_tests(task_dir):

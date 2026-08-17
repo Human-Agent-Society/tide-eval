@@ -33,7 +33,7 @@ python examples/run_harness.py codex --model gpt-5.6-terra
 python examples/run_harness.py coral --model gpt-5.6-terra --agents 2
 ```
 
-The example is wired to `tasks/autoresearch/circle-packing`, which makes the
+The example is wired to `tasks/autoresearch/first-party/circle-packing`, which makes the
 three methods directly comparable in one Lab. Change `TASK` in
 [`../run_harness.py`](../run_harness.py) to point at another task. Codex consumes
 the task instruction directly through Harbor's standard non-interactive agent.

@@ -11,7 +11,7 @@ import pytest
 
 yaml = pytest.importorskip("yaml", reason="PyYAML not installed")
 
-from tasks.edgebench.convert import convert_task  # noqa: E402
+from tasks.autoresearch.edgebench.convert import convert_task  # noqa: E402
 
 FIXTURES = Path(__file__).parent / "fixtures" / "edgebench"
 

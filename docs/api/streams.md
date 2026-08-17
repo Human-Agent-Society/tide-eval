@@ -16,9 +16,9 @@ lab = Lab("runs/cl")
 stream = Stream(
     "my-stream",
     [
-        "tasks/terminal-bench/chess-best-move",
-        "tasks/terminal-bench/build-pmars",
-        "tasks/terminal-bench/chess-best-move",  # a revisit, for forgetting
+        "tasks/continual-learning/terminal-bench/chess-best-move",
+        "tasks/continual-learning/terminal-bench/build-pmars",
+        "tasks/continual-learning/terminal-bench/chess-best-move",  # a revisit, for forgetting
     ],
 )
 rows = await stream.run(
@@ -41,9 +41,9 @@ tide stream my-stream terminal-bench --agent claude-code --model anthropic/claud
 ```
 
 The supported stream benchmarks are
-[terminal-bench 2.0](../../tasks/terminal-bench),
-[SWE-bench Verified](../../tasks/swebench-verified), and all six
-[CL-Bench](../../tasks/cl-bench) domains. terminal-bench and CL-Bench
+[terminal-bench 2.0](../../tasks/continual-learning/terminal-bench),
+[SWE-bench Verified](../../tasks/continual-learning/swebench-verified), and all six
+[CL-Bench](../../tasks/continual-learning/cl-bench) domains. terminal-bench and CL-Bench
 tasks are committed to the repo; SWE-bench needs
 `tide fetch swebench-verified` first (its upstream has no license, so
 those tasks are never committed).
