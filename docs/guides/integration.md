@@ -35,8 +35,8 @@ have to, since tide records the actual spend either way.
 `nop` (does nothing; catches leakage):
 
 ```bash
-tide run autoresearch/first-party --agent claude-code --model anthropic/claude-opus-5
-tide run autoresearch/first-party/tsp-tour --agent codex --budget 2h
+tide run frontier-cs/frontier-cs-2-0-vllm-llm-serving-optimization --agent claude-code --model anthropic/claude-opus-5
+tide run frontier-cs/frontier-cs-algorithm-1 --agent codex --budget 2h
 ```
 
 The instruction tells the harness the submission protocol; `--budget` sets
@@ -71,7 +71,7 @@ class MyAgent(BaseAgent):
 
 ```python
 row = await lab.run(
-    "tasks/autoresearch/first-party/circle-packing",
+    "tasks/autoresearch/frontier-cs/frontier-cs-algorithm-1",
     agent={"import_path": "my_pkg.my_agent:MyAgent", "model_name": "..."},
     tags={"harness": "my-harness", "budget": 1},
 )

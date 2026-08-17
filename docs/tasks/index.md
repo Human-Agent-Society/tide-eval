@@ -5,8 +5,8 @@ benchmarks converted to the same Harbor task format. Every task is a stock
 Harbor task, so it runs two ways, always:
 
 ```bash
-tide run autoresearch/first-party/tsp-tour --agent oracle      # through tide
-harbor trial start -p tasks/autoresearch/first-party/tsp-tour  # stock Harbor, standalone
+tide run cl-bench/bsm-s01 --agent oracle                        # through tide
+harbor trial start -p tasks/continual-learning/cl-bench/bsm-s01 # stock Harbor, standalone
 ```
 
 `tide list` shows everything runnable. To author your own, start from

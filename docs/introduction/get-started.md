@@ -1,6 +1,6 @@
 # Get started
 
-Zero to a real agent score on `autoresearch/first-party/circle-packing`, including the
+Zero to a real agent score, including the
 two things that actually go wrong on a first run: agent authentication and
 network egress. For the concepts behind the pipeline see
 [design.md](design.md); for integrating your own method see
@@ -13,8 +13,8 @@ git clone https://github.com/Human-Agent-Society/tide-eval && cd tide-eval
 pip install -e ".[harbor]"     # container runs; plain -e . covers --local and the API
 ```
 
-- **Docker**: tasks run in containers. One caveat: first-party tasks use an
-  `allowlist` network policy, which Harbor enforces with an nftables egress
+- **Docker**: tasks run in containers. One caveat: many tasks (first-party
+  autoresearch, CL-Bench) use an `allowlist` network policy, which Harbor enforces with an nftables egress
   sidecar. That needs a kernel with `CONFIG_NFT_FIB_INET`; Docker Desktop
   older than ~4.30 (linuxkit 5.15) doesn't have it and Harbor will refuse
   the run; see [Troubleshooting](#troubleshooting).
@@ -39,14 +39,14 @@ The `oracle` agent runs each task's reference `solution/` in-container. It
 needs no keys and no network, so it isolates the plumbing:
 
 ```bash
-tide run autoresearch/first-party/circle-packing --agent oracle
-#   OK  circle-packing: {'reward': 0.75}     <- exactly 0.75, or something is broken
+tide run cl-bench/bsm-s01 --agent oracle
+#   OK  bsm-s01: {'reward': 1.0}     <- exactly 1.0, or something is broken
 ```
 
 ## Run codex for real
 
-First-party tasks lock the agent's network down to the judge sidecar
-(`allowed_hosts = ["judge"]` in `task.toml`). A container-brain agent needs
+Locked-down tasks (first-party autoresearch, CL-Bench) restrict the
+agent's network in `task.toml`. A container-brain agent needs
 two kinds of egress on top of that:
 
 1. **install egress** (setup phase, under the task's baseline policy):
@@ -81,7 +81,7 @@ API_HOSTS = [  # agent phase: codex talking to OpenAI
 async def main():
     lab = Lab("runs/codex")
     row = await lab.run(
-        "tasks/autoresearch/first-party/circle-packing",
+        "tasks/continual-learning/cl-bench/bsm-s01",
         agent={
             "name": "codex",
             "model_name": "openai/gpt-5.6-sol",  # any codex model slug
@@ -89,7 +89,7 @@ async def main():
         },
         environment={"extra_allowed_hosts": INSTALL_HOSTS + API_HOSTS},
     )
-    print(row.rewards)  # e.g. {'reward': 0.796...}; oracle baseline is 0.75
+    print(row.rewards)  # e.g. {'reward': 0.83}; the reference solution scores 1.0
 
 
 asyncio.run(main())
@@ -99,9 +99,9 @@ asyncio.run(main())
 CODEX_FORCE_AUTH_JSON=1 python run_codex.py
 ```
 
-The agent gets the task's `timeout_sec` as its budget (10 min here); hitting
-the deadline is a normal ending; the verifier still grades the
-best-so-far submission.
+The agent gets the task's `timeout_sec` as its budget (15 min here); hitting
+the deadline is a normal ending; the verifier still grades whatever
+answer the agent has written by then.
 
 On tasks whose network is already open (e.g. the `frontier-cs` folders),
 the plain CLI works: `tide run frontier-cs/frontier-cs-algorithm-1

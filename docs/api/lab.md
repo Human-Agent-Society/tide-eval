@@ -13,7 +13,7 @@ from tide import Lab, Budget
 lab = Lab("runs/exp1")  # a Lab IS a directory: results.sqlite + trials/
 
 row = await lab.run(  # one episode = one trusted score
-    "tasks/autoresearch/first-party/tsp-tour",
+    "tasks/autoresearch/frontier-cs/frontier-cs-2-0-vllm-llm-serving-optimization",
     agent={"name": "oracle"},
     budget=Budget(time_h=1),  # the budget (units are explicit; see below)
     tags={"suite": "smoke"},  # free-form tags = your result schema

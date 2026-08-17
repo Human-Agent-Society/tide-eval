@@ -77,10 +77,10 @@ git clone https://github.com/Human-Agent-Society/tide-eval && cd tide-eval
 pip install -e ".[harbor]"               # container runs; plain -e . covers --local and the API
 
 tide list                                # what's runnable
-tide run autoresearch/first-party --agent oracle     # oracle = built-in agent that runs each task's reference solution
-tide run autoresearch/first-party/tsp-tour --agent claude-code --model anthropic/claude-opus-5 --budget 2h     # time (2h / 30m / 90s; bare = hours)
-tide run autoresearch/first-party/tsp-tour --agent codex --model openai/gpt-5 --max-tokens 500k                # or: tokens / --max-evals / --max-cost
-tide stream my-stream terminal-bench --agent claude-code --model anthropic/claude-opus-5               # continual learning: memory carried across tasks
+tide run cl-bench/bsm-s01 --agent oracle              # oracle = built-in agent that runs the reference solution (must score 1.0)
+tide run frontier-cs/frontier-cs-2-0-vllm-llm-serving-optimization --agent claude-code --model anthropic/claude-opus-5 --budget 2h   # time (2h / 30m / 90s; bare = hours)
+tide run frontier-cs/frontier-cs-algorithm-1 --agent codex --model openai/gpt-5 --max-tokens 500k              # or: tokens / --max-evals / --max-cost
+tide stream my-stream tasks/continual-learning/cl-bench/poker-* --agent claude-code --model anthropic/claude-opus-5   # continual learning: memory carried across tasks
 tide report                              # summarize the results store
 ```
 
@@ -109,8 +109,8 @@ uri to mark the difference. Develop locally, report container numbers. (`python 
 and `--fake` still work with zero setup, but their scores are simulated.)
 
 When you have Docker,
-`tide run autoresearch/first-party/circle-packing --agent oracle` proves
-the real pipeline end to end (the oracle must score exactly 0.75), and
+`tide run cl-bench/bsm-s01 --agent oracle` proves the real pipeline end
+to end (the oracle must score exactly 1.0), and
 `python examples/minimal_harness.py` is the smallest complete container
 harness: about twenty-five lines of adapter around the same random-search
 loop.
@@ -126,7 +126,7 @@ from tide import Lab, Budget, metrics
 
 lab = Lab("runs/exp1")
 row = await lab.run(
-    "tasks/autoresearch/first-party/circle-packing",  # any task dir or Harbor registry id
+    "tasks/autoresearch/frontier-cs/frontier-cs-2-0-vllm-llm-serving-optimization",  # any task dir or Harbor registry id
     agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"},
     budget=Budget(time_h=2),  # the budget: time, or tokens / evals / cost
     tags={"suite": "smoke"},  # free-form tags = your schema
@@ -136,7 +136,7 @@ row.uri  # the trial directory, for auditing
 
 # Budget is more than a clock; bound whichever resource is scarce:
 await lab.run(
-    "tasks/autoresearch/first-party/circle-packing",
+    "tasks/autoresearch/frontier-cs/frontier-cs-algorithm-1",
     agent={"name": "codex", "model_name": "openai/gpt-5"},
     budget=Budget(max_tokens=500_000),
 )  # or max_evals=50, max_cost_usd=3
@@ -278,7 +278,7 @@ Each first-party task teaches one hard part of the autoresearch category
 ### Define a new task
 
 ```bash
-cp -r tasks/_template tasks/autoresearch/first-party/my-task
+cp -r tasks/_template tasks/autoresearch/my-suite/my-task
 pytest tests/test_task_suite.py          # picked up automatically, and already green
 ```
 
