@@ -3,7 +3,7 @@
 Tasks are **100% stock Harbor tasks**: every committed task is validated
 against Harbor's `TaskConfig` schema by `tests/test_task_suite.py`. tide
 adds conventions *around* the format, never fields inside it. Start from
-[`tasks/_template`](../../tasks/_template): it ships as a complete working
+[`tasks/_template`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/_template): it ships as a complete working
 placeholder task (maximize `x` in `[0, 1]`), so the suite passes before you
 change anything. Verify standalone with `harbor trial start -p <dir>`, then
 run it under tide.
@@ -67,30 +67,12 @@ judge image, the agent's network reaches only the judge's agent port
 number in the submission log was computed by the judge, which is why the
 score-over-time curve is trusted, not self-reported.
 
-### Artifact selection and lifecycle ordering
-
-The judge owns artifact selection and the full lifecycle:
-
-1. **Agent submits**: the agent POSTs candidate solutions to the agent
-   port at will; the judge scores each and appends to the in-memory log.
-2. **Agent stops**: the budget runs out or the agent exits.
-3. **Verifier finalizes**: the trusted verifier (the local executor in
-   `--local` mode, or `tests/grade.py` in containers) fetches the token
-   from the verifier port, then calls `GET /final` on that port.
-4. **Artifact frozen**: the judge selects the best submission by session
-   score (`max(log, key=lambda e: (e["score"], -e["n"]))`), identifies it
-   by its submission number, and reads the stored file
-   `DATA_DIR/submission_{best_n}`. The artifact is already on disk;
-   no content digest is needed because the judge never accepted a
-   replacement for a logged submission.
-5. **Final evaluation**: if `final.py` exists, it runs once on the
-   frozen artifact; otherwise the best session score is the verdict.
-6. **Session locked**: the verdict is cached; subsequent `/final` calls
-   return the same object (safe for verifier retries); `/submit` is
-   refused with 429.
-
-The orchestrator (not the agent) owns steps 2-3; the judge owns steps 4-6.
-The agent never observes the final evaluation or its result.
+Lifecycle: the agent submits until its budget ends; the verifier then
+calls `GET /final`, the judge freezes the best submission by session
+score, runs `final.py` on it if present (else the best session score is
+the verdict), and locks the session. Repeat `/final` calls return the
+cached verdict and later submissions are refused, so the agent never
+observes the final evaluation or its result.
 
 ## The submission budget
 
@@ -109,7 +91,7 @@ The agent never observes the final evaluation or its result.
 Same signature as `score.py`, run exactly once, on the best submission,
 when the verifier finalizes. This is where hidden tests live: held-out
 data, stricter checks, anything the session score must not leak.
-[symbolic-regression](../../tasks/autoresearch/first-party/symbolic-regression) is the
+[symbolic-regression](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/autoresearch/first-party/symbolic-regression) is the
 reference: the session scores on training points; the final judge scores
 once on held-out points, so no submission budget can be spent probing
 them. Without `final.py`, the final verdict is simply the best session
@@ -178,46 +160,21 @@ allowed_hosts = ["judge", "api.openai.com"]
 Never give the agent open internet on a task whose answers can be looked
 up.
 
-## A GPU task (kernels, CUDA, ML workloads)
+## A GPU task
 
-A GPU task is a plain Harbor task with two extra pieces of configuration;
-tide adds nothing:
-
-1. Declare the requirement in `task.toml`; Harbor's schema validates it and
-   Harbor's cloud backends (Modal, Beam, GKE, SkyPilot, Daytona, …) honor it
-   natively:
-
-   ```toml
-   [environment]
-   gpus = 1
-   ```
-
-2. For local Docker, GPU access is a standard compose device reservation in
-   the task's `environment/docker-compose.yaml` (which the judge sidecar
-   already uses), and needs the NVIDIA Container Toolkit on the host:
-
-   ```yaml
-   services:
-     main:
-       deploy:
-         resources:
-           reservations:
-             devices:
-               - driver: nvidia
-                 count: all
-                 capabilities: [gpu]
-   ```
-
-Give the **judge** service the reservation instead (or as well) when
-scoring itself needs the GPU, e.g. re-timing kernels trustably. One
-caveat for kernel-timing tasks: wall-clock speedups measured on
-shared/heterogeneous hosts are noisy. Prefer scoring against a reference
-implementation run in the same container, same session (relative speedup),
-and record the GPU model as a tag so curves never mix hardware.
+Declare the requirement in `task.toml` (`[environment]` `gpus = 1`);
+Harbor's schema validates it and Harbor's cloud backends honor it
+natively. For local Docker, add the standard nvidia device reservation
+(`deploy.resources.reservations.devices`) to the `main` service in the
+task's `environment/docker-compose.yaml`; give the judge service the
+reservation too when scoring itself needs the GPU. One caveat for
+kernel-timing tasks: wall-clock speedups on shared hosts are noisy, so
+score against a reference implementation run in the same container and
+session, and record the GPU model as a tag so curves never mix hardware.
 
 ## A continual-learning task
 
-Any stock Harbor task runs in a [stream](../api/streams.md) unchanged:
+Any stock Harbor task runs in a [stream](get-started.md#streams) unchanged:
 tide mounts the carried memory directory itself, so the task neither
 knows nor cares, and a pass/fail verifier is a fine score (a pass is a
 0-or-1 reward). None of the judge machinery above is required. Two
@@ -282,7 +239,7 @@ commit, so the committed tasks can be regenerated and verified. The
 reference implementations are
 `tasks/autoresearch/edgebench/convert.py` and, for continual learning,
 the per-domain converters in
-[`tasks/continual-learning/cl-bench`](../../tasks/continual-learning/cl-bench).
+[`tasks/continual-learning/cl-bench`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/continual-learning/cl-bench).
 Their tests pin the converter to unmodified published spec files; do the
 same for any new converter: check one real spec into `tests/fixtures/`
 and validate the emitted task under Harbor's `TaskConfig`.

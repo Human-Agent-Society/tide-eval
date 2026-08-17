@@ -1,23 +1,18 @@
 # tide
 
 Evaluate learning from inference-time signals: feedback produced during
-the run itself. Autoresearch measures
-a solution improving against an evaluator on one open-ended problem;
-continual learning measures an agent carrying what it learned into the
-next task.
+the run itself. Autoresearch measures a solution improving against an
+evaluator on one open-ended problem; continual learning measures an
+agent carrying what it learned into the next task.
 
-- **[Get started](introduction/get-started.md)**: install to a real agent
-  score, including auth and network setup.
-- **[Design](introduction/design.md)**: the trust model, where the judge owns all
-  scoring.
-- **[Glossary](introduction/glossary.md)**: every term in one place.
-- **[Evaluating your agent](guides/integration.md)**: bring your own agent
-  or method.
-- **[Authoring tasks](guides/authoring-tasks.md)**: new tasks and benchmark
+- **[Get started](get-started.md)**: install, run tasks and streams,
+  budgets, results, resume.
+- **[Running agents](running-agents.md)**: evaluate a supported harness,
+  your own harness, or a method that is not an agent at all.
+- **[Authoring tasks](authoring-tasks.md)**: new tasks, new benchmarks,
   converters.
-- **API**: [lab](api/lab.md) · [streams](api/streams.md) ·
-  [budget](api/budget.md) · [executors](api/executors.md) ·
-  [metrics](api/metrics.md)
+- **[Metrics](metrics.md)**: the analyses over the results table.
 
-The [benchmark catalog](tasks/index.md): 6 first-party autoresearch tasks,
-plus EdgeBench (51) and FrontierCS (208) converted to the same format.
+Background: [design](design.md) covers the trust model and the data
+model, [glossary](glossary.md) every term, and the
+[benchmark catalog](tasks.md) what ships.

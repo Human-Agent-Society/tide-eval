@@ -1,5 +1,5 @@
 site_name: tide
-site_description: Evaluate agents on autoresearch tasks — continuous scores, budget semantics, trusted results.
+site_description: Autoresearch and continual-learning evaluation on the Harbor task standard.
 repo_url: https://github.com/Human-Agent-Society/tide-eval
 docs_dir: docs
 
@@ -11,22 +11,14 @@ theme:
 
 nav:
   - Home: index.md
-  - Introduction:
-      - Get started: introduction/get-started.md
-      - Design: introduction/design.md
-  - Guides:
-      - Evaluating your agent: guides/integration.md
-      - Authoring tasks & benchmarks: guides/authoring-tasks.md
-  - API:
-      - Lab & store: api/lab.md
-      - Budget: api/budget.md
-      - Executors: api/executors.md
-      - Metrics: api/metrics.md
-  - Tasks:
-      - Overview: tasks/index.md
-  - Development:
-      - GitHub: https://github.com/Human-Agent-Society/tide-eval
-      - Contributing: https://github.com/Human-Agent-Society/tide-eval/blob/main/CONTRIBUTING.md
+  - Get started: get-started.md
+  - Running agents: running-agents.md
+  - Authoring tasks: authoring-tasks.md
+  - Metrics: metrics.md
+  - Benchmarks: tasks.md
+  - Design: design.md
+  - Glossary: glossary.md
+  - GitHub: https://github.com/Human-Agent-Society/tide-eval
 
 markdown_extensions:
   - admonition

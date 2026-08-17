@@ -25,7 +25,7 @@ only *how good, by when*. What improves is **the solution**:
 </picture>
 
 **Continual learning** puts one agent through a
-[stream](docs/api/streams.md) of tasks in order (the
+[stream](docs/get-started.md#streams) of tasks in order (the
 [AgentStream](https://arxiv.org/abs/2608.00155) setting; the supported
 benchmarks are [terminal-bench 2.0](tasks/continual-learning/terminal-bench),
 [SWE-bench Verified](tasks/continual-learning/swebench-verified), and all six
@@ -51,7 +51,7 @@ are the reason tide exists:
 | What you want | Plain Harbor | tide |
 |---|---|---|
 | **The whole score trajectory, not just the endpoint** | One reward number per trial; how the agent got there is lost | The judge records every submission, so the anytime curve, its AUC, and time-to-threshold are one query each, and every point is trusted |
-| **Learning across tasks, not only within one** | Every trial starts from zero | A [`Stream`](docs/api/streams.md) carries the agent's memory (a state directory) from task to task, with a snapshot at every step; learning curves, transfer, and forgetting are queries |
+| **Learning across tasks, not only within one** | Every trial starts from zero | A [stream](docs/get-started.md#streams) carries the agent's memory (a state directory) from task to task, with a snapshot at every step; learning curves, transfer, and forgetting are queries |
 | **Compare across budgets** ("what does 8 h buy over 2 h?") | Statistics live inside a single job (pass@k) | Budget is an ordinary tag, so scaling curves are a pivot over any set of runs |
 | **Resume from failure on long, multi-day sweeps** | A crash throws the whole job away, and covering a suite × variance × budgets takes days of compute | Re-run the same script and finished episodes are skipped; only the unfinished work re-runs |
 | **Compare agents across many runs** | Each run is a throwaway job directory | Every run lands in one table, so comparing agents is a single query that `tide report` reads |
@@ -61,11 +61,11 @@ picks up where it crashed, but a crashed 12-hour episode itself starts
 over.
 
 Full design (trust model, task conventions, data model, extensibility):
-**[docs/introduction/design.md](docs/introduction/design.md)**.
+**[docs/design.md](docs/design.md)**.
 
 ## Using tide
 
-First run? **[docs/introduction/get-started.md](docs/introduction/get-started.md)** walks from install
+First run? **[docs/get-started.md](docs/get-started.md)** walks from install
 to a real agent score, including agent auth and network egress setup.
 
 ### Run
@@ -81,7 +81,7 @@ tide stream demo cl-bench --agent claude-code --model anthropic/claude-opus-5
 
 `--budget` is time (`2h` / `30m` / `90s`; a bare number is hours); the other
 budget axes are `--max-tokens` (e.g. `500k`), `--max-evals`, and `--max-cost`
-(USD). See [budget](docs/api/budget.md).
+(USD). See [budgets](docs/get-started.md#budgets).
 
 #### No Docker? Develop locally, verify in containers
 
@@ -129,9 +129,7 @@ metrics.auc(curve)  # the anytime score
 ```
 
 Re-running any script resumes it. Reference:
-[lab](docs/api/lab.md) · [streams](docs/api/streams.md) ·
-[budget](docs/api/budget.md) · [metrics](docs/api/metrics.md) ·
-[executors](docs/api/executors.md).
+[get started](docs/get-started.md) · [metrics](docs/metrics.md).
 
 ### Continual learning: task streams
 
@@ -167,7 +165,7 @@ metrics.transfer(df, baseline_df)  # vs the same tasks run isolated (plain lab.r
 Re-running the same stream name resumes it; a new name starts fresh with
 empty memory. Each task is an ordinary Harbor trial in its own container,
 with the memory snapshotted at every step, so a crashed stream picks up
-where it left off. Full details: **[docs/api/streams.md](docs/api/streams.md)**.
+where it left off. Full details: **[docs/get-started.md](docs/get-started.md#streams)**.
 
 ### Evaluate your own agent
 
@@ -183,7 +181,7 @@ are identical, so numbers stay comparable across methods:
 | another method that isn't an "agent" (evolutionary search, a solver) | POST candidates to `$JUDGE_URL/submit`, stop at 429 (about 20 lines) |
 
 The only thing you cannot bring is your own judge. Full guide:
-**[docs/guides/integration.md](docs/guides/integration.md)**.
+**[docs/running-agents.md](docs/running-agents.md)**.
 
 ### Examples
 
@@ -211,7 +209,7 @@ CORAL adapters as comparison baselines.
 
 Each first-party task teaches one hard part of the category (held-out
 grading, safely grading agent-shipped code, ...); the full catalog with
-oracle scores is in [docs/tasks](docs/tasks/index.md). The next
+oracle scores is in [docs/tasks.md](docs/tasks.md). The next
 converters are tracked in the
 [roadmap](https://github.com/Human-Agent-Society/tide-eval/issues/19).
 
@@ -238,7 +236,7 @@ metric in every domain (its *gain metric* is `metrics.transfer`). Where a
 domain has hidden state (the poker deck, the metered database), it lives
 in a judge sidecar the agent reaches only over HTTP. A stream also takes
 any task list you build yourself, repeats allowed; see
-[streams](docs/api/streams.md).
+[streams](docs/get-started.md#streams).
 
 ### Define a new task
 
@@ -251,7 +249,7 @@ The template ships as a complete working task: replace one `TODO(task)`
 piece at a time and the suite keeps validating it. A benchmark is just a
 directory of such tasks; `fetch.register(name, repo, ref)` makes a
 git-hosted one downloadable by name, the way gym environments register.
-Guide: **[docs/guides/authoring-tasks.md](docs/guides/authoring-tasks.md)**.
+Guide: **[docs/authoring-tasks.md](docs/authoring-tasks.md)**.
 
 ## Contributing
 
