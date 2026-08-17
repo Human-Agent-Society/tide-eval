@@ -120,8 +120,20 @@ def resolve_targets(targets: list[str], tasks_root: Path | None) -> list[str]:
             hit = _fetch_known_benchmark(target)
             if hit is not None:
                 resolved.extend(hit)
+            elif "/" in target:
+                resolved.append(target)  # a Harbor registry id, org/name
             else:
-                resolved.append(target)  # a Harbor registry id
+                # Harbor registry ids are always org/name, so a bare word that
+                # matched nothing local cannot be one. Saying so here beats
+                # letting Harbor fail on it with a schema error.
+                from tide import fetch
+
+                raise SystemExit(
+                    f"'{target}' is not a task directory, a folder of tasks, or "
+                    f"a known benchmark ({', '.join(fetch.known_benchmarks())}). "
+                    "Harbor registry ids look like 'org/name'. "
+                    "Run `tide list` to see what is available here."
+                )
     return resolved
 
 

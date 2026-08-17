@@ -40,6 +40,14 @@ def test_resolve_registry_id_passthrough():
     ]
 
 
+def test_resolve_unknown_bare_name_is_loud(tmp_path):
+    """Harbor registry ids are always org/name, so a bare word that matched
+    nothing local cannot be one. Say so instead of letting Harbor fail on a
+    schema error."""
+    with pytest.raises(SystemExit, match="not a task directory"):
+        resolve_targets(["definitely-not-a-real-task"], TASKS_ROOT)
+
+
 def test_resolve_empty_folder_is_loud(tmp_path):
     (tmp_path / "emptybench").mkdir()
     with pytest.raises(SystemExit, match="no task.toml"):
