@@ -13,7 +13,7 @@ lab = Lab("runs/exp1")
 ep, trace = lab.df("episode"), lab.df("trace")
 
 curve = metrics.anytime(trace, by=["task"])  # best-so-far over time
-metrics.auc(curve[curve.task == "tsp-tour"])  # the anytime score
+metrics.auc(curve[curve.task == "frontier-cs-algorithm-1"])  # the anytime score
 metrics.scaling(ep, by=["model"])  # score vs budget
 metrics.learning_curve(ep, by=["stream"])  # score over stream position
 ```
