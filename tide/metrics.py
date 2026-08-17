@@ -1,20 +1,55 @@
-"""Metrics: pure functions from DataFrame to DataFrame/Series.
+"""Metrics: pure functions from DataFrame to DataFrame or Series.
 
-Every function documents the **columns it expects** — this is the tag-hygiene
-contract. The store never fixes a schema; a metric declares what it needs and
-your script supplies those tags. Raw scores stay raw in the store; anything
-normalization-shaped lives here and is applied at query time.
+Every function documents the columns it expects; the store never fixes a
+schema. Raw scores stay raw in the store, and anything
+normalization-shaped is applied here at query time.
 
-Conventions used throughout:
+Autoresearch curves, over trace rows:
 
-- ``score`` — the value column (``"reward"`` for episodes, ``"score"``
-  for trace rows; every function takes it as a parameter).
-- Aggregation over repeats (k>1) is ``mean`` unless the metric says otherwise.
+- :func:`anytime`: best-so-far score over time
+- :func:`auc`: area under the anytime curve, the anytime score
+- :func:`time_to`: when the score first reached a threshold
+- :func:`improvements`: how often a submission raised the best score
+
+Budgets, over episode rows:
+
+- :func:`scaling`: score as a function of budget, on any axis
+- :func:`efficiency`: reward per unit actually spent
+
+Streams, over episode rows tagged ``stream`` and ``position``:
+
+- :func:`learning_curve`: score over stream position
+- :func:`transfer`: stream performance against an isolated baseline
+- :func:`forgetting`: how much revisited tasks degraded
+
+Normalizers:
+
+- :func:`rescale_linear`: map raw scores to 0-100
+- :func:`rescale_anchored`: 0-100, stretching past 100 beyond the best known
+
+Conventions: ``score`` names the value column (``"reward"`` for episode
+rows, ``"score"`` for trace rows; every function takes it as a
+parameter), and aggregation over repeats is the mean unless a function
+says otherwise.
 """
 
 from __future__ import annotations
 
 import pandas as pd
+
+__all__ = [
+    "anytime",
+    "auc",
+    "time_to",
+    "improvements",
+    "scaling",
+    "efficiency",
+    "learning_curve",
+    "transfer",
+    "forgetting",
+    "rescale_linear",
+    "rescale_anchored",
+]
 
 # ------------------------------------------------------------------ curves
 
