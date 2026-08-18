@@ -38,12 +38,9 @@ properties that break a pass/fail harness:
 
 A [stream](get-started.md#streams) is an ordered sequence of stock Harbor
 tasks run under one agent, with a state directory carried from task to
-task: the setting used by
+task: the setting used in
 [AgentStream](https://arxiv.org/abs/2608.00155) and
-[CL-Bench](https://arxiv.org/pdf/2606.05661), which differ in what goes
-into the stream (tasks drawn across benchmarks, or successive instances
-of one environment) rather than in how it is run. Its defining
-properties:
+[CL-Bench](https://arxiv.org/pdf/2606.05661). Its defining properties:
 
 - **each position is one ordinary episode**: one Harbor trial, one
   container, one trusted row; pass/fail tasks work as-is (a pass is a

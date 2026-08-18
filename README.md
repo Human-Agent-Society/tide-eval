@@ -25,10 +25,10 @@ only *how good, by when*:
 </picture>
 
 **A stream of tasks** puts one agent through a
-[stream](docs/get-started.md#streams) of tasks in order, carrying its
-memory from task to task. It is the setting used by
-[AgentStream](https://arxiv.org/abs/2608.00155) and
-[CL-Bench](https://arxiv.org/pdf/2606.05661):
+[stream](docs/get-started.md#streams) of tasks in order (the setting used
+in [AgentStream](https://arxiv.org/abs/2608.00155) and
+[CL-Bench](https://arxiv.org/pdf/2606.05661)), carrying its memory from
+task to task:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-stream-dark.svg">
