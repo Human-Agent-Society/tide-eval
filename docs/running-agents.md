@@ -2,9 +2,9 @@
 
 An "agent" is anything Harbor can run against the task container. Three
 integration levels follow, cheapest first; one integration runs in both
-regimes, a single task or a [stream](get-started.md#streams). Whichever
-you pick, the task, the scoring, and the results store are identical, so
-numbers stay comparable across methods.
+regimes, a single task or a [stream](get-started.md#streams). All three
+share the same task, scoring, and results store, so numbers stay
+comparable across methods.
 
 ## The autoresearch contract
 
@@ -22,13 +22,12 @@ Your final score is your best submission (re-scored by a final judge with
 hidden tests, if the task has one). The final evaluation runs on a
 **separate verifier port** behind a per-session token; the agent cannot
 trigger or observe it. Everything else (how you search, what you
-evaluate locally, whether you build your own scorer) is up to you;
-tide places no constraints on the agent's side.
+evaluate locally, whether you build your own scorer) is up to you.
 
 If the run set a [budget](get-started.md#budgets) beyond time, the container
 also carries `TIDE_MAX_SUBMISSIONS`, `TIDE_MAX_TOKENS`, and/or
-`TIDE_MAX_COST_USD`. Reading them lets your method pace itself; you don't
-have to, since tide records the actual spend either way.
+`TIDE_MAX_COST_USD`. Read them if your method should pace itself; tide
+records the actual spend either way.
 
 ## The continual-learning contract
 
@@ -46,8 +45,8 @@ needs the run's instruction or system prompt to point at it.
 
 Carrying state is not tied to streams. `lab.run(task, agent=...,
 state_dir="path/to/memory")` mounts the same directory into a single
-episode, which is how a method accumulates something persistent inside
-one autoresearch problem.
+episode, so a method can accumulate state inside one autoresearch
+problem.
 
 ## Level 1: a supported harness (zero code)
 
@@ -125,7 +124,7 @@ asyncio.run(main())
 The agent-phase-only equivalent, `agent.extra_allowed_hosts`, is
 reachable from the CLI as `--agent-arg extra_allowed_hosts='[...]'` but
 does not cover setup. On tasks whose network is already open (the
-`frontier-cs` folders), the plain CLI works with no overrides.
+`frontier-cs` folders), the plain CLI needs no overrides.
 
 ## Level 2: your own harness (one class)
 
@@ -168,7 +167,7 @@ Two placements for your method, both fine:
 
 - **Host-side loop**: your method keeps its own GPUs / inference server /
   orchestrator and submits through the container
-  (`environment.exec(command="curl ... $JUDGE_URL/submit")`). The fit for
+  (`environment.exec(command="curl ... $JUDGE_URL/submit")`). Fits
   external learners (TTT-style training loops) and host-side multi-agent
   systems (CORAL-style).
 - **In-container**: upload your method and launch it; it talks to the
@@ -191,7 +190,7 @@ from the instruction) and spend submissions on survivors.
 
 ## Ready-to-run long-horizon harnesses
 
-[`examples/run_harness.py`](https://github.com/Human-Agent-Society/tide-eval/blob/main/examples/run_harness.py) supplies concrete,
+[`examples/run_harness.py`](https://github.com/Human-Agent-Society/tide-eval/blob/main/examples/run_harness.py) supplies
 version-pinned adapters for the three long-horizon patterns above:
 
 ```bash

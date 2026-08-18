@@ -40,16 +40,16 @@ that can work inside a container, including your own harness or method.
 
 ## Why not plain Harbor?
 
-Harbor runs the trial, and tide imports it for exactly that: the task
-format, containers, the agent adapters, the verifier, trajectories,
-`harbor job resume`, and `harbor view`. Four things sit on top of it.
+Harbor runs the trial, and tide imports it for that: task format,
+containers, agent adapters, the verifier, trajectories, `harbor job
+resume`, `harbor view`. Four things sit on top.
 
-| What tide adds | Why it matters | Where |
+| What tide adds | Why | Where |
 |---|---|---|
-| A judge sidecar the agent submits to whenever it likes, grading every submission into a timestamped log | Harbor grades where the task declares, and a reward carries no time. This log is the anytime curve, and the judge computed it, so the whole trajectory is evidence rather than self-report | [`judge_server.py`](tasks/_template/environment/judge_server.py), [authoring tasks](docs/authoring-tasks.md) |
-| Streams: an ordered task list whose carried state is snapshotted at every position | Harbor mounts a directory into a trial but has no notion of position. Snapshots make each task start from a known state, let a crashed stream resume, and let appending a task extend a finished one | [`tide/stream.py`](tide/stream.py), [streams](docs/get-started.md#streams) |
-| One append-only table for every run ever, keyed by (task, agent, tags) | Score against budget, benchmark against benchmark, and a stream against its stateless baseline are queries over the same rows. Re-running a script skips whatever finished | [`tide/store.py`](tide/store.py), [`tide/lab.py`](tide/lab.py) |
-| Budgets on four axes, and metrics as pure functions over the table | Time, submissions, tokens, or dollars, whichever is scarce; then anytime AUC, time-to-threshold, transfer, forgetting and budget scaling, one line each | [`tide/budget.py`](tide/budget.py), [metrics](docs/metrics.md) |
+| A judge the agent submits to at will, every submission scored and timestamped | Harbor scores where the task declares, untimed. This log is the anytime curve, and the judge computed it | [`judge_server.py`](tasks/_template/environment/judge_server.py) |
+| Streams: an ordered task list, carried state snapshotted per position | Each task starts from a known state, a crash resumes, appending extends | [`stream.py`](tide/stream.py), [streams](docs/get-started.md#streams) |
+| One append-only table for every run, keyed by (task, agent, tags) | Budget curves, benchmark against benchmark, stream against baseline: one query each. Re-runs skip finished work | [`store.py`](tide/store.py), [`lab.py`](tide/lab.py) |
+| Budgets on four axes, metrics as pure functions over the table | Time, evals, tokens or cost; then AUC, time-to-threshold, transfer, forgetting | [`budget.py`](tide/budget.py), [metrics](docs/metrics.md) |
 
 Resume is episode-granular: a crashed 12-hour episode starts over.
 
@@ -59,11 +59,10 @@ Full design (trust model, task conventions, data model, extensibility):
 ## Using tide
 
 First run? **[docs/get-started.md](docs/get-started.md)** walks from install
-to a scored task. To point a real agent at one,
-**[docs/running-agents.md](docs/running-agents.md)** covers the two things
-it needs: API credentials inside the container, and the hosts its network
-policy has to allow. The full docs read in order from
-**[docs/](docs/README.md)**.
+to a scored task. Pointing a real agent at one needs two things, both in
+**[docs/running-agents.md](docs/running-agents.md)**: API credentials inside
+the container, and the hosts its network policy must allow. The full docs
+read in order from **[docs/](docs/README.md)**.
 
 ### Run
 
@@ -96,9 +95,9 @@ scores them. Local mode has no isolation (even hidden tests are readable
 on your machine), so local rows carry a `local://` uri and are never
 trusted results. Develop locally, report container numbers.
 
-When you have Docker, `tide run cl-bench/bsm-s01 --agent oracle` proves
-the real pipeline end to end (the oracle runs the task's reference
-solution and must score exactly 1.0), and
+With Docker, `tide run cl-bench/bsm-s01 --agent oracle` proves the real
+pipeline end to end (the oracle runs the task's reference solution and
+must score exactly 1.0), and
 [`examples/minimal_harness.py`](examples/minimal_harness.py) is the
 smallest complete container harness.
 
@@ -133,9 +132,8 @@ Re-running any script resumes it. Reference:
 ### Task streams
 
 A `Stream` runs an ordered task list under one agent. Every task's
-container gets the same state directory mounted in (`$TIDE_STATE_DIR`),
-so the agent's memory, skill library, or evolved harness is carried from
-task to task:
+container mounts the same state directory (`$TIDE_STATE_DIR`), carrying
+the agent's memory, skill library, or evolved harness from task to task:
 
 ```python
 from tide import Lab, Stream, metrics
@@ -161,20 +159,20 @@ metrics.forgetting(df)  # did the revisited task degrade?
 metrics.transfer(df, baseline_df)  # vs the same tasks run isolated (plain lab.run)
 ```
 
-Re-running the same stream resumes it. A stream is identified by its name
-together with its agent, tags, budget, and task list, so changing any of
-those is a separate stream with its own memory; give it a new name to run
-the same tasks again from empty memory. On the CLI that name is `--name`,
-and it defaults to one derived from the targets. Each task is an ordinary
-Harbor trial in its own container, with the memory snapshotted at every
-step, so a crashed stream picks up where it left off. Full details:
+Re-running the same stream resumes it. A stream's identity is its name plus
+its agent, tags, budget, and task list; changing any of those makes a
+separate stream with its own memory, and a new name reruns the same tasks
+from empty memory. On the CLI that name is `--name`, defaulting to one
+derived from the targets. Each task is an ordinary Harbor trial in its own
+container, with memory snapshotted at every step, so a crashed stream
+resumes where it left off. Full details:
 **[docs/get-started.md](docs/get-started.md#streams)**.
 
 ### Evaluate your own agent
 
-Every task hands your agent `$JUDGE_URL` and a submission budget;
-whichever way you integrate, the task, the judge, and the results store
-are identical, so numbers stay comparable across methods:
+Every task hands your agent `$JUDGE_URL` and a submission budget. Whichever
+way you integrate, the task, judge, and results store are identical, so
+numbers stay comparable across methods:
 
 | You have | Integration |
 |---|---|
@@ -193,8 +191,7 @@ The only thing you cannot bring is your own judge. Full guide:
 [`minimal_harness.py`](examples/minimal_harness.py) is the smallest real
 harness and needs Docker and `[harbor]`;
 [`examples/harnesses`](examples/harnesses) adds OpenEvolve, Codex, and CORAL
-as comparison baselines. What each one shows:
-[`examples/`](examples/README.md).
+as baselines. What each shows: [`examples/`](examples/README.md).
 
 ## Benchmarks
 
@@ -207,10 +204,10 @@ as comparison baselines. What each one shows:
 | [FrontierCS](tasks/autoresearch/frontier-cs) | 188 algorithmic + 20 research · incl. 4 GPU kernel | [FrontierCS/Frontier-CS](https://github.com/FrontierCS/Frontier-CS) | `tide run frontier-cs/<task> --agent <a>` |
 
 Each first-party task teaches one hard part of the category (held-out
-grading, safely grading agent-shipped code, ...); the full catalog with
-oracle scores is in [docs/tasks.md](docs/tasks.md). The next
-converters are tracked in the
-[roadmap](https://github.com/Human-Agent-Society/tide-eval/issues/19).
+grading, safely grading agent-shipped code, ...); [docs/tasks.md](docs/tasks.md)
+has the full catalog with oracle scores. The
+[roadmap](https://github.com/Human-Agent-Society/tide-eval/issues/19) tracks
+the next converters.
 
 ### Task streams
 

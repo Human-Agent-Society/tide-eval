@@ -3,20 +3,20 @@
 Tasks are **100% stock Harbor tasks**: every committed task is validated
 against Harbor's `TaskConfig` schema by `tests/test_task_suite.py`. tide
 adds conventions *around* the format, never fields inside it. Start from
-[`tasks/_template`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/_template): it ships as a complete working
-placeholder task (maximize `x` in `[0, 1]`), so the suite passes before you
-change anything. Verify standalone with `harbor trial start -p <dir>`, then
-run it under tide.
+[`tasks/_template`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/_template): a working
+placeholder task (maximize `x` in `[0, 1]`) that passes the suite before
+you change anything. Verify standalone with `harbor trial start -p <dir>`,
+then run it under tide.
 
 Two kinds of tasks. An **autoresearch task** ships its own judge; its
 anatomy fills most of this page. A **continual-learning task** is any
-stock Harbor task at all; see
+stock Harbor task; see
 [the continual-learning section](#a-continual-learning-task) below.
 
 ## Anatomy of an autoresearch task
 
 Two containers: the agent's, and the judge's. All scoring lives with the
-judge; the agent only ever sees scores come back over HTTP.
+judge; the agent only sees scores come back over HTTP.
 
 ```
 my-task/
@@ -38,9 +38,9 @@ my-task/
 
 ## The judge protocol
 
-The agent gets `$JUDGE_URL` and a submission budget; tide places no
-constraints on anything else (it may write its own local evaluator; the
-objective is stated in the instruction):
+The agent gets `$JUDGE_URL` and a submission budget; tide constrains
+nothing else (it may write its own local evaluator; the instruction states
+the objective):
 
 | Request | Who calls it | What happens |
 |---|---|---|
@@ -83,8 +83,8 @@ observes the final evaluation or its result.
 - **expensive scoring** (string-compression runs the agent's program):
   a tighter cap;
 - **metric with a secret**: keep the session feedback on public data and
-  put the secret in the **final judge** (next section); then the budget
-  doesn't need to carry the secrecy burden at all.
+  put the secret in the **final judge** (next section); the budget then
+  carries no secrecy burden.
 
 ## The final judge (`final.py`, optional)
 
@@ -137,10 +137,10 @@ rule your scorer enforces** (expected reward `0.0`). The template's file:
   where the live run legitimately varies.
 - Optional per-case `"tolerance"` for float comparison (default 1e-9).
 
-`pytest tests/test_task_suite.py` picks up any folder with this file
-automatically. In containers, `--agent oracle` must reproduce
-`solve_sh_scores` (the E2E gate) and `--agent nop` must score 0; if it
-doesn't, the environment leaks the answer.
+`pytest tests/test_task_suite.py` picks up any folder with this file. In
+containers, `--agent oracle` must reproduce `solve_sh_scores` (the E2E
+gate) and `--agent nop` must score 0; if it doesn't, the environment leaks
+the answer.
 
 ## Network policy
 
@@ -167,18 +167,18 @@ Harbor's schema validates it and Harbor's cloud backends honor it
 natively. For local Docker, add the standard nvidia device reservation
 (`deploy.resources.reservations.devices`) to the `main` service in the
 task's `environment/docker-compose.yaml`; give the judge service the
-reservation too when scoring itself needs the GPU. One caveat for
-kernel-timing tasks: wall-clock speedups on shared hosts are noisy, so
-score against a reference implementation run in the same container and
-session, and record the GPU model as a tag so curves never mix hardware.
+reservation too when scoring itself needs the GPU. For kernel-timing
+tasks, wall-clock speedups on shared hosts are noisy: score against a
+reference implementation run in the same container and session, and record
+the GPU model as a tag so curves never mix hardware.
 
 ## A continual-learning task
 
 Any stock Harbor task runs in a [stream](get-started.md#streams) unchanged:
-tide mounts the carried memory directory itself, so the task neither
-knows nor cares, and a pass/fail verifier is a fine score (a pass is a
-0-or-1 reward). None of the judge machinery above is required. Two
-conventions from the committed benchmarks are worth copying:
+tide mounts the carried memory directory itself, and a pass/fail verifier
+is a fine score (a pass is a 0-or-1 reward). None of the judge machinery
+above is required. Two conventions from the committed benchmarks are worth
+copying:
 
 - **Hidden state lives in a sidecar.** When something must stay out of
   the agent's reach at runtime (CL-Bench's metered database, its poker
@@ -207,9 +207,8 @@ tide run path/to/my-bench --agent oracle       # any directory of tasks
 tide run my-bench --agent oracle               # once it sits in tasks/<mode>/my-bench
 ```
 
-In a checkout, `tests/test_task_suite.py` picks up every task it finds
-under `tasks/`, so a new benchmark is validated the moment the folder
-exists.
+In a checkout, `tests/test_task_suite.py` picks up every task under
+`tasks/`, so a new benchmark is validated the moment the folder exists.
 
 To distribute one, publish the directory in any git repository and
 register the pin, the way gym environments register:
@@ -240,6 +239,6 @@ reference implementations are
 `tasks/autoresearch/edgebench/convert.py` and, for continual learning,
 the per-domain converters in
 [`tasks/continual-learning/cl-bench`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/continual-learning/cl-bench).
-Their tests pin the converter to unmodified published spec files; do the
-same for any new converter: check one real spec into `tests/fixtures/`
-and validate the emitted task under Harbor's `TaskConfig`.
+Their tests pin the converter to unmodified published spec files. For a
+new converter, check one real spec into `tests/fixtures/` and validate the
+emitted task under Harbor's `TaskConfig`.
