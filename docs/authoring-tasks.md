@@ -231,14 +231,9 @@ how a fork takes over a built-in.
 ## A benchmark converter
 
 A converter turns a published external format into a folder of task dirs.
-Converters live beside the benchmark they maintain and depend only on its
-published format, keeping benchmark-specific tooling out of tide's runtime
-package. Each folder also carries a `fetch.py` pinned to an upstream
-commit, so the committed tasks can be regenerated and verified. The
-reference implementations are
-`tasks/autoresearch/edgebench/convert.py` and, for continual learning,
-the per-domain converters in
-[`tasks/continual-learning/cl-bench`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/continual-learning/cl-bench).
-Their tests pin the converter to unmodified published spec files. For a
-new converter, check one real spec into `tests/fixtures/` and validate the
-emitted task under Harbor's `TaskConfig`.
+It lives beside the benchmark it maintains, next to a `fetch.py` pinned to
+an upstream commit so the committed tasks can be regenerated. Check one
+real upstream spec into `tests/fixtures/` and validate the emitted task
+under Harbor's `TaskConfig`;
+[`edgebench/convert.py`](https://github.com/Human-Agent-Society/tide-eval/blob/main/tasks/autoresearch/edgebench/convert.py)
+is the reference.

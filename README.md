@@ -9,16 +9,15 @@
 An agent self-evolves when something it learned during a run persists
 past it: memory, a skill library, an evolved harness, updated weights.
 tide measures whether anything actually persisted, in the two task
-regimes where that shows up. The method does the learning; tide does the
-measurement ([why, in detail](docs/design.md)).
+regimes where that shows up, and never trains anything itself
+([why, in detail](docs/design.md)).
 
 **Autoresearch** is the kind of work DeepMind's
 [AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/)
 and [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) do:
 one open-ended optimization problem with a continuous score, hours of
 budget, and a judge scoring every submission. There is no "passed",
-only *how good, by when*. The question is what the agent accumulates
-before the budget ends:
+only *how good, by when*:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-hero-dark.svg">
@@ -28,7 +27,7 @@ before the budget ends:
 **A stream of tasks** puts one agent through a
 [stream](docs/get-started.md#streams) of tasks in order (the
 [AgentStream](https://arxiv.org/abs/2608.00155) setting), carrying its
-memory from task to task. The question is what carries into the next task:
+memory from task to task:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-stream-dark.svg">
