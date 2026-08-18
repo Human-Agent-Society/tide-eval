@@ -204,6 +204,7 @@ class LocalExecutor:
         port = _free_port()
         verifier_port = _free_port()
         data_dir = workdir / "judge_data"
+        judge_log = workdir / "judge.log"
         judge = subprocess.Popen(
             [sys.executable, str(judge_dir / "judge_server.py")],
             env={
@@ -214,13 +215,13 @@ class LocalExecutor:
                 "DATA_DIR": str(data_dir),
             },
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stderr=judge_log.open("w"),
         )
         judge_url = f"http://127.0.0.1:{port}"
         verifier_url = f"http://127.0.0.1:{verifier_port}"
         try:
-            await asyncio.to_thread(_wait_healthy, judge_url)
-            await asyncio.to_thread(_wait_healthy, verifier_url)
+            await asyncio.to_thread(_wait_healthy, judge_url, judge, judge_log)
+            await asyncio.to_thread(_wait_healthy, verifier_url, judge, judge_log)
 
             error = None
             try:
@@ -251,6 +252,7 @@ class LocalExecutor:
             final = await asyncio.to_thread(_get_json, f"{verifier_url}/final", token)
         finally:
             judge.kill()
+            judge.wait()
 
         submissions = final.get("submissions", [])
         with (workdir / "submissions.jsonl").open("w") as f:
@@ -271,15 +273,42 @@ def _free_port() -> int:
         return s.getsockname()[1]
 
 
-def _wait_healthy(judge_url: str, timeout_sec: float = 10.0) -> None:
+def _wait_healthy(
+    judge_url: str,
+    process: subprocess.Popen | None = None,
+    log: Path | None = None,
+    timeout_sec: float = 10.0,
+) -> None:
+    """Block until the judge answers /health.
+
+    A judge that fails at startup would otherwise show up as ten seconds of
+    silence, so *process* is polled for an early exit and *log* is quoted in
+    either failure. Both are optional to keep the function usable on a server
+    this process did not start.
+    """
+
+    def _tail() -> str:
+        if log is None or not log.is_file():
+            return "no judge log"
+        text = log.read_text().strip()
+        return text[-800:] if text else "judge log is empty"
+
     deadline = time.monotonic() + timeout_sec
     while True:
+        if process is not None and process.poll() is not None:
+            raise RuntimeError(
+                f"judge exited with code {process.returncode} before serving "
+                f"{judge_url}: {_tail()}"
+            )
         try:
-            urllib.request.urlopen(f"{judge_url}/health", timeout=2)
-            return
+            with urllib.request.urlopen(f"{judge_url}/health", timeout=2):
+                return
         except Exception as e:
             if time.monotonic() > deadline:
-                raise RuntimeError(f"judge at {judge_url} never became healthy") from e
+                raise RuntimeError(
+                    f"judge at {judge_url} never became healthy in "
+                    f"{timeout_sec:g}s: {_tail()}"
+                ) from e
             time.sleep(0.05)
 
 
