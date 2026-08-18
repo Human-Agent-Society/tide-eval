@@ -6,10 +6,11 @@ For the practical pages see [get started](get-started.md) and
 
 tide is evaluation infrastructure for self-evolving agents: agents that
 learn from signals produced during the run itself and keep what they
-learned. Continual learning in the broad sense is the same idea; the
-narrow one, weight updates over a task sequence, is one case of it, not
-the whole. tide does not measure adaptation that ends with the episode:
-in-context reasoning, a retry after an error, a test-time search.
+learned. Continual learning in the broad sense is the same idea, and the
+narrow one, weight updates over a task sequence, is one case of it rather
+than the whole of it. Adaptation that ends when the episode does is not
+what tide measures, so in-context reasoning, a retry after an error, and
+a test-time search all fall outside it.
 
 The form the learning persists in is up to the method, and tide never
 trains anything itself: a method that updates weights runs its own loop,
@@ -51,8 +52,8 @@ task: the streaming setting of
   revisited tasks. AgentStream's sequential and interleaved scenarios map
   onto target order and a seeded shuffle; its isolated scenario is one
   stream per benchmark, with no state shared between them. The stateless
-  baseline `metrics.transfer` subtracts is a plain `lab.run` sweep, a
-  different thing again.
+  baseline `metrics.transfer` subtracts is a plain `lab.run` sweep, which
+  is a different thing again.
 
 
 ## Trust: scoring stays out of the agent's hands

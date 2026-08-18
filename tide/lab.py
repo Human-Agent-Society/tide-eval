@@ -155,6 +155,11 @@ class Lab:
                     **tags,
                     **used,
                     **({"error": result.error} if result.error else {}),
+                    **(
+                        {"agent_exit_code": result.agent_exit_code}
+                        if result.agent_exit_code
+                        else {}
+                    ),
                 },
                 rewards=dict(result.rewards),
                 uri=result.uri,

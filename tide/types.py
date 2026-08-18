@@ -60,6 +60,11 @@ class EpisodeResult:
     from the episode's artifacts. ``uri`` points at the provenance (the
     Harbor trial directory) so every stored number stays auditable.
 
+    ``agent_exit_code`` is the agent's exit status when it was not 0. A
+    non-zero exit is not by itself a failed episode, since spending the whole
+    time budget ends with the container being killed, so it is recorded as a
+    fact rather than as ``error``.
+
     ``usage`` is what the episode actually spent, the measured side of a
     budget: ``n_input_tokens``, ``n_output_tokens``, ``n_cache_tokens``,
     ``cost_usd`` (token counts and model-cost estimates the agent adapter
@@ -73,6 +78,7 @@ class EpisodeResult:
     trace: tuple[TracePoint, ...] = ()
     error: str | None = None
     usage: Usage = field(default_factory=dict)
+    agent_exit_code: int | None = None
 
 
 @dataclass(frozen=True)

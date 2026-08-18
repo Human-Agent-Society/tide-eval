@@ -46,10 +46,10 @@ resume`, `harbor view`. Four things sit on top.
 
 | What tide adds | Why | Where |
 |---|---|---|
-| A judge the agent submits to at will, every submission scored and timestamped | Harbor scores where the task declares, untimed. This log is the anytime curve, and the judge computed it | [`judge_server.py`](tasks/_template/environment/judge_server.py) |
-| Streams: an ordered task list, carried state snapshotted per position | Each task starts from a known state, a crash resumes, appending extends | [`stream.py`](tide/stream.py), [streams](docs/get-started.md#streams) |
-| One append-only table for every run, keyed by (task, agent, tags) | Budget curves, benchmark against benchmark, stream against baseline: one query each. Re-runs skip finished work | [`store.py`](tide/store.py), [`lab.py`](tide/lab.py) |
-| Budgets on four axes, metrics as pure functions over the table | Time, evals, tokens or cost; then AUC, time-to-threshold, transfer, forgetting | [`budget.py`](tide/budget.py), [metrics](docs/metrics.md) |
+| A judge the agent can submit to whenever it likes, which scores and timestamps every submission | Harbor scores a trial where the task says to, and the reward has no time attached to it. The judge's log is the anytime curve, and the judge is what computed it | [`judge_server.py`](tasks/_template/environment/judge_server.py) |
+| Streams, which run an ordered task list and snapshot the carried state after each position | Every task therefore starts from a state you can point at, a stream that crashes resumes from its last snapshot, and adding a task to a finished stream only runs the new one | [`stream.py`](tide/stream.py), [streams](docs/get-started.md#streams) |
+| One append-only table holding every run, keyed by (task, agent, tags) | Comparing scores against budget, one benchmark against another, or a stream against its stateless baseline is a query over the same rows, and re-running a script skips whatever already finished | [`store.py`](tide/store.py), [`lab.py`](tide/lab.py) |
+| Budgets on four axes, and metrics that are ordinary functions over the table | Bound a run by time, evals, tokens or cost, then ask it for an AUC, a time-to-threshold, transfer or forgetting | [`budget.py`](tide/budget.py), [metrics](docs/metrics.md) |
 
 Resume is episode-granular: a crashed 12-hour episode starts over.
 

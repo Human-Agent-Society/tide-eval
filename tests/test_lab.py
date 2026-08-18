@@ -256,3 +256,26 @@ async def test_run_many_dedups_identical_calls(tmp_path):
     assert len(fake.calls) == 1  # the second call never reached the executor
     assert len(rows) == 2
     assert rows[0] == rows[1]  # same completed episode (equal, maybe not identical)
+
+
+async def test_a_dead_agent_is_visible_in_its_row(tmp_path):
+    """A reward earned by an agent that exited non-zero reads exactly like one
+    it worked for, unless the exit is recorded. It is a tag, not an error:
+    spending the whole time budget also ends the container non-zero."""
+
+    class DiedExecutor:
+        async def execute(self, spec):
+            return EpisodeResult(rewards={"reward": 0.0}, agent_exit_code=1)
+
+    lab = Lab(tmp_path / "lab", executor=DiedExecutor())
+    row = await lab.run("tasks/x", {"name": "oracle"})
+
+    assert row.rewards == {"reward": 0.0}
+    assert row.tags["agent_exit_code"] == 1
+    assert "error" not in row.tags  # the score still stands
+
+
+async def test_a_clean_agent_adds_no_exit_tag(tmp_path):
+    lab = Lab(tmp_path / "lab", executor=FakeExecutor())
+    row = await lab.run("tasks/x", {"name": "oracle"})
+    assert "agent_exit_code" not in row.tags
