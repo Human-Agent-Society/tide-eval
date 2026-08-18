@@ -49,18 +49,17 @@ the rest unset:
 | tokens | `--max-tokens` (`500k`, `2m`) | `max_tokens` | soft: signalled, actual spend recorded |
 | cost (USD) | `--max-cost` | `max_cost_usd` | soft: signalled, actual spend recorded |
 
-Each axis reaches the agent's container as a `TIDE_*` environment
-variable, is tagged on the episode (`budget`, `budget_max_tokens`, ...)
-so runs group by it, and the actual spend comes back as `used_*`
-columns: submission counts from the judge's log, token and cost totals
-from the harness's own usage report, the numbers the provider billed.
+Each axis reaches the container as a `TIDE_*` environment variable and is
+tagged on the episode (`budget`, `budget_max_tokens`, ...) so runs group
+by it. Actual spend comes back as `used_*` columns: submission counts
+from the judge's log, tokens and cost from the harness's usage report.
 
 ## Streams
 
-A stream is continual learning: an ordered task list under one agent,
-with a state directory carried from task to task and mounted into every
-container as `$TIDE_STATE_DIR`. tide never reads it; whether carrying it
-helps is what gets measured.
+A stream is an ordered task list under one agent, with a state directory
+carried between tasks and mounted into every container as
+`$TIDE_STATE_DIR`. tide never reads it; whether carrying it helps is what
+gets measured.
 
 ```bash
 tide stream cl-bench --agent claude-code --model anthropic/claude-opus-5
@@ -125,13 +124,12 @@ it. `lab.run_many([...])` runs a batch with bounded concurrency;
 
 ## Resume
 
-Every episode gets a stable key derived from (task, agent, tags, budget,
-overrides). A key that already has a row is skipped and the stored row
-returned, so re-running any crashed script or stream picks up where it
-left off. Vary a tag (`--tag attempt=2`) to add attempts instead. The
-store is append-only, and resume is episode-granular: a half-finished
-episode starts over, because a run stitched from checkpoints would not
-be comparable to a clean budget.
+Every episode gets a stable key from (task, agent, tags, budget,
+overrides). A key that already has a row is skipped, so re-running any
+crashed script or stream picks up where it left off; vary a tag
+(`--tag attempt=2`) to add attempts instead. Resume is episode-granular:
+a half-finished episode starts over, because a run stitched from
+checkpoints is not comparable to a clean budget.
 
 ## No Docker? Local and fake runs
 

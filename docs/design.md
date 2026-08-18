@@ -1,26 +1,25 @@
 # Design
 
-What tide evaluates, and why it is shaped the way it is.
+What tide evaluates, and why it is shaped that way.
 For the practical pages see [get started](get-started.md) and
 [running agents](running-agents.md).
 
 tide is evaluation infrastructure for self-evolving agents: agents that
 learn from signals produced during the run itself and keep what they
-learned. Continual learning in the broad sense is the same idea, and the
-narrow one, weight updates over a task sequence, is one case of it
-rather than the whole. Adaptation that ends with the episode, like
-in-context reasoning, a retry after an error, or a test-time search, is
-not what tide measures.
+learned. Continual learning in the broad sense is the same idea; the
+narrow one, weight updates over a task sequence, is one case of it, not
+the whole. tide does not measure adaptation that ends with the episode:
+in-context reasoning, a retry after an error, a test-time search.
 
-What form the learning persists in is up to the method, and tide
-never trains anything itself: a method that updates weights runs its own
-loop, and tide measures the result. What tide provides is the two task
-regimes where persistence shows up, and the measurements that show
-whether anything did. The regime is the shape of the work, not the
-mechanism: an autoresearch run whose agent evolves its own harness is
-continual learning inside one problem, and a stream whose agent carries
-nothing is not continual learning at all, which is exactly the stateless
-baseline `metrics.transfer` compares against.
+The form the learning persists in is up to the method, and tide never
+trains anything itself: a method that updates weights runs its own loop,
+and tide measures the result. tide provides the two task regimes where
+persistence shows up, and the measurements that show whether anything
+did. The regime is the shape of the work, not the mechanism: an
+autoresearch run whose agent evolves its own harness is continual
+learning inside one problem, and a stream whose agent carries nothing is
+not continual learning at all, which is the stateless baseline
+`metrics.transfer` compares against.
 
 ## The two regimes
 
@@ -44,16 +43,16 @@ task: the streaming setting of
 - **each position is one ordinary episode**: one Harbor trial, one
   container, one trusted row; pass/fail tasks work as-is (a pass is a
   0-or-1 score);
-- **the only thing connecting positions is the carried state**, mounted
-  into the agent's container as `$TIDE_STATE_DIR`, where the agent keeps
+- **positions are connected only by the carried state**, mounted into
+  the agent's container as `$TIDE_STATE_DIR`, where the agent keeps
   whatever it wants to remember;
 - **the measurement is the difference state makes**: the learning curve
   over positions, transfer against an isolated baseline, forgetting on
   revisited tasks. AgentStream's sequential and interleaved scenarios map
   onto target order and a seeded shuffle; its isolated scenario is one
   stream per benchmark, with no state shared between them. The stateless
-  baseline `metrics.transfer` subtracts is a plain `lab.run` sweep, which
-  is a different thing again.
+  baseline `metrics.transfer` subtracts is a plain `lab.run` sweep, a
+  different thing again.
 
 
 ## Trust: scoring stays out of the agent's hands
@@ -105,14 +104,14 @@ Three decisions carry the judge model:
   is the reference: session feedback on training points, final grade on
   held-out points that no submission budget can probe.
 
-In streams, pass/fail tasks are graded by Harbor's verifier after the
-episode, and tasks with hidden state reuse the judge pattern: a sidecar
-the agent reaches only over HTTP holds what must stay out of reach (the
-metered database and the poker deck in
+In streams, Harbor's verifier grades pass/fail tasks after the episode,
+and tasks with hidden state reuse the judge pattern: a sidecar the agent
+reaches only over HTTP holds what must stay out of reach (the metered
+database and the poker deck in
 [CL-Bench](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/continual-learning/cl-bench), which also enforces
-their budgets). The carried state directory is the one new surface, and
-it is agent-written and untrusted: no judge or verifier ever sees it, so
-it can only influence the agent's own future behavior.
+their budgets). The carried state directory is the one new surface,
+agent-written and untrusted: no judge or verifier ever sees it, so it can
+only influence the agent's own future behavior.
 
 Trust is tested, not asserted: `tests/test_task_suite.py` feeds every
 scorer its task's cheat cases (out-of-bounds values, float-epsilon
@@ -149,10 +148,9 @@ Three decisions:
   already has a row is skipped, so running the same script again picks up
   where it crashed.
   There is no daemon and no job state: persistence lives in the data.
-  Resume is deliberately episode-granular: a half-finished 12-hour episode
-  starts over, because a run stitched together from checkpoints is not the
-  same measurement as one clean budget, and would not be comparable to
-  anyone else's.
+  Resume is episode-granular: a half-finished 12-hour episode starts
+  over, because a run stitched together from checkpoints is not the same
+  measurement as one clean budget, and not comparable to anyone else's.
 - **Tags are the schema.** Budgets, attempts, models, suites, stream
   positions are free-form tags; a budget-scaling curve, a model
   comparison, and a learning curve are all pivots over `lab.df()`.
@@ -173,7 +171,7 @@ batch:
 - **Deterministic starting state.** The live state directory is reset
   from the previous position's snapshot before every episode and
   snapshotted after, so each episode's input is reproducible no matter
-  what crashed in between, and every step's memory can be audited later.
+  what crashed in between, and every step's memory stays auditable.
 - **Resume with stable history.** Recorded positions are skipped as
   always, and a position's key covers the task list up to that position:
   appending tasks extends a finished stream, editing an earlier position
@@ -193,8 +191,8 @@ backends, sidecar wiring, agent adapters. tide imports it as a library
 and never touches its CLI: a fork would lose the upstream task ecosystem;
 a wrapper keeps it. Tasks remain 100% stock Harbor tasks (enforced by
 test): every task here also runs standalone under `harbor trial start`, and
-Harbor registry ids run here unchanged. tide's own surface stays small on
-purpose, roughly: `Lab` (orchestration + store), `Stream` (sequencing +
+Harbor registry ids run here unchanged. tide's own surface stays small,
+roughly: `Lab` (orchestration + store), `Stream` (sequencing +
 carried state), an `Executor` protocol with Harbor and local
 implementations, submission-log ingestion, and pure-pandas metrics.
 
@@ -213,9 +211,9 @@ The frozen interface is `Lab.run`'s signature and the store schema
 
 This is how [streams](get-started.md#streams) landed (`Stream` sequences
 ordinary episodes around the same store, the executors gained one shared
-override, and the metrics are three new functions), and it is how live
-infinite-horizon tasks would land too. What is actually on deck lives in
-the [roadmap issue](https://github.com/Human-Agent-Society/tide-eval/issues/19).
+override, and the metrics are three new functions), and how live
+infinite-horizon tasks would land too. What is on deck lives in the
+[roadmap issue](https://github.com/Human-Agent-Society/tide-eval/issues/19).
 
 ## Design rules
 

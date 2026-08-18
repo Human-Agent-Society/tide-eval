@@ -1,7 +1,7 @@
 # Contributing to tide
 
-tide stays small on purpose, so contributions are reviewed against a short
-list of design rules more than against style.
+tide stays small, so contributions are reviewed against a short list of
+design rules more than against style.
 
 ## The rules PRs are reviewed against
 
