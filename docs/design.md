@@ -121,16 +121,11 @@ workflow runs the oracle agent (Harbor's built-in agent that executes a
 task's reference solution) through real containers and requires its exact
 known score.
 
-## The curve is trusted
-
-Because every submission is judge-scored, the submission log, ingested
-as `trace` rows, is a **trusted** score-over-time record. The anytime curve, its
-AUC, time-to-threshold, and improvement counts are queries over real
-measurements, not the agent's claims. The price is one judge evaluation
-per submission, and the submission budget bounds it. Streams get the
-equivalent for free: each position's
-reward is verifier-graded, so the learning curve is trusted point by
-point.
+Every submission is therefore judge-scored, which is what makes the
+submission log a trusted score-over-time record rather than the agent's
+claims about itself. It costs one judge evaluation per submission, and the
+submission budget bounds that. In streams each position's reward is
+verifier-graded, so the learning curve is trusted point by point.
 
 ## The data model
 
@@ -184,43 +179,3 @@ batch:
 Episode rows from a stream land in the same table, tagged `stream` and
 `position`; the continual-learning metrics are queries like every other
 metric.
-
-## Why Harbor, as a library
-
-Harbor already solved single-trial evaluation well: task format, container
-backends, sidecar wiring, agent adapters. tide imports it as a library
-and never touches its CLI: a fork would lose the upstream task ecosystem;
-a wrapper keeps it. Tasks remain 100% stock Harbor tasks (enforced by
-test): every task here also runs standalone under `harbor trial start`, and
-Harbor registry ids run here unchanged. tide's own surface stays small,
-roughly: `Lab` (orchestration + store), `Stream` (sequencing +
-carried state), an `Executor` protocol with Harbor and local
-implementations, submission-log ingestion, and pure-pandas metrics.
-
-## Extensibility
-
-The frozen interface is `Lab.run`'s signature and the store schema
-(columns may be added, never changed). The extension points:
-
-- `Row.kind` is an open string: a future regime adds new kinds with their
-  own key shapes, no schema change;
-- `Executor` is a one-method protocol (`execute(spec) → result`): new
-  backends (SSH, cloud batch, a simulator, an external-ground-truth
-  observer) never touch the core;
-- metrics are standalone functions over the one table: a new metric is one
-  function plus a docstring declaring its expected columns.
-
-This is how [streams](get-started.md#streams) landed (`Stream` sequences
-ordinary episodes around the same store, the executors gained one shared
-override, and the metrics are three new functions), and how live
-infinite-horizon tasks would land too. What is on deck lives in the
-[roadmap issue](https://github.com/Human-Agent-Society/tide-eval/issues/19).
-
-## Design rules
-
-Each section above argues one rule: scoring stays out of the agent's hands,
-persistence lives in data rather than in a running process, tasks stay stock
-Harbor, and the frozen interface is `Lab.run`'s signature plus the store
-schema. [CONTRIBUTING.md](https://github.com/Human-Agent-Society/tide-eval/blob/main/CONTRIBUTING.md)
-states them as the list a PR is reviewed against, with the test that enforces
-each one.

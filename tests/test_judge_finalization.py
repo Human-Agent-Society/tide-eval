@@ -10,31 +10,15 @@ exercise the HTTP boundary directly.
 """
 
 import json
-import os
-import subprocess
-import sys
-import time
 import urllib.error
 import urllib.request
 from pathlib import Path
 
-from tide.executors import _free_ports
+from tide.executors import _start_judge as start_judge
 
 TEMPLATE = Path(__file__).parent.parent / "tasks" / "_template"
 JUDGE_SERVER = TEMPLATE / "environment" / "judge_server.py"
 SCORE_PY = TEMPLATE / "environment" / "score.py"
-
-
-def _wait_healthy(url, timeout=10):
-    deadline = time.monotonic() + timeout
-    while True:
-        try:
-            urllib.request.urlopen(f"{url}/health", timeout=2)
-            return
-        except Exception:
-            if time.monotonic() > deadline:
-                raise
-            time.sleep(0.05)
 
 
 def _start_judge(tmp_path, judge_dir=None, with_final=False):
@@ -61,24 +45,13 @@ def _start_judge(tmp_path, judge_dir=None, with_final=False):
             "    return {'reward': x, 'reason': 'ok'}\n"
         )
 
-    port, verifier_port = _free_ports(2)
+    # Reuse tide's launcher rather than a second copy of it: it retries a
+    # lost port race, which is what made this file flaky.
+    (judge_dir / "judge_server.py").write_text(JUDGE_SERVER.read_text())
     data_dir = tmp_path / "data"
-    proc = subprocess.Popen(
-        [sys.executable, str(JUDGE_SERVER)],
-        env={
-            **os.environ,
-            "PORT": str(port),
-            "VERIFIER_PORT": str(verifier_port),
-            "JUDGE_DIR": str(judge_dir),
-            "DATA_DIR": str(data_dir),
-        },
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+    proc, agent_url, verifier_url = start_judge(
+        judge_dir, data_dir, tmp_path / "judge.log"
     )
-    agent_url = f"http://127.0.0.1:{port}"
-    verifier_url = f"http://127.0.0.1:{verifier_port}"
-    _wait_healthy(agent_url)
-    _wait_healthy(verifier_url)
     token = (data_dir / ".verifier_token").read_text()
     return agent_url, verifier_url, token, proc, marker
 

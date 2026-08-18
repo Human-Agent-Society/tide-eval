@@ -52,8 +52,7 @@ Normalizers:
 ## The column contract
 
 The store never fixes a result schema; instead **each metric documents the
-columns it expects** and your script supplies them as tags. That is what
-keeps free-form tags consistent across scripts.
+columns it expects** and your script supplies them as tags.
 
 Two more rules keep the numbers comparable:
 

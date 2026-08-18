@@ -188,27 +188,16 @@ Mind the submission budget: evolutionary methods burn evaluations fast,
 so give cheap candidates a local pre-filter (your own evaluator, written
 from the instruction) and spend submissions on survivors.
 
-## Ready-to-run long-horizon harnesses
+## Ready-to-run adapters
 
-[`examples/run_harness.py`](https://github.com/Human-Agent-Society/tide-eval/blob/main/examples/run_harness.py) supplies
-version-pinned adapters for the three long-horizon patterns above:
-
-```bash
-export OPENAI_API_KEY=...
-python examples/run_harness.py openevolve --model gpt-5-mini --iterations 100
-python examples/run_harness.py codex --model gpt-5.6-terra
-python examples/run_harness.py coral --model gpt-5.6-terra --agents 2
-```
-
-OpenEvolve evolves a candidate program whose evaluator POSTs to the
-judge; Codex runs Harbor's built-in Codex agent with a pinned CLI; CORAL
-runs multiple Codex workers over a shared repository. All three run
-inside the task environment, share its budgets, record real token and
-cost usage into the `used_*` columns, and are graded by the verifier
-like any other agent. Versions, credentials, and adaptation notes:
+[`examples/run_harness.py`](https://github.com/Human-Agent-Society/tide-eval/blob/main/examples/run_harness.py)
+runs version-pinned OpenEvolve, Codex and CORAL adapters against a task,
+for comparison against your own. They share the task's budgets and record
+their token and cost usage like any other agent. Commands, versions and
+credentials:
 [harness README](https://github.com/Human-Agent-Society/tide-eval/blob/main/examples/harnesses/README.md).
 
-## Rules of the game
+## Comparing fairly
 
 - **You cannot bring your own judge.** Scores come from the task's judge
   or they don't exist. Different scoring rule = a new task
@@ -220,7 +209,5 @@ like any other agent. Versions, credentials, and adaptation notes:
 - **In streams, compare against the stateless baseline**: the same tasks
   through plain `lab.run`; `metrics.transfer` is the gain the carried
   memory bought.
-- **Sanity-check cheaply**: `--agent oracle` proves the task, `--agent nop`
-  proves no leakage, `--fake` exercises your run script with no
-  containers, and `--local --command "..."` runs your method against the
-  task's real judge with no Docker at all (see the README).
+- **Sanity-check cheaply**: `--agent oracle` proves the task and
+  `--agent nop` proves it leaks no answer.
