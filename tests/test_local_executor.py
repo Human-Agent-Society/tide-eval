@@ -3,7 +3,10 @@
 import sys
 from pathlib import Path
 
+import pytest
+
 from tide import Lab, LocalExecutor
+from tide.types import EpisodeSpec
 
 TEMPLATE = str(Path(__file__).parent.parent / "tasks" / "_template")
 
@@ -62,3 +65,23 @@ async def test_local_rejects_non_template_tasks(tmp_path):
     row = await lab.run(str(tmp_path / "not-a-task"), {"command": "true"})
     assert row.rewards == {}
     assert "containers" in row.tags["error"]
+
+
+async def test_a_judge_that_dies_at_startup_says_why(tmp_path):
+    """A failed judge used to surface as ten seconds of silence with its
+    stderr discarded, which makes an intermittent failure undiagnosable."""
+    task = tmp_path / "task"
+    (task / "environment").mkdir(parents=True)
+    (task / "task.toml").write_text("[agent]\ntimeout_sec = 5.0\n")
+    (task / "environment" / "score.py").write_text("")
+    (task / "environment" / "judge_server.py").write_text(
+        "import sys\nprint('could not bind', file=sys.stderr)\nsys.exit(3)\n"
+    )
+
+    executor = LocalExecutor(tmp_path / "work")
+    with pytest.raises(RuntimeError) as raised:
+        await executor.execute(EpisodeSpec(task=str(task), agent={"command": "true"}))
+
+    message = str(raised.value)
+    assert "exited with code 3" in message  # not a bare timeout
+    assert "could not bind" in message  # the judge's own stderr
