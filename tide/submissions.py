@@ -16,6 +16,10 @@ from tide.types import TracePoint
 
 SUBMISSIONS_LOG = "submissions.jsonl"
 
+# Directories the agent's own output lands in. A file it wrote is not
+# evidence about itself, so these are never a source for the trace.
+AGENT_WRITABLE = ("agent", "artifacts")
+
 
 def parse_submissions(text: str) -> list[TracePoint]:
     """Parse submission-log lines, skipping malformed ones."""
@@ -38,10 +42,11 @@ def parse_submissions(text: str) -> list[TracePoint]:
 def find_submissions_log(root: Path) -> Path | None:
     """Locate the verifier's submission log under a trial directory.
 
-    The verifier's own directory is searched first, so a file the agent
-    happened to leave under ``agent/`` or ``artifacts/`` can never stand in
-    for the trusted log. Anywhere else under the trial is the fallback, for
-    layouts that do not use a ``verifier/`` directory.
+    The verifier's own directory is searched first. The fallback, for
+    layouts that do not use a ``verifier/`` directory, is anywhere else
+    under the trial except what the agent wrote: the anytime curve is only
+    trustworthy because every score in it came from the judge, so a log
+    found under :data:`AGENT_WRITABLE` is passed over rather than believed.
     """
     if not root.is_dir():
         return None
@@ -50,7 +55,11 @@ def find_submissions_log(root: Path) -> Path | None:
         trusted = sorted(verifier.rglob(SUBMISSIONS_LOG))
         if trusted:
             return trusted[0]
-    hits = sorted(root.rglob(SUBMISSIONS_LOG))
+    hits = [
+        hit
+        for hit in sorted(root.rglob(SUBMISSIONS_LOG))
+        if not set(hit.relative_to(root).parts) & set(AGENT_WRITABLE)
+    ]
     return hits[0] if hits else None
 
 

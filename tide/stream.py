@@ -4,7 +4,7 @@ A :class:`Stream` runs an ordered list of Harbor tasks under one agent and
 carries a state directory between them. Each task runs in a fresh
 container with the directory mounted at ``$TIDE_STATE_DIR``; whatever the
 agent writes there is visible in the next task. tide never reads the
-contents; an agent that ignores the directory is simply a stateless
+contents; an agent that ignores the directory is the stateless
 baseline.
 
 The directory is snapshotted after every task and restored before the

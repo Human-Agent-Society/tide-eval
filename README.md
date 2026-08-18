@@ -80,27 +80,21 @@ budget axes are `--max-tokens` (e.g. `500k`), `--max-evals`, and `--max-cost`
 
 #### No Docker? Develop locally, verify in containers
 
-`--local` starts the task's **own judge** as a local process and runs
-your command against it, with no containers involved:
+`--local` starts the task's own judge as a local process and runs your
+command against it, with no containers involved:
 
 ```bash
 tide run autoresearch/first-party/circle-packing --local \
   --command "python examples/random_search.py" --budget 30s
 ```
 
-Your command reads `$JUDGE_URL` and `$BUDGET_SEC` and POSTs solutions to
-`$JUDGE_URL/submit`; the same judge code that runs as a container sidecar
-scores them. Local mode has no isolation (even hidden tests are readable
-on your machine), so local rows carry a `local://` uri and are never
-trusted results. Develop locally, report container numbers.
+Same judge code, no isolation, so local rows are never trusted results.
+Develop locally, report container numbers; the details are in
+[get started](docs/get-started.md#no-docker-local-and-fake-runs).
 
 With Docker, `tide run cl-bench/bsm-s01 --agent oracle` proves the real
-pipeline end to end (the oracle runs the task's reference solution and
-must score exactly 1.0), and
-[`examples/minimal_harness.py`](examples/minimal_harness.py) is the
-smallest complete container harness. For one that calls a model and
-learns from the judge's score, see
-[`examples/llm_harness.py`](examples/llm_harness.py).
+pipeline end to end: the oracle runs the task's reference solution and
+must score exactly 1.0.
 
 ### The Python API
 
@@ -188,9 +182,10 @@ The only thing you cannot bring is your own judge. Full guide:
 ### Examples
 
 [`quickstart.py`](examples/quickstart.py) and
-[`stream_quickstart.py`](examples/stream_quickstart.py) run with zero setup;
-[`minimal_harness.py`](examples/minimal_harness.py) is the smallest real
-harness and needs Docker and `[harbor]`;
+[`stream_quickstart.py`](examples/stream_quickstart.py) run with zero setup.
+With Docker, [`minimal_harness.py`](examples/minimal_harness.py) is the
+smallest real harness and [`llm_harness.py`](examples/llm_harness.py) is the
+same thing with a model proposing the candidates;
 [`examples/harnesses`](examples/harnesses) adds OpenEvolve, Codex, and CORAL
 as baselines. What each shows: [`examples/`](examples/README.md).
 
@@ -202,11 +197,11 @@ as baselines. What each shows: [`examples/`](examples/README.md).
 |---|---|---|---|
 | [first-party](tasks/autoresearch/first-party) | 6 | this repo | `tide run autoresearch/first-party --agent <a>` |
 | [EdgeBench](tasks/autoresearch/edgebench) | 51 · 2-12 h budgets | [ByteDance-Seed/EdgeBench](https://github.com/ByteDance-Seed/EdgeBench) | `tide run edgebench/<task> --budget <h>` |
-| [FrontierCS](tasks/autoresearch/frontier-cs) | 188 algorithmic + 20 research · incl. 4 GPU kernel | [FrontierCS/Frontier-CS](https://github.com/FrontierCS/Frontier-CS) | `tide run frontier-cs/<task> --agent <a>` |
+| [FrontierCS](tasks/autoresearch/frontier-cs) | 208 · 188 algorithmic + 20 research, incl. 4 GPU kernel | [FrontierCS/Frontier-CS](https://github.com/FrontierCS/Frontier-CS) | `tide run frontier-cs/<task> --agent <a>` |
 
 Each first-party task teaches one hard part of the category (held-out
-grading, safely grading agent-shipped code, ...); [docs/tasks.md](docs/tasks.md)
-has the full catalog with oracle scores. The
+grading, safely grading agent-shipped code, ...); the
+[catalog](tasks/README.md) lists every task with its oracle score. The
 [roadmap](https://github.com/Human-Agent-Society/tide-eval/issues/19) tracks
 the next converters.
 

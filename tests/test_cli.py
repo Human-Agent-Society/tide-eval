@@ -247,3 +247,50 @@ def test_list_and_fetch_errors(capsys):
     assert "autoresearch/first-party/circle-packing" in out
     with pytest.raises(SystemExit, match="known"):
         main(["--tasks-dir", str(TASKS_ROOT), "fetch", "nonsense-bench"])
+
+
+# ------------------------------------------- the agent/--local flag contract
+
+
+@pytest.mark.parametrize("command", ["run", "stream"])
+def test_local_without_a_command_says_what_is_missing(command):
+    """--local has no agent to run: the command is the whole point of it."""
+    with pytest.raises(SystemExit, match="--command"):
+        main([command, "autoresearch/first-party/tsp-tour", "--local"])
+
+
+@pytest.mark.parametrize("command", ["run", "stream"])
+def test_a_command_without_local_is_rejected(command):
+    """A container run ignores --command, and silently ignoring it would
+    leave the user waiting on a harness that never got their command."""
+    with pytest.raises(SystemExit, match="only works with --local"):
+        main([command, "autoresearch/first-party/tsp-tour", "--command", "true"])
+
+
+@pytest.mark.parametrize("command", ["run", "stream"])
+def test_no_agent_and_no_local_is_rejected(command):
+    with pytest.raises(SystemExit, match="--agent is required"):
+        main([command, "autoresearch/first-party/tsp-tour"])
+
+
+def test_a_failed_episode_makes_the_run_exit_nonzero(tmp_path, capsys):
+    """An episode with no reward has to reach the shell as a failure, or a
+    CI job that scored nothing looks the same as one that scored well."""
+    lab = str(tmp_path / "lab")
+    code = main(
+        [
+            "--tasks-dir",
+            str(TASKS_ROOT),
+            "run",
+            # A stream task has no judge to run locally, so the local
+            # executor refuses it and the episode records an error.
+            "continual-learning/terminal-bench/chess-best-move",
+            "--local",
+            "--command",
+            "true",
+            "--lab",
+            lab,
+        ]
+    )
+    assert code == 1
+    assert "ERR" in capsys.readouterr().out

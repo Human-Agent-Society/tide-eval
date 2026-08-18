@@ -94,8 +94,7 @@ data, stricter checks, anything the session score must not leak.
 [symbolic-regression](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/autoresearch/first-party/symbolic-regression) is the
 reference: the session scores on training points; the final judge scores
 once on held-out points, so no submission budget can be spent probing
-them. Without `final.py`, the final verdict is simply the best session
-score.
+them. Without `final.py`, the final verdict is the best session score.
 
 ## The scoring contract
 
@@ -204,7 +203,7 @@ A path runs as-is, and a folder placed in the catalog resolves by name:
 
 ```bash
 tide run path/to/my-bench --agent oracle       # any directory of tasks
-tide run my-bench --agent oracle               # once it sits in tasks/<mode>/my-bench
+tide run my-bench --agent oracle               # once it sits in tasks/<regime>/my-bench
 ```
 
 In a checkout, `tests/test_task_suite.py` picks up every task under

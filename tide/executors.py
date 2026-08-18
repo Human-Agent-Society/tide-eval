@@ -339,18 +339,19 @@ def _start_judge(
     last: RuntimeError | None = None
     for attempt in range(attempts):
         port, verifier_port = _free_ports(2)
-        judge = subprocess.Popen(
-            [sys.executable, str(judge_dir / "judge_server.py")],
-            env={
-                **os.environ,
-                "PORT": str(port),
-                "VERIFIER_PORT": str(verifier_port),
-                "JUDGE_DIR": str(judge_dir),
-                "DATA_DIR": str(data_dir),
-            },
-            stdout=subprocess.DEVNULL,
-            stderr=log.open("w"),
-        )
+        with log.open("w") as stderr:
+            judge = subprocess.Popen(
+                [sys.executable, str(judge_dir / "judge_server.py")],
+                env={
+                    **os.environ,
+                    "PORT": str(port),
+                    "VERIFIER_PORT": str(verifier_port),
+                    "JUDGE_DIR": str(judge_dir),
+                    "DATA_DIR": str(data_dir),
+                },
+                stdout=subprocess.DEVNULL,
+                stderr=stderr,
+            )
         judge_url = f"http://127.0.0.1:{port}"
         verifier_url = f"http://127.0.0.1:{verifier_port}"
         try:

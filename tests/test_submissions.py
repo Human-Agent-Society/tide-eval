@@ -1,6 +1,7 @@
 """Submission-log parsing: the judge's history becomes trace points."""
 
 from tide.submissions import (
+    AGENT_WRITABLE,
     SUBMISSIONS_LOG,
     find_submissions_log,
     load_trace,
@@ -51,3 +52,15 @@ def test_falls_back_when_there_is_no_verifier_dir(tmp_path):
     nested.mkdir()
     (nested / SUBMISSIONS_LOG).write_text('{"t": 1, "score": 0.5}\n')
     assert find_submissions_log(tmp_path) == nested / SUBMISSIONS_LOG
+
+
+def test_an_agent_written_log_is_never_the_trace(tmp_path):
+    """With no verifier directory the search falls back to the whole trial,
+    and the agent's own output is inside it. Accepting a log the agent wrote
+    would let it hand in its own anytime curve."""
+    for directory in AGENT_WRITABLE:
+        (tmp_path / directory).mkdir()
+        (tmp_path / directory / SUBMISSIONS_LOG).write_text('{"t": 1, "score": 9.9}\n')
+
+    assert find_submissions_log(tmp_path) is None
+    assert load_trace(tmp_path) == []

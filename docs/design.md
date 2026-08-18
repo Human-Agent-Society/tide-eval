@@ -55,7 +55,6 @@ task: the streaming setting of
   baseline `metrics.transfer` subtracts is a plain `lab.run` sweep, which
   is a different thing again.
 
-
 ## Trust: scoring stays out of the agent's hands
 
 Both regimes share one rule: the agent can never reach the code or data
@@ -161,20 +160,17 @@ table can be audited back to its evidence.
 
 ## How streams run
 
-Two decisions make a stream one clean measurement rather than a loose
-batch:
+The mechanics are in [streams](get-started.md#streams). Two decisions
+behind them make a stream one clean measurement rather than a loose batch:
 
-- **Deterministic starting state.** The live state directory is reset
-  from the previous position's snapshot before every episode and
-  snapshotted after, so each episode's input is reproducible no matter
-  what crashed in between, and every step's memory stays auditable.
-- **Resume with stable history.** Recorded positions are skipped as
-  always, and a position's key covers the task list up to that position:
-  appending tasks extends a finished stream, editing an earlier position
-  re-runs everything after it. Each snapshot is named by that same
-  prefix, so a snapshot is only ever reused by a stream whose history up
-  to that point matches, and two streams sharing a name cannot inherit
-  each other's memory.
+- **Every episode starts from a state you can point at.** Snapshotting
+  after each position and restoring before the next means an episode's
+  input does not depend on what crashed in between, and every step's
+  memory can be read back afterwards.
+- **A position's key covers the history that produced it**, not just its
+  own task, and each snapshot is named by the same prefix. A snapshot is
+  therefore only ever reused by a stream whose history matches up to that
+  point, so two streams sharing a name cannot inherit each other's memory.
 
 Episode rows from a stream land in the same table, tagged `stream` and
 `position`; the continual-learning metrics are queries like every other
