@@ -5,7 +5,7 @@ One primitive, the episode (one Harbor trial): a task run under an agent
 and scored by an isolated verifier. The judge's score for every submission
 along the way is recorded as ``trace`` rows beside it.
 
-Two modes on top. Autoresearch measures learning within one open-ended
+Two regimes on top. Autoresearch measures learning within one open-ended
 episode (the anytime curve of judge-scored submissions); streams measure
 what carries into later tasks (a :class:`Stream` of episodes under one
 carried agent state).

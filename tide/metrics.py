@@ -209,10 +209,20 @@ def efficiency(
     ``spend`` is a ``used_*`` column (tokens, ``used_cost_usd``,
     ``used_n_submissions``); ``per`` scales the denominator (e.g. ``1000``
     for reward per 1k tokens). Returns mean reward, mean spend, and
-    ``reward_per_unit`` per *by* group (or overall). Rows missing the spend
-    column are dropped, so this is only meaningful once usage is recorded.
+    ``reward_per_unit`` per *by* group (or overall).
+
+    Rows that recorded no spend are dropped, since not every harness
+    reports usage. A missing *spend* column is a different thing and
+    raises: asking for a column nobody recorded, or misspelling one, would
+    otherwise come back as an empty frame that reads like a real answer.
     """
-    have = df[df[spend].notna() & (df[spend] > 0)] if spend in df else df.iloc[0:0]
+    if spend not in df:
+        recorded = [c for c in df.columns if c.startswith("used_")]
+        raise KeyError(
+            f"no {spend!r} column. Recorded usage columns: "
+            f"{', '.join(recorded) or 'none, so no run reported its spend'}"
+        )
+    have = df[df[spend].notna() & (df[spend] > 0)]
     if have.empty:
         return pd.DataFrame(columns=(by or []) + [score, spend, "reward_per_unit"])
 

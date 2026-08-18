@@ -178,10 +178,31 @@ def test_efficiency_reward_per_unit():
     assert out.loc["b", "reward_per_unit"] == pytest.approx(1.6 / 400)
 
 
-def test_efficiency_empty_when_no_usage():
+def test_efficiency_says_so_when_the_spend_column_is_absent():
+    """An empty frame here would read as "no efficiency to report" when the
+    real answer is that the column asked for was never recorded."""
     import pandas as pd
 
     from tide import metrics
 
-    df = pd.DataFrame([{"reward": 1.0}])  # no used_* column
-    assert metrics.efficiency(df).empty
+    df = pd.DataFrame([{"reward": 1.0, "used_n_submissions": 4}])
+    with pytest.raises(KeyError, match="used_n_submissions"):
+        metrics.efficiency(df)  # defaults to used_n_total_tokens
+
+
+def test_efficiency_drops_runs_that_reported_no_spend():
+    """A harness that reports nothing is ordinary, and not the same thing
+    as a column that does not exist."""
+    import pandas as pd
+
+    from tide import metrics
+
+    df = pd.DataFrame(
+        [
+            {"reward": 1.0, "used_n_total_tokens": 1000.0},
+            {"reward": 9.0, "used_n_total_tokens": None},
+        ]
+    )
+    out = metrics.efficiency(df)
+    assert out.loc[0, "reward"] == pytest.approx(1.0)
+    assert out.loc[0, "reward_per_unit"] == pytest.approx(0.001)

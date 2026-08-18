@@ -1,7 +1,7 @@
 # tasks/: the benchmark catalog
 
 > **Where this sits**: the framework is `tide/`; this folder is the tasks
-> it runs, grouped by mode. `autoresearch/` holds the six first-party
+> it runs, grouped by regime. `autoresearch/` holds the six first-party
 > tasks (`first-party/`) plus EdgeBench and FrontierCS; `continual-learning/`
 > holds terminal-bench, SWE-bench Verified, and CL-Bench. Committed tasks
 > can be browsed and run directly; each benchmark's `fetch.py` regenerates

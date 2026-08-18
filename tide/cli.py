@@ -109,7 +109,7 @@ def resolve_targets(targets: list[str], tasks_root: Path | None) -> list[str]:
         candidates = [Path(target)]
         if tasks_root is not None:
             candidates.append(tasks_root / target)
-            # Benchmarks live one level down (tasks/<mode>/<benchmark>), so
+            # Benchmarks live one level down (tasks/<regime>/<benchmark>), so
             # bare names like "edgebench" or "terminal-bench" resolve too.
             candidates.extend(sorted(tasks_root.glob(f"*/{target}")))
         for candidate in candidates:
@@ -138,16 +138,30 @@ def resolve_targets(targets: list[str], tasks_root: Path | None) -> list[str]:
     return resolved
 
 
+def _parse_pairs(pairs: list[str] | None) -> dict:
+    """``K=V`` flags, with the value read as JSON when it parses as JSON.
+
+    So ``--tag budget=2`` is the number 2 and ``--agent-arg
+    extra_allowed_hosts='["a"]'`` is a list, while a plain word stays a
+    string.
+    """
+    out = {}
+    for pair in pairs or []:
+        key, _, value = pair.partition("=")
+        try:
+            out[key] = json.loads(value)
+        except json.JSONDecodeError:
+            out[key] = value
+    return out
+
+
 def _build_agent(args: argparse.Namespace) -> dict:
     agent: dict = {"name": args.agent}
     if args.model:
         agent["model_name"] = args.model
-    for pair in args.agent_arg or []:
-        key, _, value = pair.partition("=")
-        try:
-            agent[key] = json.loads(value)
-        except json.JSONDecodeError:
-            agent[key] = value
+    agent.update(_parse_pairs(args.agent_arg))
+    if args.command:
+        agent["command"] = args.command
     return agent
 
 
@@ -176,17 +190,6 @@ def _parse_count(value: str | None) -> int | None:
     return int(text)
 
 
-def _parse_tags(pairs: list[str] | None) -> dict:
-    tags = {}
-    for pair in pairs or []:
-        key, _, value = pair.partition("=")
-        try:
-            tags[key] = json.loads(value)
-        except json.JSONDecodeError:
-            tags[key] = value
-    return tags
-
-
 def _stream_name(name: str | None, targets: list[str]) -> str:
     """The stream's label: ``--name`` when given, else derived from what was
     asked for.
@@ -209,6 +212,46 @@ def _stream_name(name: str | None, targets: list[str]) -> str:
             "cannot contain path separators or whitespace"
         )
     return name
+
+
+def _resolve_agent_flags(args: argparse.Namespace) -> None:
+    """Settle --agent / --local / --command, which run and stream share.
+
+    ``--local`` supplies the command itself, so it names its own agent;
+    every other run has to say which agent to use.
+    """
+    if args.local and not args.command:
+        raise SystemExit(
+            "--local runs your own command: add --command '<shell command>'"
+        )
+    if args.command and not args.local:
+        raise SystemExit("--command only works with --local")
+    if args.local:
+        args.agent = args.agent or "local-command"
+    elif not args.agent:
+        raise SystemExit("--agent is required (or use --local with --command)")
+
+
+def _report_rows(rows: list[Row], lab: str, position: bool = False) -> int:
+    """Print one line per episode and return the process exit code.
+
+    An episode counts as a failure when it recorded no reward or recorded
+    an error. A non-zero agent exit is noted but does not fail the run,
+    since spending the whole time budget ends that way.
+    """
+    failures = 0
+    for row in rows:
+        error = row.tags.get("error")
+        ok = row.rewards.get("reward") is not None and not error
+        failures += not ok
+        where = f"[{row.tags.get('position'):>3}] " if position else ""
+        name = row.task.rstrip("/").split("/")[-1]
+        print(
+            f"  {'OK ' if ok else 'ERR'} {where}{name}: "
+            f"{row.rewards or error}{_exit_note(row)}"
+        )
+    print(f"\nresults stored in {lab}: `tide report --lab {lab}`")
+    return 1 if failures else 0
 
 
 def _exit_note(row: Row) -> str:
@@ -315,23 +358,10 @@ def cmd_list(args: argparse.Namespace) -> int:
 
 
 def cmd_run(args: argparse.Namespace) -> int:
-    if args.local and not args.command:
-        raise SystemExit(
-            "--local runs your own command: add --command '<shell command>'"
-        )
-    if args.command and not args.local:
-        raise SystemExit("--command only works with --local")
-    if args.local:
-        args.agent = args.agent or "local-command"
-    elif not args.agent:
-        raise SystemExit("--agent is required (or use --local with --command)")
-
-    tasks_root = _find_tasks_root(args.tasks_dir)
-    targets = resolve_targets(args.targets, tasks_root)
+    _resolve_agent_flags(args)
+    targets = resolve_targets(args.targets, _find_tasks_root(args.tasks_dir))
     agent = _build_agent(args)
-    if args.command:
-        agent["command"] = args.command
-    base_tags = _parse_tags(args.tag)
+    base_tags = _parse_pairs(args.tag)
     budget = _build_budget(args)
 
     _enable_progress()
@@ -355,42 +385,17 @@ def cmd_run(args: argparse.Namespace) -> int:
         f"running {len(targets)} task(s) x {args.attempts} attempt(s) "
         f"as agent '{args.agent}' -> {args.lab}"
     )
-    rows = asyncio.run(_run())
-
-    failures = 0
-    for row in rows:
-        reward = row.rewards.get("reward")
-        error = row.tags.get("error")
-        marker = "OK " if reward is not None and not error else "ERR"
-        if marker == "ERR":
-            failures += 1
-        name = row.task.rstrip("/").split("/")[-1]
-        print(f"  {marker} {name}: {row.rewards or error}{_exit_note(row)}")
-    print(f"\nresults stored in {args.lab}: `tide report --lab {args.lab}`")
-    return 1 if failures else 0
+    return _report_rows(asyncio.run(_run()), args.lab)
 
 
 def cmd_stream(args: argparse.Namespace) -> int:
-    if args.local and not args.command:
-        raise SystemExit(
-            "--local runs your own command: add --command '<shell command>'"
-        )
-    if args.command and not args.local:
-        raise SystemExit("--command only works with --local")
-    if args.local:
-        args.agent = args.agent or "local-command"
-    elif not args.agent:
-        raise SystemExit("--agent is required (or use --local with --command)")
-
-    tasks_root = _find_tasks_root(args.tasks_dir)
+    _resolve_agent_flags(args)
     # Derive the label from what was typed, not from the expansion, so
     # `tide stream terminal-bench` is named for the benchmark.
     name = _stream_name(args.name, args.targets)
-    targets = resolve_targets(args.targets, tasks_root)
+    targets = resolve_targets(args.targets, _find_tasks_root(args.tasks_dir))
     agent = _build_agent(args)
-    if args.command:
-        agent["command"] = args.command
-    tags = _parse_tags(args.tag)
+    tags = _parse_pairs(args.tag)
     budget = _build_budget(args)
     if args.shuffle is not None:
         # The seed becomes a tag, so each seed is its own stream with its
@@ -412,21 +417,7 @@ def cmd_stream(args: argparse.Namespace) -> int:
     )
     print(f"state: {stream.state_root(lab, agent, tags=tags, budget=budget)}")
     rows = asyncio.run(stream.run(lab, agent, tags=tags, budget=budget))
-
-    failures = 0
-    for row in rows:
-        reward = row.rewards.get("reward")
-        error = row.tags.get("error")
-        marker = "OK " if reward is not None and not error else "ERR"
-        if marker == "ERR":
-            failures += 1
-        name = row.task.rstrip("/").split("/")[-1]
-        print(
-            f"  {marker} [{row.tags.get('position'):>3}] {name}: "
-            f"{row.rewards or error}{_exit_note(row)}"
-        )
-    print(f"\nresults stored in {args.lab}: `tide report --lab {args.lab}`")
-    return 1 if failures else 0
+    return _report_rows(rows, args.lab, position=True)
 
 
 def cmd_report(args: argparse.Namespace) -> int:
