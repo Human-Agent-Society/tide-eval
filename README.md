@@ -42,30 +42,16 @@ that can work inside a container, including your own harness or method.
 
 Harbor runs the trial, and tide imports it for exactly that: the task
 format, containers, the agent adapters, the verifier, trajectories,
-`harbor job resume`, and `harbor view` for browsing and comparing what
-ran. tide adds the two things its regimes need, and one table underneath
-both.
+`harbor job resume`, and `harbor view`. Four things sit on top of it.
 
-**Scoring the agent asks for.** Harbor grades a trial where the task says
-to, once at the end or once per declared step, and a reward carries no
-time. An autoresearch task instead hands the agent a judge it can POST to
-whenever it has a candidate worth scoring, and every submission is graded
-into a timestamped log. That log is the anytime curve, and the judge
-computed it, so it is evidence rather than the agent's own report.
+| What tide adds | Why it matters | Where |
+|---|---|---|
+| A judge sidecar the agent submits to whenever it likes, grading every submission into a timestamped log | Harbor grades where the task declares, and a reward carries no time. This log is the anytime curve, and the judge computed it, so the whole trajectory is evidence rather than self-report | [`judge_server.py`](tasks/_template/environment/judge_server.py), [authoring tasks](docs/authoring-tasks.md) |
+| Streams: an ordered task list whose carried state is snapshotted at every position | Harbor mounts a directory into a trial but has no notion of position. Snapshots make each task start from a known state, let a crashed stream resume, and let appending a task extend a finished one | [`tide/stream.py`](tide/stream.py), [streams](docs/get-started.md#streams) |
+| One append-only table for every run ever, keyed by (task, agent, tags) | Score against budget, benchmark against benchmark, and a stream against its stateless baseline are queries over the same rows. Re-running a script skips whatever finished | [`tide/store.py`](tide/store.py), [`tide/lab.py`](tide/lab.py) |
+| Budgets on four axes, and metrics as pure functions over the table | Time, submissions, tokens, or dollars, whichever is scarce; then anytime AUC, time-to-threshold, transfer, forgetting and budget scaling, one line each | [`tide/budget.py`](tide/budget.py), [metrics](docs/metrics.md) |
 
-**A sequence whose state is snapshotted.** Harbor will already mount a
-directory into every trial and, one trial at a time, run them in order.
-What it has no notion of is the position: tide snapshots the carried
-state after each task and restores it before the next, so every task
-starts from a known state, a crashed stream resumes, and appending a task
-extends a finished stream rather than re-running it.
-
-Both land in one table. Every episode, from any script on any day, is a
-row keyed by (task, agent, tags), with tags as its columns, so score
-against budget, benchmark against benchmark, and a stream against its
-stateless baseline are queries over the same rows. Re-running a script
-skips whatever finished, at episode granularity: a crashed 12-hour
-episode starts over.
+Resume is episode-granular: a crashed 12-hour episode starts over.
 
 Full design (trust model, task conventions, data model, extensibility):
 **[docs/design.md](docs/design.md)**.
