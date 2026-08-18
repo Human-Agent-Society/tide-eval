@@ -121,7 +121,22 @@ class HarborExecutor:
             trace=trace,
             error=error,
             usage=_harbor_usage(result.agent_result, len(trace)),
+            agent_exit_code=_agent_exit_code(trial.paths.trial_dir),
         )
+
+
+def _agent_exit_code(trial_dir: Path) -> int | None:
+    """The agent's exit status, when Harbor recorded a non-zero one.
+
+    Harbor writes ``agent/exit-code.txt`` only on a non-zero exit, and its
+    trial result carries no other sign of it, so an agent that died leaves a
+    perfectly ordinary row unless this is read back.
+    """
+    path = trial_dir / "agent" / "exit-code.txt"
+    try:
+        return int(path.read_text().strip())
+    except (OSError, ValueError):
+        return None
 
 
 def _harbor_usage(agent_result: Any, n_submissions: int) -> dict[str, float]:

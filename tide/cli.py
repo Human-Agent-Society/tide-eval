@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from tide import Budget, Lab
+    from tide.types import Row
 
 
 def _find_tasks_root(tasks_dir: str | None) -> Path | None:
@@ -210,6 +211,17 @@ def _stream_name(name: str | None, targets: list[str]) -> str:
     return name
 
 
+def _exit_note(row: Row) -> str:
+    """Flag an agent that exited non-zero.
+
+    The score still stands, so this is not an error, but a reward earned by
+    an agent that died reads the same as one it worked for unless the exit is
+    shown. Spending the whole time budget also ends non-zero.
+    """
+    code = row.tags.get("agent_exit_code")
+    return f"  (agent exited {code})" if code else ""
+
+
 def _enable_progress() -> None:
     """Show the tide logger's per-episode progress lines on stderr."""
     handler = logging.StreamHandler()
@@ -353,7 +365,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         if marker == "ERR":
             failures += 1
         name = row.task.rstrip("/").split("/")[-1]
-        print(f"  {marker} {name}: {row.rewards or error}")
+        print(f"  {marker} {name}: {row.rewards or error}{_exit_note(row)}")
     print(f"\nresults stored in {args.lab}: `tide report --lab {args.lab}`")
     return 1 if failures else 0
 
@@ -410,7 +422,8 @@ def cmd_stream(args: argparse.Namespace) -> int:
             failures += 1
         name = row.task.rstrip("/").split("/")[-1]
         print(
-            f"  {marker} [{row.tags.get('position'):>3}] {name}: {row.rewards or error}"
+            f"  {marker} [{row.tags.get('position'):>3}] {name}: "
+            f"{row.rewards or error}{_exit_note(row)}"
         )
     print(f"\nresults stored in {args.lab}: `tide report --lab {args.lab}`")
     return 1 if failures else 0
