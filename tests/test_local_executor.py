@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from tide import Lab, LocalExecutor
+from tide.executors import _free_ports
 from tide.types import EpisodeSpec
 
 TEMPLATE = str(Path(__file__).parent.parent / "tasks" / "_template")
@@ -85,3 +86,11 @@ async def test_a_judge_that_dies_at_startup_says_why(tmp_path):
     message = str(raised.value)
     assert "exited with code 3" in message  # not a bare timeout
     assert "could not bind" in message  # the judge's own stderr
+
+
+def test_ports_handed_out_together_are_distinct():
+    """The judge needs its agent port and verifier port to differ. Binding one
+    at a time and releasing each before the next can return the same port."""
+    ports = _free_ports(500)
+    assert len(ports) == 500
+    assert len(set(ports)) == 500
