@@ -36,6 +36,6 @@ jobs:
       - name: Local mode (real scoring, no Docker)
         run: |
           uv run tide run autoresearch/first-party/circle-packing --local \
-            --command "python examples/minimal_harness_search.py" \
+            --command "python examples/random_search.py" \
             --budget 0.002 --lab runs/ci-local
           uv run tide report --lab runs/ci-local

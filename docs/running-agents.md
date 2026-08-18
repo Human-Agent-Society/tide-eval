@@ -160,16 +160,29 @@ row = await lab.run(
 )
 ```
 
-Runnable version: [`examples/minimal_harness.py`](https://github.com/Human-Agent-Society/tide-eval/blob/main/examples/minimal_harness.py),
-a ~25-line adapter around a random-search loop, no LLM, no keys.
+Two runnable versions:
+[`examples/minimal_harness.py`](https://github.com/Human-Agent-Society/tide-eval/blob/main/examples/minimal_harness.py)
+is a ~25-line adapter around a random-search loop, no LLM and no keys, so
+it runs anywhere Docker does.
+[`examples/llm_harness.py`](https://github.com/Human-Agent-Society/tide-eval/blob/main/examples/llm_harness.py)
+adds the part that makes it autoresearch: it asks a model for a candidate,
+submits it, and puts the judge's score into the next prompt. Any
+OpenAI-compatible endpoint works.
+
+```bash
+export OPENAI_BASE_URL=https://openrouter.ai/api/v1
+export OPENAI_API_KEY=...
+python examples/llm_harness.py --model deepseek/deepseek-v4-flash
+```
 
 Two placements for your method, both fine:
 
 - **Host-side loop**: your method keeps its own GPUs / inference server /
-  orchestrator and submits through the container
-  (`environment.exec(command="curl ... $JUDGE_URL/submit")`). Fits
-  external learners (TTT-style training loops) and host-side multi-agent
-  systems (CORAL-style).
+  orchestrator and submits through the container (`environment.exec`, the
+  way `llm_harness.py` does it). Fits external learners (TTT-style
+  training loops) and host-side multi-agent systems (CORAL-style). The
+  container's network policy stays closed and your API key never enters
+  it.
 - **In-container**: upload your method and launch it; it talks to the
   judge directly. LLM calls from inside need the task's network policy
   opened: add your API host to the `[agent]` phase allowlist; see
@@ -180,7 +193,7 @@ Two placements for your method, both fine:
 An evolutionary search, a solver portfolio, a bare sampling loop. The
 whole integration is: read `$JUDGE_URL`, POST candidates worth scoring,
 stop at 429. The minimal version is ~20 lines
-([`examples/minimal_harness_search.py`](https://github.com/Human-Agent-Society/tide-eval/blob/main/examples/minimal_harness_search.py)).
+([`examples/random_search.py`](https://github.com/Human-Agent-Society/tide-eval/blob/main/examples/random_search.py)).
 
 An OpenEvolve-style loop plugs in the same way: its `evaluate()` function
 POSTs the candidate to `$JUDGE_URL/submit` and returns the judge's score.

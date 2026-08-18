@@ -85,7 +85,7 @@ your command against it, with no containers involved:
 
 ```bash
 tide run autoresearch/first-party/circle-packing --local \
-  --command "python examples/minimal_harness_search.py" --budget 30s
+  --command "python examples/random_search.py" --budget 30s
 ```
 
 Your command reads `$JUDGE_URL` and `$BUDGET_SEC` and POSTs solutions to
@@ -98,7 +98,9 @@ With Docker, `tide run cl-bench/bsm-s01 --agent oracle` proves the real
 pipeline end to end (the oracle runs the task's reference solution and
 must score exactly 1.0), and
 [`examples/minimal_harness.py`](examples/minimal_harness.py) is the
-smallest complete container harness.
+smallest complete container harness. For one that calls a model and
+learns from the judge's score, see
+[`examples/llm_harness.py`](examples/llm_harness.py).
 
 ### The Python API
 
