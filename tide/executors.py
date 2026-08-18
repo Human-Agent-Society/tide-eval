@@ -25,6 +25,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -86,6 +87,22 @@ class HarborExecutor:
         from harbor.models.trial.config import TaskConfig, TrialConfig
         from harbor.trial.trial import Trial
 
+        missing = _unset_compose_vars(Path(spec.task))
+        if missing:
+            return EpisodeResult(
+                rewards={},
+                error=(
+                    f"{spec.task} needs {', '.join(missing)}, which nothing "
+                    "provides. Its docker-compose.yaml builds mount paths from "
+                    "them, and Compose reads an unset variable as an empty "
+                    "string, so the task would run and score 0 with nothing to "
+                    "show for it. Set them in the environment or in an .env "
+                    "beside the compose file; the benchmark's README says "
+                    "which, and for frontier-cs `python fetch.py --problems "
+                    "<id>` does it for you."
+                ),
+            )
+
         task_field = (
             {"path": Path(spec.task)}
             if Path(spec.task).exists()
@@ -123,6 +140,46 @@ class HarborExecutor:
             usage=_harbor_usage(result.agent_result, len(trace)),
             agent_exit_code=_agent_exit_code(trial.paths.trial_dir),
         )
+
+
+def _unset_compose_vars(task_dir: Path) -> list[str]:
+    """Compose variables the task needs that nothing is going to supply.
+
+    Harbor fills in its own set and the rest have to come from the
+    environment. An unset one is not an error to Compose: it substitutes an
+    empty string, the mount quietly points somewhere else, and the run ends
+    at a score of 0 that reads like the agent's fault.
+    """
+    compose = task_dir / "environment" / "docker-compose.yaml"
+    if not compose.is_file():
+        return []
+    try:
+        from harbor.environments.docker.compose_env import ComposeInfraEnvVars
+
+        provided = {name.upper() for name in ComposeInfraEnvVars.model_fields}
+    except ImportError:  # pragma: no cover - harbor is optional
+        provided = set()
+    provided |= set(os.environ) | _dotenv_names(compose.parent)
+    referenced = set(re.findall(r"\$\{([A-Z_][A-Z0-9_]*)[:}]", compose.read_text()))
+    return sorted(referenced - provided)
+
+
+def _dotenv_names(environment_dir: Path) -> set[str]:
+    """Names an ``.env`` beside the compose file defines.
+
+    Harbor points Compose at this directory, and Compose reads a ``.env``
+    there, so a variable set in one is as good as an exported one and the
+    check has to look in the same places Compose does.
+    """
+    dotenv = environment_dir / ".env"
+    if not dotenv.is_file():
+        return set()
+    names = set()
+    for line in dotenv.read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            names.add(line.split("=", 1)[0].strip())
+    return names
 
 
 def _agent_exit_code(trial_dir: Path) -> int | None:

@@ -5,6 +5,10 @@ validation) without running containers. Full end-to-end runs live in
 examples/ and require Docker.
 """
 
+import os
+from pathlib import Path
+from unittest import mock
+
 import pytest
 
 harbor = pytest.importorskip("harbor")
@@ -79,3 +83,37 @@ def test_exemplar_task_is_valid_stock_harbor(request):
     assert (task_dir / "environment" / "Dockerfile").exists()
     assert (task_dir / "tests" / "test.sh").exists()
     assert (task_dir / "solution" / "solve.sh").exists()
+
+
+def test_unset_compose_variables_are_caught_before_the_run(tmp_path):
+    """A task whose compose needs a variable nobody sets would run to a score
+    of 0 that looks like the agent's fault: Compose reads an unset variable as
+    an empty string, so the mount silently points elsewhere."""
+    from tide.executors import _unset_compose_vars
+
+    environment = tmp_path / "environment"
+    environment.mkdir()
+    (environment / "docker-compose.yaml").write_text(
+        "services:\n  main:\n    volumes:\n      - ${DATA_PATH}/x:/x:ro\n"
+    )
+
+    with mock.patch.dict(os.environ, {}, clear=True):
+        assert _unset_compose_vars(tmp_path) == ["DATA_PATH"]
+
+        # Compose reads a .env beside the compose file, so the check must too.
+        (environment / ".env").write_text("# a comment\nDATA_PATH=/somewhere\n")
+        assert _unset_compose_vars(tmp_path) == []
+
+        (environment / ".env").unlink()
+        assert _unset_compose_vars(tmp_path) == ["DATA_PATH"]
+
+    # An exported variable counts just the same.
+    with mock.patch.dict(os.environ, {"DATA_PATH": "/somewhere"}):
+        assert _unset_compose_vars(tmp_path) == []
+
+
+def test_self_contained_tasks_need_nothing_set():
+    from tide.executors import _unset_compose_vars
+
+    root = Path(__file__).parent.parent / "tasks"
+    assert _unset_compose_vars(root / "_template") == []

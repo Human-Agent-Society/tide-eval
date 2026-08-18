@@ -19,11 +19,34 @@ both generated verbatim by their official Harbor adapters:
   demonstrate the compose-overlay wiring from
   [authoring tasks](../../../docs/authoring-tasks.md).
 
+## The algorithmic track needs the upstream problem data
+
+Its judge grades against test data that lives in the upstream repository,
+which is 2.6 GB for all 188 problems and so is not committed here. The
+generated `docker-compose.yaml` mounts it through
+`$FRONTIER_CS_ALGORITHMIC_PATH`, and Compose reads an unset variable as an
+empty string, so without it the judge starts, fails to find anything, and
+returns 0. tide checks for the variable and refuses the run instead.
+
+Fetch the data for the problems you mean to run, and they are ready:
+
+```bash
+cd tasks/autoresearch/frontier-cs
+python fetch.py --problems 1 17          # judge data for problems 1 and 17
+```
+
+There is nothing to export. Compose reads a `.env` beside each task's
+compose file, so `fetch.py` writes one there pointing at what it just
+downloaded. A task whose data you have not fetched is refused before the
+containers start, rather than running to a score of 0.
+
+The 2.0 track is self-contained and needs none of this.
+
 Run any task:
 
 ```bash
-tide run frontier-cs/frontier-cs-algorithm-1 --agent claude-code --model anthropic/claude-opus-5
 tide run frontier-cs/frontier-cs-2-0-erdos-demo --agent oracle
+tide run frontier-cs/frontier-cs-algorithm-1 --agent claude-code --model anthropic/claude-opus-5
 ```
 
 Regenerate any task from upstream (ids pick the track: numeric =
