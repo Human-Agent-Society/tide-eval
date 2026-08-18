@@ -11,7 +11,6 @@ exercise the HTTP boundary directly.
 
 import json
 import os
-import socket
 import subprocess
 import sys
 import time
@@ -19,15 +18,11 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from tide.executors import _free_ports
+
 TEMPLATE = Path(__file__).parent.parent / "tasks" / "_template"
 JUDGE_SERVER = TEMPLATE / "environment" / "judge_server.py"
 SCORE_PY = TEMPLATE / "environment" / "score.py"
-
-
-def _free_port():
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
 
 
 def _wait_healthy(url, timeout=10):
@@ -66,8 +61,7 @@ def _start_judge(tmp_path, judge_dir=None, with_final=False):
             "    return {'reward': x, 'reason': 'ok'}\n"
         )
 
-    port = _free_port()
-    verifier_port = _free_port()
+    port, verifier_port = _free_ports(2)
     data_dir = tmp_path / "data"
     proc = subprocess.Popen(
         [sys.executable, str(JUDGE_SERVER)],

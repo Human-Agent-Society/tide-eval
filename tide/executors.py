@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import socket
 import subprocess
@@ -37,6 +38,8 @@ from typing import Any, Protocol
 
 from tide.submissions import load_trace
 from tide.types import EpisodeResult, EpisodeSpec, TracePoint
+
+logger = logging.getLogger("tide")
 
 
 class Executor(Protocol):
@@ -201,28 +204,12 @@ class LocalExecutor:
             state_env["TIDE_STATE_DIR"] = str(state_dir)
 
         workdir = Path(tempfile.mkdtemp(prefix=f"{task_dir.name}-", dir=self.root))
-        port = _free_port()
-        verifier_port = _free_port()
         data_dir = workdir / "judge_data"
         judge_log = workdir / "judge.log"
-        judge = subprocess.Popen(
-            [sys.executable, str(judge_dir / "judge_server.py")],
-            env={
-                **os.environ,
-                "PORT": str(port),
-                "VERIFIER_PORT": str(verifier_port),
-                "JUDGE_DIR": str(judge_dir),
-                "DATA_DIR": str(data_dir),
-            },
-            stdout=subprocess.DEVNULL,
-            stderr=judge_log.open("w"),
+        judge, judge_url, verifier_url = await asyncio.to_thread(
+            _start_judge, judge_dir, data_dir, judge_log
         )
-        judge_url = f"http://127.0.0.1:{port}"
-        verifier_url = f"http://127.0.0.1:{verifier_port}"
         try:
-            await asyncio.to_thread(_wait_healthy, judge_url, judge, judge_log)
-            await asyncio.to_thread(_wait_healthy, verifier_url, judge, judge_log)
-
             error = None
             try:
                 proc = await asyncio.to_thread(
@@ -267,10 +254,64 @@ class LocalExecutor:
         )
 
 
-def _free_port() -> int:
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
+def _start_judge(
+    judge_dir: Path, data_dir: Path, log: Path, attempts: int = 3
+) -> tuple[subprocess.Popen, str, str]:
+    """Start the judge and wait for both its ports, retrying a lost race.
+
+    Ports are chosen, released, and only then bound by the judge, so another
+    process on the machine can take one in between. That shows up as the
+    judge exiting on a bind error, which is worth retrying with fresh ports;
+    any other startup failure is raised on the first attempt.
+    """
+    last: RuntimeError | None = None
+    for attempt in range(attempts):
+        port, verifier_port = _free_ports(2)
+        judge = subprocess.Popen(
+            [sys.executable, str(judge_dir / "judge_server.py")],
+            env={
+                **os.environ,
+                "PORT": str(port),
+                "VERIFIER_PORT": str(verifier_port),
+                "JUDGE_DIR": str(judge_dir),
+                "DATA_DIR": str(data_dir),
+            },
+            stdout=subprocess.DEVNULL,
+            stderr=log.open("w"),
+        )
+        judge_url = f"http://127.0.0.1:{port}"
+        verifier_url = f"http://127.0.0.1:{verifier_port}"
+        try:
+            _wait_healthy(judge_url, judge, log)
+            _wait_healthy(verifier_url, judge, log)
+            return judge, judge_url, verifier_url
+        except RuntimeError as exc:
+            judge.kill()
+            judge.wait()
+            last = exc
+            if "address already in use" not in str(exc).lower():
+                raise
+            logger.warning("judge lost the port race, retry %d", attempt + 1)
+    raise RuntimeError(f"judge could not get a free port in {attempts} tries") from last
+
+
+def _free_ports(count: int) -> list[int]:
+    """Pick *count* distinct free loopback ports.
+
+    Every socket is held until all of them are bound, so no two ports can
+    come back equal. Binding one at a time and releasing it can hand out the
+    same port twice, and the judge needs its two ports to differ.
+    """
+    held: list[socket.socket] = []
+    try:
+        for _ in range(count):
+            s = socket.socket()
+            s.bind(("127.0.0.1", 0))
+            held.append(s)
+        return [s.getsockname()[1] for s in held]
+    finally:
+        for s in held:
+            s.close()
 
 
 def _wait_healthy(
