@@ -11,7 +11,7 @@ from tide import Lab, LocalExecutor
 
 ROOT = Path(__file__).parent.parent
 TASK = str(ROOT / "tasks" / "autoresearch" / "first-party" / "circle-packing")
-SEARCH = ROOT / "examples" / "minimal_harness_search.py"
+SEARCH = ROOT / "examples" / "random_search.py"
 
 
 async def test_random_search_speaks_the_judge_protocol(tmp_path):

@@ -138,7 +138,7 @@ command against it:
 
 ```bash
 tide run autoresearch/first-party/circle-packing --local \
-  --command "python examples/minimal_harness_search.py" --budget 30s
+  --command "python examples/random_search.py" --budget 30s
 ```
 
 Same judge code as the container sidecar, but no isolation (even hidden

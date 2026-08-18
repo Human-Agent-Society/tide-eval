@@ -1,9 +1,9 @@
 """The smallest complete agent harness: ~25 lines of adapter, no LLM.
 
-Pairs with ``minimal_harness_search.py`` (the random-search loop) to show
-the full integration path end to end: put your method in the container,
-point it at the judge, and get back a trusted score plus its full
-submission log as trace rows. Requires Docker +
+The adapter is this file; the method it runs is ``random_search.py``.
+Together they show the whole integration path: put your method in the
+container, point it at the judge, and get back a trusted score plus its
+submission log as trace rows. Requires Docker and
 ``pip install tide-eval[harbor]``.
 
     python examples/minimal_harness.py
@@ -24,7 +24,7 @@ TASK = str(
     / "first-party"
     / "circle-packing"
 )
-SEARCH_SCRIPT = Path(__file__).with_name("minimal_harness_search.py")
+SEARCH_SCRIPT = Path(__file__).with_name("random_search.py")
 
 
 class RandomSearchHarness(BaseAgent):
@@ -59,6 +59,8 @@ async def main():
         agent={"import_path": "minimal_harness:RandomSearchHarness"},
         tags={"harness": "random-search"},
     )
+    if row.tags.get("error"):
+        raise SystemExit(f"the episode failed: {row.tags['error']}")
     print("trusted reward:", row.rewards)  # the judge's final verdict
 
     trace = lab.df("trace")
