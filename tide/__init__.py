@@ -20,6 +20,7 @@ from tide.budget import Budget
 from tide.executors import FakeExecutor, HarborExecutor, LocalExecutor
 from tide.lab import Lab
 from tide.stream import Stream
+from tide.targets import tasks
 from tide.types import EpisodeResult, EpisodeSpec, Row, TracePoint
 
 __version__ = "0.1.0"
@@ -27,6 +28,7 @@ __version__ = "0.1.0"
 __all__ = [
     "Lab",
     "Stream",
+    "tasks",
     "Budget",
     "HarborExecutor",
     "LocalExecutor",
