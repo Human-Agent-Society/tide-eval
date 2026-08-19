@@ -14,10 +14,10 @@ supports two kinds of task.
 **Autoresearch** is the kind of task that approaches such as DeepMind's
 [AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/)
 and [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) try to solve:
-usually it comes with one open-ended problem measured by a continuous score, hours of
-budget, and a judge that scores submission. The optimal score is
-unknown, so a result is the best score reached and how long it takes to get
-there (or how many evals):
+usually it comes with one open-ended problem measured by a continuous
+score, hours of budget, and a judge that scores each submission. The
+optimal score is unknown, so a result is the best score reached and how
+long it took to get there (or how many evals):
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-hero-dark.svg">
@@ -25,18 +25,20 @@ there (or how many evals):
 </picture>
 
 **A stream of tasks** runs one agent through an ordered
-[stream](docs/get-started.md#streams) of tasks and it measures if agents can keep getting better and carry what it learns to the next tasks. (the setting used in
-[AgentStream](https://arxiv.org/abs/2608.00155) and
-[CL-Bench](https://arxiv.org/pdf/2606.05661)):
+[stream](docs/get-started.md#streams) of tasks, and it measures whether
+the agent keeps getting better and carries what it learns into the next
+task (the setting used in [AgentStream](https://arxiv.org/abs/2608.00155)
+and [CL-Bench](https://arxiv.org/pdf/2606.05661)):
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-stream-dark.svg">
   <img src="docs/assets/readme-stream-light.svg" alt="One agent works through a stream of tasks in order. Each task runs in its own fresh container and is scored on its own, but the agent's memory directory is carried from task to task, with a snapshot kept at every step. Every task's reward is written to the same table as every other run, so the learning curve over the stream is a single query." width="100%">
 </picture>
 
-Tasks are instantiated with Harbor format. This infra supports evaluating Any agent
-that can work inside a container, and you can easily test your harness
-or method following xxx.
+Tasks are written in the Harbor format. This infra supports evaluating
+any agent that can work inside a container, and you can test your own
+harness or method following
+[running agents](docs/running-agents.md).
 
 ## Why not plain Harbor?
 
@@ -47,9 +49,9 @@ specifically designed for evaluating agents that learn during the run.
 
 | What tide adds | In code | Where |
 |---|---|---|
-| **A judge.** The agent can submit at any time and The judge (instantiated in a separate container) scores and timestamps each submission. | `POST $JUDGE_URL/submit`<br>`-> {"score": 0.83, "best": 0.91, "remaining": 47}` | [`judge_server.py`](tasks/_template/environment/judge_server.py) |
-| **Streams.** An ordered task list run and solved by a agent. Tide snapshots the agent state after each episode to tranfer to the next. | `await Stream("wk1", tasks).run(lab, agent)` | [`stream.py`](tide/stream.py), [streams](docs/get-started.md#streams) |
-| **One append-only table.** it stores every run and keyed by (task, agent, tags). Tide provides various budget types for the agent runs, and provide common metrics for measuring self-evolving agent. | `metrics.auc(metrics.anytime(lab.df("trace")))` | [`store.py`](tide/store.py), [`budget.py`](tide/budget.py), [metrics](docs/metrics.md) |
+| **A judge.** The agent can submit at any time, and the judge (instantiated in a separate container) scores and timestamps each submission. | `POST $JUDGE_URL/submit`<br>`-> {"score": 0.83, "best": 0.91, "remaining": 47}` | [`judge_server.py`](tasks/_template/environment/judge_server.py) |
+| **Streams.** An ordered task list run and solved by one agent. tide snapshots the agent state after each episode and transfers it to the next. | `await Stream("wk1", tasks).run(lab, agent)` | [`stream.py`](tide/stream.py), [streams](docs/get-started.md#streams) |
+| **One append-only table.** It stores every run, keyed by (task, agent, tags). tide provides various budget types for the agent runs, and provides common metrics for measuring self-evolving agents. | `metrics.auc(metrics.anytime(lab.df("trace")))` | [`store.py`](tide/store.py), [`budget.py`](tide/budget.py), [metrics](docs/metrics.md) |
 
 Resume is episode-granular: a crashed 12-hour episode starts over.
 
