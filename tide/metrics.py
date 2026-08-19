@@ -206,7 +206,7 @@ def efficiency(
 ) -> pd.DataFrame:
     """Reward per unit of what the run actually spent, the budget's other side.
 
-    ``spend`` is a ``used_*`` column (tokens, ``used_cost_usd``,
+    ``spend`` is a ``used_*`` column (``used_n_total_tokens``,
     ``used_n_submissions``); ``per`` scales the denominator (e.g. ``1000``
     for reward per 1k tokens). Returns mean reward, mean spend, and
     ``reward_per_unit`` per *by* group (or overall).

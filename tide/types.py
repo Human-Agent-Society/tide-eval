@@ -66,10 +66,10 @@ class EpisodeResult:
     fact rather than as ``error``.
 
     ``usage`` is what the episode actually spent, the measured side of a
-    budget: ``n_input_tokens``, ``n_output_tokens``, ``n_cache_tokens``,
-    ``cost_usd`` (token counts and model-cost estimates the agent adapter
-    reads off the harness's own accounting), ``n_total_tokens`` (input plus
-    output) and ``n_submissions`` (evals used). Every key is optional; the
+    budget: ``n_input_tokens``, ``n_output_tokens``, ``n_cache_tokens``
+    (the counts the agent adapter reads off the harness's own accounting),
+    ``n_total_tokens`` (input plus output) and ``n_submissions`` (evals
+    used). Every key is optional; the
     Lab records whatever is present as ``used_*`` columns.
     """
 

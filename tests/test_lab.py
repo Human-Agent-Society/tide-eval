@@ -97,7 +97,6 @@ async def test_usage_is_recorded_as_episode_metrics(tmp_path):
                     "n_input_tokens": 1_000,
                     "n_cache_tokens": 600,
                     "n_output_tokens": 200,
-                    "cost_usd": 0.0042,
                 },
             )
 
@@ -107,7 +106,6 @@ async def test_usage_is_recorded_as_episode_metrics(tmp_path):
     assert row.tags["used_n_input_tokens"] == 1_000
     assert row.tags["used_n_cache_tokens"] == 600
     assert row.tags["used_n_output_tokens"] == 200
-    assert row.tags["used_cost_usd"] == 0.0042
 
 
 async def test_concurrent_identical_calls_share_one_execution(tmp_path):

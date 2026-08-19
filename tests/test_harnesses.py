@@ -380,9 +380,8 @@ def test_coral_usage_aggregates_every_codex_turn(tmp_path):
     ]
 
 
-def test_base_harness_populates_context_and_cost(tmp_path):
+def test_base_harness_populates_context_tokens(tmp_path):
     pytest.importorskip("harbor")
-    pytest.importorskip("litellm")
     from harbor.agents.base import BaseAgent
     from harbor.models.agent.context import AgentContext
 
@@ -425,8 +424,7 @@ def test_base_harness_populates_context_and_cost(tmp_path):
     assert context.n_input_tokens == 1_000
     assert context.n_cache_tokens == 600
     assert context.n_output_tokens == 200
-    assert context.cost_usd > 0
-    assert context.metadata["cost_usd_is_estimate"] is True
+    assert context.metadata["usage_records"] == 1
 
 
 def test_openevolve_usage_tracking_records_sdk_usage(tmp_path, monkeypatch):

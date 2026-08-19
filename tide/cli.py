@@ -174,7 +174,6 @@ def _build_budget(args: argparse.Namespace) -> Budget | None:
         time_h=None if args.budget is None else parse_duration_hours(args.budget),
         max_submissions=args.max_evals,
         max_tokens=_parse_count(args.max_tokens),
-        max_cost_usd=args.max_cost,
     )
     return None if budget.is_empty else budget
 
@@ -508,13 +507,6 @@ def main(argv: list[str] | None = None) -> int:
             metavar="N",
             help="token budget, e.g. 500k or 2m (soft: signalled to the agent, "
             "actuals recorded)",
-        )
-        p.add_argument(
-            "--max-cost",
-            type=float,
-            default=None,
-            metavar="USD",
-            help="cost budget in USD (soft: signalled to the agent, actuals recorded)",
         )
         p.add_argument("--lab", default="runs/cli", help="results directory")
         p.add_argument(

@@ -76,8 +76,8 @@ class Lab:
         ``overrides`` pass through to the executor (for Harbor: TrialConfig
         fields such as ``verifier=...`` or ``timeout_multiplier=...``).
 
-        ``budget`` bounds the run across any of four dimensions (time,
-        submissions, tokens, cost); see :class:`tide.budget.Budget`.
+        ``budget`` bounds the run across any of three dimensions (time,
+        submissions, tokens); see :class:`tide.budget.Budget`.
         A bare number is hours. It sets the timeout, hands the agent
         ``TIDE_*`` budget-signal env vars, and tags the episode with its
         budget so runs group and pivot by it. What was actually spent comes
