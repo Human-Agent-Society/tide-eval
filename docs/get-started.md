@@ -48,12 +48,22 @@ the rest unset:
 | time | `--budget` (`2h`, `30m`, `90s`; bare = hours) | `time_h` | hard: the container timeout; reaching it ends the run normally and the verifier still grades what exists |
 | evals | `--max-evals` | `max_submissions` (the flag and the field differ) | hard at the task's own ceiling (the judge returns 429 past it); a lower per-run cap is signalled |
 | tokens | `--max-tokens` (`500k`, `2m`) | `max_tokens` | soft: signalled, actual spend recorded |
-| cost (USD) | `--max-cost` | `max_cost_usd` | soft: signalled, actual spend recorded |
 
 Each axis reaches the container as a `TIDE_*` environment variable and is
 tagged on the episode (`budget`, `budget_max_tokens`, ...) so runs group
 by it. Actual spend comes back as `used_*` columns: submission counts
-from the judge's log, tokens and cost from the harness's usage report.
+from the judge's log and tokens from the harness's usage report.
+
+The eval axis needs a judge, so it applies to autoresearch tasks. A
+stream task is graded by its verifier after the episode and has nothing
+to submit to, so `--max-evals` does nothing there. Time and tokens work
+in both regimes. In a stream the budget applies to each task on its own,
+and it is part of the stream's identity: run the same tasks under a
+different budget and you get a separate stream with its own state.
+
+Some CL-Bench domains meter the agent themselves, such as the 15 SQL
+queries a dbx question allows. Those limits come from the task and its
+sidecar, so they hold whatever you pass on the command line.
 
 ## Streams
 
@@ -105,7 +115,7 @@ lab = Lab("runs/exp1")
 row = await lab.run(  # asyncio: inside an async function or a notebook
     "tasks/autoresearch/frontier-cs/frontier-cs-algorithm-1",
     agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"},
-    budget=Budget(time_h=2),  # or max_tokens=..., max_submissions=..., max_cost_usd=...
+    budget=Budget(time_h=2),  # or max_tokens=..., max_submissions=...
     tags={"prompt": "v2"},  # free-form; each key becomes a df() column
 )
 row.rewards  # the trusted verdict
@@ -157,7 +167,7 @@ A `Lab` is a directory (`--lab`, default `runs/cli`):
 runs/cli/
 ├── results.sqlite                  # one table: episode rows + trace rows
 └── trials/<task>__<id>/
-    ├── agent/trajectory.json       # every step + tokens, cost, duration
+    ├── agent/trajectory.json       # every step, with tokens and duration
     ├── verifier/reward.json        # the final verdict
     ├── verifier/submissions.jsonl  # every judge-scored submission, with t
     └── result.json, config.json, trial.log

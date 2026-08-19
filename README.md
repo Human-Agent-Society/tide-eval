@@ -77,8 +77,9 @@ tide stream cl-bench --agent claude-code --model anthropic/claude-opus-5
 ```
 
 `--budget` is time (`2h` / `30m` / `90s`; a bare number is hours); the other
-budget axes are `--max-tokens` (e.g. `500k`), `--max-evals`, and `--max-cost`
-(USD). See [budgets](docs/get-started.md#budgets).
+budget axes are `--max-tokens` (e.g. `500k`) and `--max-evals`, which
+needs a judge and so applies to autoresearch tasks. See
+[budgets](docs/get-started.md#budgets).
 
 #### No Docker? Develop locally, verify in containers
 
@@ -114,7 +115,7 @@ row = await lab.run(
     agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"},
     budget=Budget(
         time_h=2
-    ),  # or max_tokens=500_000, max_submissions=50, max_cost_usd=3
+    ),  # or max_tokens=500_000, max_submissions=50
     tags={"prompt": "v2"},  # free-form; each key becomes a df() column
 )
 row.rewards  # the judge's final verdict
