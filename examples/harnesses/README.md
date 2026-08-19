@@ -10,16 +10,13 @@ All three subclass the one base class, `TideHarnessBase` in
 `run` template, in order: `setup` (install the pinned tool), `_prepare`
 (upload configs and seeds), `_launch` (the run itself, where a timeout is a
 normal ending), `_finalize` (submit the final artifact if the judge saw zero
-submissions), and `_collect_usage` (meter tokens and cost). OpenEvolve and
+submissions), and `_collect_usage` (meter tokens). OpenEvolve and
 CORAL subclass it directly and use its command-pipeline utilities; Codex
 lists it first and delegates `_launch` to Harbor's built-in Codex agent.
 
-All three populate Harbor's standard input, cached-input, output-token, and
-USD-cost fields, which tide stores on the episode row as
-`used_n_input_tokens`, `used_n_cache_tokens`, `used_n_output_tokens`, and
-`used_cost_usd`. Cost is estimated from the LiteLLM pricing table bundled
-with the Harbor environment; when a model has no pricing entry, tokens are
-still recorded and cost remains unset rather than reported as zero.
+All three populate Harbor's standard input, cached-input and output-token
+fields, which tide stores on the episode row as `used_n_input_tokens`,
+`used_n_cache_tokens`, and `used_n_output_tokens`.
 
 Run an adapter from the repository root (Docker and `tide-eval[harbor]` are
 required):

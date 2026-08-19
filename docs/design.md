@@ -29,7 +29,7 @@ properties set what the harness has to provide:
 - **continuous score**: the objective returns a number and the optimum is
   unknown, so a result is read against other runs and the budget it used;
 - **the budget ends the run**: the agent works until the budget runs
-  out (time, evals, tokens, or cost; see [budgets](get-started.md#budgets)),
+  out (time, evals, or tokens; see [budgets](get-started.md#budgets)),
   and being stopped at the deadline is a normal ending that must still
   produce a grade;
 - **iteration in the loop**: the agent tries many candidates and needs

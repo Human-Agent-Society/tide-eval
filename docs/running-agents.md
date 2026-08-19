@@ -25,9 +25,9 @@ trigger or observe it. Everything else (how you search, what you
 evaluate locally, whether you build your own scorer) is up to you.
 
 If the run set a [budget](get-started.md#budgets) beyond time, the container
-also carries `TIDE_MAX_SUBMISSIONS`, `TIDE_MAX_TOKENS`, and/or
-`TIDE_MAX_COST_USD`. Read them if your method should pace itself; tide
-records the actual spend either way.
+also carries `TIDE_MAX_SUBMISSIONS` and/or `TIDE_MAX_TOKENS`. Read them
+if your method should pace itself; tide records the actual spend either
+way.
 
 ## The continual-learning contract
 
@@ -207,7 +207,7 @@ from the instruction) and spend submissions on survivors.
 [`examples/run_harness.py`](https://github.com/Human-Agent-Society/tide-eval/blob/main/examples/run_harness.py)
 runs version-pinned OpenEvolve, Codex and CORAL adapters against a task,
 for comparison against your own. They share the task's budgets and record
-their token and cost usage like any other agent. Commands, versions and
+their token usage like any other agent. Commands, versions and
 credentials:
 [harness README](https://github.com/Human-Agent-Society/tide-eval/blob/main/examples/harnesses/README.md).
 
