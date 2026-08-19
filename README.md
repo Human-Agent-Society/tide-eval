@@ -62,7 +62,8 @@ First run? **[docs/get-started.md](docs/get-started.md)** walks from
 install to running and scoring a task.
 **[docs/running-agents.md](docs/running-agents.md)** explains how to set
 up a real agent, whether it is a common coding agent or your own. The
-rest of the docs are outlined in **[docs/](docs/README.md)**.
+rest of the docs are outlined in **[docs/](docs/README.md)**. tide
+provides both a CLI and a Python API, with example code for each below.
 
 ### Run
 
