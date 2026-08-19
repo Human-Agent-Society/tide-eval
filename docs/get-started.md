@@ -27,7 +27,7 @@ rather than at the agent. Start there:
 
 ```bash
 tide list                                 # what's runnable
-tide run cl-bench/bsm-s01 --agent oracle  # must score exactly 1.0
+tide run cl-bench/bsm-s01 --agent oracle  # should score exactly 1.0
 ```
 
 Then a real agent. Its CLI runs inside the container, so it needs
@@ -135,12 +135,32 @@ concurrency; `lab.df("trace")` returns the judge's per-submission log.
 
 ## Resume
 
-Every episode gets a stable key from (task, agent, tags, budget,
-overrides). A key that already has a row is skipped, so re-running any
-crashed script or stream picks up where it left off; vary a tag
-(`--tag attempt=2`) to add attempts instead. Resume is episode-granular:
-a half-finished episode starts over, because a run stitched from
-checkpoints is not comparable to a clean budget.
+Every episode gets a key derived from the task path, the agent, the tags,
+and any overrides. A budget is recorded as tags, so it is part of the key
+too. The keys live in the results table inside the lab directory, which
+makes the rule: same lab directory and same key, the stored row is
+returned and nothing runs; anything else runs.
+
+Re-running the same script or the same `tide stream` command therefore
+picks up where it left off, and no daemon or job file has to remember
+anything between runs.
+
+A recorded failure counts as recorded. An episode whose trial raised
+stores a row carrying an `error` tag, and a later call skips it like any
+other row. A crash that killed the process mid-episode stores nothing,
+so that episode runs again from the start.
+
+To run something again instead of resuming it:
+
+| You want | Do |
+|---|---|
+| another attempt beside the first | vary a tag: `--tag attempt=2`, or `tags={"attempt": 2}` |
+| an empty table | a new lab directory: `--lab runs/exp2` |
+| the same tasks from empty memory | a new stream name: `--name wk2` |
+| one episode again, in place | `lab.store.delete_prefix(key)` (the key is the `key` column of `lab.df()`), which drops the episode row and its trace rows |
+
+Resume is episode-granular: a half-finished episode starts over, because
+a run stitched from checkpoints is not comparable to a clean budget.
 
 ## No Docker? Local and fake runs
 
