@@ -56,7 +56,7 @@ task: the setting used in
   baseline `metrics.transfer` subtracts is a plain `lab.run` sweep,
   separate from that isolated scenario.
 
-## Trust: scoring runs outside the agent's container
+## Reward hacking: scoring runs outside the agent's container
 
 Both regimes share one rule: the code and data that grade the agent stay
 outside its container.
