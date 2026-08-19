@@ -12,10 +12,9 @@ measures what survives the episode, so in-context reasoning, a retry
 after an error, and a test-time search count only when something they
 produced is kept for later runs.
 
-The form the learning persists in is up to the method: a method that
-updates weights runs its own loop, and tide measures the result. tide
-provides the two task regimes where persistence shows up and the
-measurements over them.
+The form the learning persists in is up to the method. tide provides the
+two task regimes where persistence shows up and the measurements over
+them.
 
 A regime describes the shape of the work, and either regime can host any
 learning mechanism. An autoresearch agent that evolves its own harness
