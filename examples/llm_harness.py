@@ -139,17 +139,17 @@ class LLMSearchHarness(BaseAgent):
                 messages.append({"role": "user", "content": "JSON only, please."})
                 continue
 
-            verdict = await self._submit(environment, solution)
-            if verdict is None or verdict.get("over_budget"):
+            scored = await self._submit(environment, solution)
+            if scored is None or scored.get("over_budget"):
                 break
 
-            score = float(verdict["score"])
-            best = max(best, float(verdict.get("best", score)))
+            score = float(scored["score"])
+            best = max(best, float(scored.get("best", score)))
             print(f"round {round_number}: scored {score:.4f}, best {best:.4f}")
-            if verdict.get("remaining") == 0:
+            if scored.get("remaining") == 0:
                 break
 
-            # The judge's verdict is the whole feedback signal, so hand it
+            # The judge's reply is the whole feedback signal, so hand it
             # back verbatim and ask for something better than the best so far.
             messages += [
                 {"role": "assistant", "content": reply},
@@ -157,7 +157,7 @@ class LLMSearchHarness(BaseAgent):
                     "role": "user",
                     "content": (
                         f"The judge scored that {score:.4f}"
-                        f" ({verdict.get('reason', 'no reason given')})."
+                        f" ({scored.get('reason', 'no reason given')})."
                         f" The best so far is {best:.4f}."
                         " Propose a different arrangement that beats it."
                         " JSON only."
@@ -187,7 +187,7 @@ async def main() -> None:
     )
     if row.tags.get("error"):
         raise SystemExit(f"the episode failed: {row.tags['error']}")
-    print("trusted reward:", row.rewards)  # the judge's final verdict
+    print("trusted reward:", row.rewards)  # the judge's final score
 
     trace = lab.df("trace")
     if not trace.empty:

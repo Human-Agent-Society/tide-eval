@@ -55,7 +55,7 @@ class TracePoint:
 class EpisodeResult:
     """What an executor returns for one episode.
 
-    ``rewards`` is the trusted verdict (from Harbor's verifier, or a fake in
+    ``rewards`` is the trusted score (from Harbor's verifier, or a fake in
     tests). ``trace`` is the judge's per-submission score log, recovered
     from the episode's artifacts. ``uri`` points at the provenance (the
     Harbor trial directory) so every stored number stays auditable.
@@ -85,7 +85,7 @@ class EpisodeResult:
 class Row:
     """One record in the results store. ``kind`` is one of:
 
-    - ``episode``: the verifier's final verdict (one per episode)
+    - ``episode``: the verifier's final score (one per episode)
     - ``trace``: one judge-scored submission (many per episode)
 
     ``kind`` is an open string, not an enum: future evaluation regimes add

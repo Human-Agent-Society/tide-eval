@@ -23,7 +23,7 @@ Every term tide uses, in one place. Terms link to the page that owns them.
 | judge | In autoresearch tasks, the HTTP sidecar that holds all scoring code and data and scores every submission. The agent can reach it and nothing else. |
 | submission | One candidate solution POSTed to the judge. Each task caps how many are allowed. |
 | final judge | An optional `final.py` on the judge with hidden tests. Runs once, on the best submission, and locks the session. |
-| verifier | Harbor's scoring step at the end of a trial: for judge tasks it asks the judge for the final verdict; for pass/fail tasks it runs the task's `tests/`. |
+| verifier | Harbor's scoring step at the end of a trial: for judge tasks it asks the judge for the final grade; for pass/fail tasks it runs the task's `tests/`. |
 | reward | The trusted score of an episode, as reported by the verifier. |
 | reward hacking | Raising the score without doing the task: reading the scoring code, editing the log, or overfitting to a scorer the agent can query without limit. tide blocks it four ways: the judge holds all scoring code and data in its own container, the submission budget caps how often the agent can probe it, `final.py` grades the best submission once on hidden tests, and `tests/test_task_suite.py` runs each task's cheat cases against its scorer. See [design](design.md#reward-hacking-scoring-runs-outside-the-agents-container). |
 | trace | Per-submission scores from the judge, stored next to the episode row; the raw material of the anytime curve. |
