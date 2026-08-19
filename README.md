@@ -40,17 +40,16 @@ that can work inside a container, including your own harness or method.
 
 ## Why not plain Harbor?
 
-tide runs on Harbor rather than beside it: Harbor is the runtime, and
-tide imports it for the task format, containers, agent adapters, the
-verifier, trajectories, `harbor job resume`, and `harbor view`. On top of
-that tide adds the three pieces it takes to measure an agent learning
-from signals produced during the run itself.
+tide is built on Harbor. Harbor provides the runtime: the task format,
+containers, agent adapters, the verifier, trajectories, `harbor job
+resume`, and `harbor view`. tide imports all of it and adds three things
+for evaluating agents that learn from signals produced during the run.
 
 | What tide adds | In code | Where |
 |---|---|---|
-| **A judge.** The agent submits whenever it likes, and scoring code it cannot reach grades and timestamps every one. | `POST $JUDGE_URL/submit`<br>`-> {"score": 0.83, "best": 0.91, "remaining": 47}` | [`judge_server.py`](tasks/_template/environment/judge_server.py) |
-| **Streams.** An ordered task list under one agent, carrying state and snapshotting it after each position. | `await Stream("wk1", tasks).run(lab, agent)` | [`stream.py`](tide/stream.py), [streams](docs/get-started.md#streams) |
-| **One append-only table.** Every run lands in it, keyed by (task, agent, tags), bounded on four budget axes; metrics are plain functions over the rows. | `metrics.auc(metrics.anytime(lab.df("trace")))` | [`store.py`](tide/store.py), [`budget.py`](tide/budget.py), [metrics](docs/metrics.md) |
+| **A judge.** The agent can submit at any time. The judge scores and timestamps each submission, and its code and data are outside the agent's reach. | `POST $JUDGE_URL/submit`<br>`-> {"score": 0.83, "best": 0.91, "remaining": 47}` | [`judge_server.py`](tasks/_template/environment/judge_server.py) |
+| **Streams.** An ordered task list run under one agent. The carried state is snapshotted after each position. | `await Stream("wk1", tasks).run(lab, agent)` | [`stream.py`](tide/stream.py), [streams](docs/get-started.md#streams) |
+| **One append-only table.** Every run is written to it, keyed by (task, agent, tags). Runs can be bounded on four budget axes, and the metrics are functions over the rows. | `metrics.auc(metrics.anytime(lab.df("trace")))` | [`store.py`](tide/store.py), [`budget.py`](tide/budget.py), [metrics](docs/metrics.md) |
 
 Resume is episode-granular: a crashed 12-hour episode starts over.
 
