@@ -78,8 +78,9 @@ tide stream cl-bench --agent claude-code --model anthropic/claude-opus-5
 tide stream terminal-bench cl-bench --shuffle 1 --agent claude-code --model anthropic/claude-opus-5
 ```
 
-Targets come first, exactly as in `tide run`. Re-running the same command
-resumes; a different agent, tags, budget, or task list is automatically a
+Targets come first, exactly as in `tide run`: a benchmark name expands to
+every task in it, in path order, and the stream runs that list. Re-running
+the same command resumes; a different agent, tags, budget, or task list is automatically a
 separate stream with its own state. `--name` labels the stream (it becomes
 the `stream` tag and the state directory); without it the label is derived
 from the targets. Pass a new `--name` to run the same tasks again from
@@ -112,7 +113,7 @@ episode (one Harbor trial); `df` returns everything recorded so far as a
 pandas DataFrame:
 
 ```python
-from tide import Budget, Lab, Stream, metrics
+from tide import Budget, Lab, Stream, metrics, tasks
 
 lab = Lab("runs/exp1")
 row = await lab.run(  # asyncio: inside an async function or a notebook
@@ -124,12 +125,36 @@ row = await lab.run(  # asyncio: inside an async function or a notebook
 row.rewards  # the trusted score
 row.uri  # the trial directory, for auditing
 
-stream = Stream("demo", ["tasks/continual-learning/cl-bench/bsm-s01", "..."])
+stream = Stream("cl-bench", tasks("cl-bench"))  # every task in the benchmark
 await stream.run(lab, agent={"name": "claude-code"}, budget="30m")
 
 df = lab.df("episode")
 df.groupby(["model", "task"])["reward"].mean()
 ```
+
+`tasks()` resolves what the CLI resolves: a task directory, a folder of
+tasks, a benchmark name (downloaded on first use), or a Harbor registry id,
+which passes through as-is. It returns the references as a list of strings
+in the CLI's order, so
+`tasks("cl-bench")` is the list `tide stream cl-bench` runs, and printing it
+is how you see what a target covers:
+
+```python
+order = tasks("cl-bench")
+len(order)  # 301
+order[:3]  # the first three, as paths
+
+Stream("first-20", order[:20])  # a slice
+Stream("poker-only", [t for t in order if "poker" in t])  # a filter
+Stream("revisit", [*order[:10], order[0]])  # a repeat, which measures forgetting
+```
+
+This is where the Python API goes past the CLI. `tide stream` runs the
+resolved list as it comes, with `--shuffle SEED` for a deterministic
+reshuffle and nothing else; `Stream` runs exactly the list it is given, so
+any other order, subset, or repetition is yours to build. The list is part
+of the stream's identity, so each of the streams above keeps its own state
+and resumes on its own.
 
 Every run, from any script and any day, appends to the same table, so
 comparing agents is a query over it and [metrics](metrics.md) are

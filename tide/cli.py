@@ -23,119 +23,31 @@ import argparse
 import asyncio
 import json
 import logging
-import os
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+from tide.targets import find_tasks_root as _find_tasks_root
+from tide.targets import tasks_under as _tasks_under
 
 if TYPE_CHECKING:
     from tide import Budget, Lab
     from tide.types import Row
 
 
-def _find_tasks_root(tasks_dir: str | None) -> Path | None:
-    """Locate the tasks catalog: explicit arg → $TIDE_TASKS_DIR → ./tasks →
-    the checkout the tide package itself lives in."""
-    if tasks_dir:
-        return Path(tasks_dir)
-    env = os.environ.get("TIDE_TASKS_DIR")
-    if env:
-        return Path(env)
-    for base in (Path.cwd(), Path(__file__).parent.parent):
-        candidate = base / "tasks"
-        if candidate.is_dir():
-            return candidate
-    return None
-
-
-def _is_task_dir(path: Path) -> bool:
-    return (path / "task.toml").is_file()
-
-
-def _tasks_under(path: Path) -> list[Path]:
-    """Every task folder inside *path*, skipping ``_``- and ``.``-prefixed
-    directories such as ``_template``.
-
-    The skip test looks only at the parts below *path*: the search root
-    itself may sit anywhere, including under a dot-directory (benchmarks
-    download to ``~/.cache/tide`` by default).
-    """
-    found = []
-    for task_toml in path.glob("**/task.toml"):
-        parts = task_toml.relative_to(path).parts
-        if any(part.startswith(("_", ".")) for part in parts):
-            continue
-        found.append(task_toml.parent)
-    return sorted(found, key=lambda p: p.as_posix())
-
-
-def _expand(target: str, candidate: Path) -> list[str] | None:
-    """A task dir resolves to itself; a folder expands to the tasks inside."""
-    if _is_task_dir(candidate):
-        return [str(candidate)]
-    if candidate.is_dir():
-        inside = _tasks_under(candidate)
-        if not inside:
-            raise SystemExit(
-                f"'{target}' is a directory but contains no task.toml. "
-                "Fetch its tasks first (see its README, or `tide fetch`)."
-            )
-        return [str(t) for t in inside]
-    return None
-
-
-def _fetch_known_benchmark(target: str) -> list[str] | None:
-    """Download a known benchmark on first use (pip installs have no tasks/)."""
-    from tide import fetch
-
-    name = target.split("/", 1)[0]
-    if name not in fetch.BENCHMARKS and name not in fetch.REGISTRY:
-        return None
-    root = fetch.benchmark(name)
-    parts = target.split("/", 1)
-    candidate = root / parts[1] if len(parts) == 2 else root
-    return _expand(target, candidate)
-
-
 def resolve_targets(targets: list[str], tasks_root: Path | None) -> list[str]:
     """Expand CLI targets into runnable task references.
 
-    Local paths win, then the tasks catalog (at either level), then known
-    benchmarks download into the cache, and anything else passes through
-    to Harbor as a registry id.
+    The resolution itself lives in :mod:`tide.targets`, which scripts call
+    as ``tide.tasks``. Here a target that names nothing runnable ends the
+    process with the message instead of raising.
     """
-    resolved: list[str] = []
-    for target in targets:
-        candidates = [Path(target)]
-        if tasks_root is not None:
-            candidates.append(tasks_root / target)
-            # Benchmarks live one level down (tasks/<regime>/<benchmark>), so
-            # bare names like "edgebench" or "terminal-bench" resolve too.
-            candidates.extend(sorted(tasks_root.glob(f"*/{target}")))
-        for candidate in candidates:
-            hit = _expand(target, candidate)
-            if hit is not None:
-                resolved.extend(hit)
-                break
-        else:
-            hit = _fetch_known_benchmark(target)
-            if hit is not None:
-                resolved.extend(hit)
-            elif "/" in target:
-                resolved.append(target)  # a Harbor registry id, org/name
-            else:
-                # Harbor registry ids are always org/name, so a bare word that
-                # matched nothing local cannot be one. Saying so here beats
-                # letting Harbor fail on it with a schema error.
-                from tide import fetch
+    from tide.targets import resolve
 
-                raise SystemExit(
-                    f"'{target}' is not a task directory, a folder of tasks, or "
-                    f"a known benchmark ({', '.join(fetch.known_benchmarks())}). "
-                    "Harbor registry ids look like 'org/name'. "
-                    "Run `tide list` to see what is available here."
-                )
-    return resolved
+    try:
+        return resolve(targets, tasks_root)
+    except ValueError as error:
+        raise SystemExit(str(error)) from error
 
 
 def _parse_pairs(pairs: list[str] | None) -> dict:

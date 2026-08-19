@@ -83,9 +83,9 @@ COUNTED_IN = ["README.md", "docs/tasks.md", "tasks/README.md"]
 
 
 def _task_count(benchmark: str) -> int:
-    from tide.cli import _tasks_under
+    from tide.targets import tasks_under
 
-    return len(_tasks_under(ROOT / "tasks" / benchmark))
+    return len(tasks_under(ROOT / "tasks" / benchmark))
 
 
 def _count_rows(benchmark: str) -> list[tuple[str, str]]:

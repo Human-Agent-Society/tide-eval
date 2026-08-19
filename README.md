@@ -134,7 +134,7 @@ container mounts the same state directory (`$TIDE_STATE_DIR`), carrying
 the agent's memory, skill library, or evolved harness from task to task:
 
 ```python
-from tide import Lab, Stream, metrics
+from tide import Lab, Stream, metrics, tasks
 
 lab = Lab("runs/cl")
 stream = Stream(
@@ -156,6 +156,25 @@ metrics.learning_curve(df, by=["stream"])  # reward by position in the stream
 metrics.forgetting(df)  # the score change on the revisited task
 metrics.transfer(df, baseline_df)  # against the same tasks run alone (plain lab.run)
 ```
+
+`tasks()` gives you a whole benchmark instead of a written-out list. It
+takes what the CLI takes (a task directory, a folder of tasks, a benchmark
+name that downloads on first use) and returns the task references in the
+CLI's order:
+
+```python
+tasks("cl-bench")  # every cl-bench task, the list `tide stream cl-bench` runs
+Stream("cl-bench", tasks("cl-bench"))  # run all of them in that order
+
+order = tasks("cl-bench")  # an ordinary list: print it, filter it, reorder it
+Stream("first-20", order[:20])
+Stream("poker-only", [t for t in order if "poker" in t])
+Stream("revisit", [*order[:10], order[0]])  # a repeat measures forgetting
+```
+
+The CLI runs the resolved list as it comes and offers `--shuffle SEED` for a
+deterministic reshuffle. Any other order is a Python-side decision, because
+`Stream` runs exactly the list it is given.
 
 Re-running the same stream resumes it. A stream's identity is its name plus
 its agent, tags, budget, and task list; changing any of those makes a
@@ -204,9 +223,7 @@ as baselines. What each shows: [`examples/`](examples/README.md).
 
 Each first-party task covers one hard part of the category (held-out
 grading, safely grading agent-shipped code, ...); the
-[catalog](tasks/README.md) lists every task with its oracle score. The
-[roadmap](https://github.com/Human-Agent-Society/tide-eval/issues/19) tracks
-the next converters.
+[catalog](tasks/README.md) lists every task with its oracle score.
 
 ### Task streams
 
