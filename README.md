@@ -96,9 +96,10 @@ never trusted results. Use local runs while developing and report the
 numbers from container runs; the details are in
 [get started](docs/get-started.md#no-docker-local-and-fake-runs).
 
-With Docker, `tide run cl-bench/bsm-s01 --agent oracle` proves the real
-pipeline end to end: the oracle runs the task's reference solution and
-must score exactly 1.0.
+With Docker, you can run `tide run cl-bench/bsm-s01 --agent oracle` to
+check the install. The run builds the task image and executes the task's
+reference solution in the container, using Harbor's built-in `oracle`
+agent, and the score should be exactly 1.0.
 
 ### The Python API
 
