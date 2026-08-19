@@ -25,6 +25,7 @@ Every term tide uses, in one place. Terms link to the page that owns them.
 | final judge | An optional `final.py` on the judge with hidden tests. Runs once, on the best submission, and locks the session. |
 | verifier | Harbor's scoring step at the end of a trial: for judge tasks it asks the judge for the final verdict; for pass/fail tasks it runs the task's `tests/`. |
 | reward | The trusted score of an episode, as reported by the verifier. |
+| reward hacking | Raising the score without doing the task: reading the scoring code, editing the log, or overfitting to a scorer the agent can query without limit. tide blocks it four ways: the judge holds all scoring code and data in its own container, the submission budget caps how often the agent can probe it, `final.py` grades the best submission once on hidden tests, and `tests/test_task_suite.py` runs each task's cheat cases against its scorer. See [design](design.md#reward-hacking-scoring-runs-outside-the-agents-container). |
 | trace | Per-submission scores from the judge, stored next to the episode row; the raw material of the anytime curve. |
 | budget | What an episode may spend: time, evals, tokens, or cost. Set on the run, delivered as `TIDE_*` env vars, recorded as `budget_*` tags with actuals in `used_*` columns. See [budgets](get-started.md#budgets). |
 
