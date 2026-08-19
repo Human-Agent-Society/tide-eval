@@ -66,12 +66,12 @@ def test_non_positive_rejected():
 
 def test_is_empty():
     assert Budget().is_empty
-    assert not Budget(max_cost_usd=1).is_empty
+    assert not Budget(max_tokens=1).is_empty
 
 
 def test_to_env_only_set_dimensions():
-    env = Budget(max_tokens=500_000, max_cost_usd=2.5).to_env()
-    assert env == {"TIDE_MAX_TOKENS": "500000", "TIDE_MAX_COST_USD": "2.5"}
+    env = Budget(max_tokens=500_000, max_submissions=25).to_env()
+    assert env == {"TIDE_MAX_TOKENS": "500000", "TIDE_MAX_SUBMISSIONS": "25"}
     assert "TIDE_BUDGET_SEC" not in env  # time not set
 
 
@@ -106,13 +106,10 @@ def test_budget_sets_timeout_env_and_tags(tmp_path):
 
 
 def test_usage_recorded_as_used_columns(tmp_path):
-    ex = RecordingExecutor(
-        usage={"n_output_tokens": 800, "cost_usd": 0.03, "n_submissions": 7}
-    )
+    ex = RecordingExecutor(usage={"n_output_tokens": 800, "n_submissions": 7})
     lab = Lab(tmp_path / "lab", executor=ex)
     row = asyncio.run(lab.run("some/task", {"name": "a"}, budget=1))
     assert row.tags["used_n_output_tokens"] == 800
-    assert row.tags["used_cost_usd"] == 0.03
     assert row.tags["used_n_submissions"] == 7
 
 
@@ -142,7 +139,6 @@ def test_harbor_usage_from_agent_context():
         n_input_tokens = 1200
         n_output_tokens = 800
         n_cache_tokens = 0
-        cost_usd = 0.031
 
     usage = _harbor_usage(Ctx(), n_submissions=5)
     assert usage["n_input_tokens"] == 1200

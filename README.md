@@ -113,9 +113,7 @@ lab = Lab("runs/exp1")
 row = await lab.run(
     "tasks/autoresearch/frontier-cs/frontier-cs-2-0-vllm-llm-serving-optimization",  # any task dir or Harbor registry id
     agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"},
-    budget=Budget(
-        time_h=2
-    ),  # or max_tokens=500_000, max_submissions=50
+    budget=Budget(time_h=2),  # or max_tokens=500_000, max_submissions=50
     tags={"prompt": "v2"},  # free-form; each key becomes a df() column
 )
 row.rewards  # the judge's final verdict

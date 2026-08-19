@@ -73,7 +73,6 @@ async def main() -> None:
                 "used_n_input_tokens",
                 "used_n_cache_tokens",
                 "used_n_output_tokens",
-                "used_cost_usd",
             )
             if key in row.tags
         }

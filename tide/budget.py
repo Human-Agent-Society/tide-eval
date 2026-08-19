@@ -1,8 +1,8 @@
 """Budget: how much an episode is allowed to spend.
 
 A run is bounded by whichever resource is scarce: wall-clock time, judge
-evaluations (submissions), tokens, or dollars. tide models all four the
-same way. Each dimension is set on the run, delivered to the agent as a
+evaluations (submissions), or tokens. tide models all three the same
+way. Each dimension is set on the run, delivered to the agent as a
 ``TIDE_*`` environment variable (:meth:`Budget.to_env`), and recorded as a
 ``budget_*`` tag (:meth:`Budget.to_tags`). The actual spend comes back as
 ``used_*`` columns.
@@ -12,10 +12,9 @@ container timeout, so the episode is killed at the deadline and the
 verifier still grades the best submission so far. ``max_submissions`` is
 enforced by the judge up to the task's own ``judge_config.json`` ceiling;
 a lower per-run value is a signal the agent is asked to honor, because
-Harbor cannot inject env into the judge sidecar. ``max_tokens`` and
-``max_cost_usd`` are soft signals: tide cannot halt a black-box harness
-mid-generation, so it passes the limit to the agent and records the true
-spend regardless.
+Harbor cannot inject env into the judge sidecar. ``max_tokens`` is a soft
+signal: tide cannot halt a black-box harness mid-generation, so it passes
+the limit to the agent and records the true spend regardless.
 
 Set the scarce dimension and leave the rest ``None``.
 """
@@ -46,10 +45,9 @@ class Budget:
     time_h: float | None = None
     max_submissions: int | None = None
     max_tokens: int | None = None
-    max_cost_usd: float | None = None
 
     def __post_init__(self) -> None:
-        for name in ("time_h", "max_submissions", "max_tokens", "max_cost_usd"):
+        for name in ("time_h", "max_submissions", "max_tokens"):
             v = getattr(self, name)
             if v is not None and v <= 0:
                 raise ValueError(f"budget {name} must be positive, got {v!r}")
@@ -57,13 +55,7 @@ class Budget:
     @property
     def is_empty(self) -> bool:
         return not any(
-            v is not None
-            for v in (
-                self.time_h,
-                self.max_submissions,
-                self.max_tokens,
-                self.max_cost_usd,
-            )
+            v is not None for v in (self.time_h, self.max_submissions, self.max_tokens)
         )
 
     def timeout_sec(self) -> float | None:
@@ -84,8 +76,6 @@ class Budget:
             env["TIDE_MAX_SUBMISSIONS"] = str(self.max_submissions)
         if self.max_tokens is not None:
             env["TIDE_MAX_TOKENS"] = str(self.max_tokens)
-        if self.max_cost_usd is not None:
-            env["TIDE_MAX_COST_USD"] = repr(self.max_cost_usd)
         return env
 
     def to_tags(self) -> dict[str, Any]:
@@ -99,8 +89,6 @@ class Budget:
             tags["budget_max_submissions"] = self.max_submissions
         if self.max_tokens is not None:
             tags["budget_max_tokens"] = self.max_tokens
-        if self.max_cost_usd is not None:
-            tags["budget_max_cost_usd"] = self.max_cost_usd
         return tags
 
     @classmethod
@@ -118,7 +106,7 @@ class Budget:
         if isinstance(value, str):
             return cls(time_h=parse_duration_hours(value))
         if isinstance(value, dict):
-            allowed = {"time_h", "max_submissions", "max_tokens", "max_cost_usd"}
+            allowed = {"time_h", "max_submissions", "max_tokens"}
             unknown = set(value) - allowed
             if unknown:
                 raise ValueError(f"unknown budget fields: {sorted(unknown)}")

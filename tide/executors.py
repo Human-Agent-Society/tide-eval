@@ -197,12 +197,11 @@ def _agent_exit_code(trial_dir: Path) -> int | None:
 
 
 def _harbor_usage(agent_result: Any, n_submissions: int) -> dict[str, float]:
-    """Pull the harness's own token/cost accounting off Harbor's AgentContext.
+    """Pull the harness's own token accounting off Harbor's AgentContext.
 
     These numbers come from each adapter parsing its harness's usage report
-    (claude-code, codex, or qwen trajectories), so they are as accurate as
-    the provider's bill, which is what makes them usable for closed models
-    too. Absent fields are omitted.
+    (claude-code, codex, or qwen trajectories), so they are the counts the
+    harness reported for itself. Absent fields are omitted.
     """
     usage: dict[str, float] = {"n_submissions": float(n_submissions)}
     if agent_result is None:
@@ -211,7 +210,6 @@ def _harbor_usage(agent_result: Any, n_submissions: int) -> dict[str, float]:
         "n_input_tokens": "n_input_tokens",
         "n_output_tokens": "n_output_tokens",
         "n_cache_tokens": "n_cache_tokens",
-        "cost_usd": "cost_usd",
     }
     for out_key, attr in fields.items():
         value = getattr(agent_result, attr, None)

@@ -12,11 +12,11 @@ encoded as the ``run`` template:
 4. ``_finalize``: make sure the verifier has something to grade by
    submitting the run's final artifact if the judge saw zero
    submissions. Does nothing by default.
-5. ``_collect_usage``: meter tokens and cost into Harbor's
-   ``AgentContext``. Does nothing by default.
+5. ``_collect_usage``: meter tokens into Harbor's ``AgentContext``.
+   Does nothing by default.
 
 ``run`` is the template and is not overridden. Phases 4 and 5 run in a
-``finally`` because a stopped run still left artifacts and spent money,
+``finally`` because a stopped run still left artifacts and spent tokens,
 and each is best-effort so that metering or fallback trouble never masks
 the run's own outcome.
 
@@ -32,7 +32,6 @@ from __future__ import annotations
 import json
 import logging
 import shlex
-from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any
 
@@ -72,7 +71,7 @@ class TideHarnessBase(BaseAgent):
         """Guarantee the verifier a result (e.g. final-artifact fallback)."""
 
     async def _collect_usage(self, environment, context) -> None:
-        """Record measured tokens/cost onto Harbor's AgentContext."""
+        """Record measured tokens onto Harbor's AgentContext."""
 
     async def _best_effort(self, phase: str, coro) -> None:
         try:
@@ -120,12 +119,11 @@ class TideHarnessBase(BaseAgent):
             )
 
     def _populate_usage(self, context, value: str) -> None:
-        """Populate Harbor's standard token and cost fields from JSONL output."""
+        """Populate Harbor's standard token fields from JSONL output."""
         records = _parse_usage_jsonl(value)
         if not records:
             return
-        default_model = self.model_name or self._model_name()
-        _populate_usage_context(context, records, default_model)
+        _populate_usage_context(context, records)
 
 
 def _parse_usage_jsonl(value: str) -> list[dict[str, Any]]:
@@ -144,12 +142,8 @@ def _parse_usage_jsonl(value: str) -> list[dict[str, Any]]:
     return records
 
 
-def _populate_usage_context(
-    context,
-    records: list[dict[str, Any]],
-    default_model: str,
-) -> None:
-    """Populate Harbor's standard token and cost fields from usage records."""
+def _populate_usage_context(context, records: list[dict[str, Any]]) -> None:
+    """Populate Harbor's standard token fields from usage records."""
     if not records:
         return
 
@@ -157,76 +151,6 @@ def _populate_usage_context(
     context.n_cache_tokens = sum(record["cached_input_tokens"] for record in records)
     context.n_output_tokens = sum(record["output_tokens"] for record in records)
 
-    total_cost = 0.0
-    missing_prices: set[str] = set()
-    for record in records:
-        model = str(record.get("model") or default_model)
-        cost = _cost_from_litellm(
-            model=model,
-            default_model=default_model,
-            input_tokens=record["input_tokens"],
-            cached_input_tokens=record["cached_input_tokens"],
-            output_tokens=record["output_tokens"],
-        )
-        if cost is None:
-            missing_prices.add(model)
-        else:
-            total_cost += cost
-
     metadata = dict(context.metadata or {})
     metadata["usage_records"] = len(records)
-    try:
-        metadata["pricing_source"] = f"litellm/{version('litellm')}"
-    except PackageNotFoundError:
-        metadata["pricing_source"] = "unavailable"
-    if missing_prices:
-        metadata["cost_unavailable_for_models"] = sorted(missing_prices)
-    else:
-        context.cost_usd = total_cost
-        metadata["cost_usd_is_estimate"] = True
     context.metadata = metadata
-
-
-def _cost_from_litellm(
-    *,
-    model: str,
-    default_model: str,
-    input_tokens: int,
-    cached_input_tokens: int,
-    output_tokens: int,
-) -> float | None:
-    """Estimate API cost without treating cached input as full-price input."""
-    try:
-        import litellm
-    except ImportError:
-        return None
-
-    candidates = [model, default_model]
-    if "/" in default_model and "/" not in model:
-        provider = default_model.split("/", 1)[0]
-        candidates.insert(0, f"{provider}/{model}")
-    for candidate in list(candidates):
-        candidates.append(candidate.split("/", 1)[-1])
-
-    pricing = None
-    for candidate in candidates:
-        if not candidate:
-            continue
-        entry = litellm.model_cost.get(candidate)
-        if entry:
-            pricing = entry
-            break
-    if not pricing:
-        return None
-
-    input_rate = pricing.get("input_cost_per_token")
-    output_rate = pricing.get("output_cost_per_token")
-    if input_rate is None or output_rate is None:
-        return None
-    cached_rate = pricing.get("cache_read_input_token_cost")
-    if cached_rate is None:
-        cached_rate = input_rate
-
-    cached = min(input_tokens, cached_input_tokens)
-    uncached = input_tokens - cached
-    return uncached * input_rate + cached * cached_rate + output_tokens * output_rate
