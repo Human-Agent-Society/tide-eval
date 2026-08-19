@@ -58,11 +58,11 @@ model, extensibility): **[docs/design.md](docs/design.md)**.
 
 ## Using tide
 
-First run? **[docs/get-started.md](docs/get-started.md)** walks from install
-to a scored task. Pointing a real agent at one needs two things, both in
-**[docs/running-agents.md](docs/running-agents.md)**: API credentials inside
-the container, and the hosts its network policy must allow. The rest of
-the docs are in **[docs/](docs/README.md)**, in reading order.
+First run? **[docs/get-started.md](docs/get-started.md)** walks from
+install to running and scoring a task.
+**[docs/running-agents.md](docs/running-agents.md)** explains how to set
+up a real agent, whether it is a common coding agent or your own. The
+rest of the docs are outlined in **[docs/](docs/README.md)**.
 
 ### Run
 
