@@ -1,8 +1,8 @@
 # Get started
 
-Install to a real score, in both regimes. For the ideas behind the
-pipeline see [design](design.md); for evaluating your own agent see
-[running agents](running-agents.md).
+This page goes from installing tide to a real score, in both task
+regimes. For the ideas behind the pipeline see [design](design.md); for
+evaluating your own agent see [running agents](running-agents.md).
 
 ## Install
 
@@ -22,7 +22,8 @@ it will refuse the run (see [troubleshooting](#troubleshooting)).
 ## Run a task
 
 The `oracle` agent runs a task's reference solution in-container, with
-no credentials and no internet, so it isolates the plumbing. Start there:
+no credentials and no internet, so a failure there points at the setup
+rather than at the agent. Start there:
 
 ```bash
 tide list                                 # what's runnable
@@ -44,7 +45,7 @@ the rest unset:
 
 | Axis | CLI flag | `Budget` field | Enforcement |
 |---|---|---|---|
-| time | `--budget` (`2h`, `30m`, `90s`; bare = hours) | `time_h` | hard: the container timeout; the deadline is a normal ending, the verifier still grades what exists |
+| time | `--budget` (`2h`, `30m`, `90s`; bare = hours) | `time_h` | hard: the container timeout; reaching it ends the run normally and the verifier still grades what exists |
 | evals | `--max-evals` | `max_submissions` (the flag and the field differ) | hard at the task's own ceiling (the judge returns 429 past it); a lower per-run cap is signalled |
 | tokens | `--max-tokens` (`500k`, `2m`) | `max_tokens` | soft: signalled, actual spend recorded |
 | cost (USD) | `--max-cost` | `max_cost_usd` | soft: signalled, actual spend recorded |
@@ -58,8 +59,8 @@ from the judge's log, tokens and cost from the harness's usage report.
 
 A stream is an ordered task list under one agent, with a state directory
 carried between tasks and mounted into every container as
-`$TIDE_STATE_DIR`. tide never reads it; whether carrying it helps is what
-gets measured.
+`$TIDE_STATE_DIR`. tide never reads its contents. The scores show
+whether carrying it helped.
 
 ```bash
 tide stream cl-bench --agent claude-code --model anthropic/claude-opus-5
@@ -72,9 +73,9 @@ separate stream with its own state. `--name` labels the stream (it becomes
 the `stream` tag and the state directory); without it the label is derived
 from the targets. Pass a new `--name` to run the same tasks again from
 empty memory, the way `--tag attempt=2` gives `tide run` a fresh attempt.
-Order is never implicit: a stream runs exactly the list you give it, and
-`--shuffle SEED` shuffles it deterministically, recording the seed as a
-tag (each seed is its own stream).
+A stream runs exactly the list you give it. `--shuffle SEED` shuffles
+that list deterministically and records the seed as a tag, so each seed
+is its own stream.
 
 Around each task, the live state directory is reset from the previous
 snapshot before the run and snapshotted after, so a crashed stream picks
@@ -105,7 +106,7 @@ row = await lab.run(  # asyncio: inside an async function or a notebook
     "tasks/autoresearch/frontier-cs/frontier-cs-algorithm-1",
     agent={"name": "claude-code", "model_name": "anthropic/claude-opus-5"},
     budget=Budget(time_h=2),  # or max_tokens=..., max_submissions=..., max_cost_usd=...
-    tags={"suite": "smoke"},  # free-form tags = your result schema
+    tags={"prompt": "v2"},  # free-form; each key becomes a df() column
 )
 row.rewards  # the trusted verdict
 row.uri  # the trial directory, for auditing
@@ -118,9 +119,9 @@ df.groupby(["model", "task"])["reward"].mean()
 ```
 
 Every run, from any script and any day, appends to the same table, so
-comparing agents is a query and [metrics](metrics.md) are functions over
-it. `lab.run_many([...])` runs a batch with bounded concurrency;
-`lab.df("trace")` returns the judge's per-submission log.
+comparing agents is a query over it and [metrics](metrics.md) are
+functions over it. `lab.run_many([...])` runs a batch with bounded
+concurrency; `lab.df("trace")` returns the judge's per-submission log.
 
 ## Resume
 
@@ -141,13 +142,14 @@ tide run autoresearch/first-party/circle-packing --local \
   --command "python examples/random_search.py" --budget 30s
 ```
 
-Same judge code as the container sidecar, but no isolation (even hidden
-tests are readable on your machine), so local rows carry a `local://`
-uri and are never trusted results. Develop locally, report container
-numbers. `--fake` and `python examples/quickstart.py` need no setup at
-all; their scores are simulated.
+The judge code is the same as the container sidecar's, but nothing is
+isolated (even hidden tests are readable on your machine), so local rows
+carry a `local://` uri and are never trusted results. Use local runs
+while developing and report the numbers from container runs. `--fake`
+and `python examples/quickstart.py` need no setup at all; their scores
+are simulated.
 
-## Where the data lands
+## Where the data is stored
 
 A `Lab` is a directory (`--lab`, default `runs/cli`):
 
@@ -162,7 +164,7 @@ runs/cli/
 ```
 
 `tide report` summarizes the store; every row's `uri` points back at its
-trial directory, so any number can be audited to its evidence.
+trial directory, so any number can be traced to the files behind it.
 
 ## Troubleshooting
 

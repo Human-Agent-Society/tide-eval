@@ -8,46 +8,47 @@
 
 An agent self-evolves when something it learned during a run persists
 past it: memory, a skill library, an evolved harness, updated weights.
-tide measures whether anything actually persisted, in the two task
-regimes where that shows up, and never trains anything itself
-([why, in detail](docs/design.md)).
+tide measures whether that state changes what the agent scores.
+It does not train anything itself ([why, in detail](docs/design.md)).
+The difference shows up in the two kinds of task below.
 
 **Autoresearch** is the kind of work DeepMind's
 [AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/)
 and [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) do:
 one open-ended optimization problem with a continuous score, hours of
-budget, and a judge scoring every submission. There is no "passed",
-only *how good, by when*:
+budget, and a judge scoring every submission. Nothing passes or fails;
+the result is the best score reached and when it was reached:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-hero-dark.svg">
-  <img src="docs/assets/readme-hero-light.svg" alt="The agent searches however it likes and submits what is worth scoring, within a submission limit. The judge holds all scoring code and data and scores every submission into a log. An optional final judge with hidden tests runs once on the best submission and locks the session. The reward and the submission log land in one table shared by every run, where agents can be compared." width="100%">
+  <img src="docs/assets/readme-hero-light.svg" alt="The agent searches however it likes and submits what is worth scoring, within a submission limit. The judge holds all scoring code and data and scores every submission into a log. An optional final judge with hidden tests runs once on the best submission and locks the session. The reward and the submission log are written to one table shared by every run, where agents can be compared." width="100%">
 </picture>
 
-**A stream of tasks** puts one agent through a
-[stream](docs/get-started.md#streams) of tasks in order (the setting used
-in [AgentStream](https://arxiv.org/abs/2608.00155) and
+**A stream of tasks** runs one agent through an ordered
+[stream](docs/get-started.md#streams) of tasks (the setting used in
+[AgentStream](https://arxiv.org/abs/2608.00155) and
 [CL-Bench](https://arxiv.org/pdf/2606.05661)), carrying what it learned
-from task to task:
+from one task to the next:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-stream-dark.svg">
-  <img src="docs/assets/readme-stream-light.svg" alt="One agent works through a stream of tasks in order. Each task runs in its own fresh container and is scored on its own, but the agent's memory directory is carried from task to task, with a snapshot kept at every step. Every task's reward lands in the same table as every other run, so the learning curve over the stream is a single query." width="100%">
+  <img src="docs/assets/readme-stream-light.svg" alt="One agent works through a stream of tasks in order. Each task runs in its own fresh container and is scored on its own, but the agent's memory directory is carried from task to task, with a snapshot kept at every step. Every task's reward is written to the same table as every other run, so the learning curve over the stream is a single query." width="100%">
 </picture>
 
-Tasks are 100% stock Harbor tasks (enforced by test). Agents are anything
-that can work inside a container, including your own harness or method.
+Tasks are 100% stock Harbor tasks, and a test enforces that. Any agent
+that can work inside a container can be run, including your own harness
+or method.
 
 ## Why not plain Harbor?
 
 tide is built on Harbor. Harbor provides the runtime: the task format,
 containers, agent adapters, the verifier, trajectories, `harbor job
 resume`, and `harbor view`. tide imports all of it and adds three things
-for evaluating agents that learn from signals produced during the run.
+for evaluating agents that learn during the run.
 
 | What tide adds | In code | Where |
 |---|---|---|
-| **A judge.** The agent can submit at any time. The judge scores and timestamps each submission, and its code and data are outside the agent's reach. | `POST $JUDGE_URL/submit`<br>`-> {"score": 0.83, "best": 0.91, "remaining": 47}` | [`judge_server.py`](tasks/_template/environment/judge_server.py) |
+| **A judge.** The agent can submit at any time. The judge scores and timestamps each submission, and its code and data stay outside the agent's container. | `POST $JUDGE_URL/submit`<br>`-> {"score": 0.83, "best": 0.91, "remaining": 47}` | [`judge_server.py`](tasks/_template/environment/judge_server.py) |
 | **Streams.** An ordered task list run under one agent. The carried state is snapshotted after each position. | `await Stream("wk1", tasks).run(lab, agent)` | [`stream.py`](tide/stream.py), [streams](docs/get-started.md#streams) |
 | **One append-only table.** Every run is written to it, keyed by (task, agent, tags). Runs can be bounded on four budget axes, and the metrics are functions over the rows. | `metrics.auc(metrics.anytime(lab.df("trace")))` | [`store.py`](tide/store.py), [`budget.py`](tide/budget.py), [metrics](docs/metrics.md) |
 
@@ -61,8 +62,8 @@ Full design (trust model, task conventions, data model, extensibility):
 First run? **[docs/get-started.md](docs/get-started.md)** walks from install
 to a scored task. Pointing a real agent at one needs two things, both in
 **[docs/running-agents.md](docs/running-agents.md)**: API credentials inside
-the container, and the hosts its network policy must allow. The full docs
-read in order from **[docs/](docs/README.md)**.
+the container, and the hosts its network policy must allow. The rest of
+the docs are in **[docs/](docs/README.md)**, in reading order.
 
 ### Run
 
@@ -89,8 +90,9 @@ tide run autoresearch/first-party/circle-packing --local \
   --command "python examples/random_search.py" --budget 30s
 ```
 
-Same judge code, no isolation, so local rows are never trusted results.
-Develop locally, report container numbers; the details are in
+The judge code is the same, but nothing is isolated, so local rows are
+never trusted results. Use local runs while developing and report the
+numbers from container runs; the details are in
 [get started](docs/get-started.md#no-docker-local-and-fake-runs).
 
 With Docker, `tide run cl-bench/bsm-s01 --agent oracle` proves the real
@@ -113,7 +115,7 @@ row = await lab.run(
     budget=Budget(
         time_h=2
     ),  # or max_tokens=500_000, max_submissions=50, max_cost_usd=3
-    tags={"suite": "smoke"},  # free-form tags = your schema
+    tags={"prompt": "v2"},  # free-form; each key becomes a df() column
 )
 row.rewards  # the judge's final verdict
 row.uri  # the trial directory, for auditing
@@ -137,7 +139,7 @@ from tide import Lab, Stream, metrics
 lab = Lab("runs/cl")
 stream = Stream(
     "my-stream",  # the name; a new one reruns the same tasks from empty memory
-    [  # ordered tasks, repeats allowed; the revisit is how forgetting shows
+    [  # ordered tasks, repeats allowed; repeating one measures forgetting
         "tasks/continual-learning/terminal-bench/chess-best-move",
         "tasks/continual-learning/terminal-bench/build-pmars",
         "tasks/continual-learning/terminal-bench/chess-best-move",
@@ -150,9 +152,9 @@ rows = await stream.run(
 )
 
 df = lab.df("episode")
-metrics.learning_curve(df, by=["stream"])  # does experience accumulate?
-metrics.forgetting(df)  # did the revisited task degrade?
-metrics.transfer(df, baseline_df)  # vs the same tasks run isolated (plain lab.run)
+metrics.learning_curve(df, by=["stream"])  # reward by position in the stream
+metrics.forgetting(df)  # the score change on the revisited task
+metrics.transfer(df, baseline_df)  # against the same tasks run alone (plain lab.run)
 ```
 
 Re-running the same stream resumes it. A stream's identity is its name plus
@@ -166,7 +168,7 @@ resumes where it left off. Full details:
 
 ### Evaluate your own agent
 
-Every task hands your agent `$JUDGE_URL` and a submission budget. Whichever
+Every task gives your agent a `$JUDGE_URL` and a submission budget. Whichever
 way you integrate, the task, judge, and results store are identical, so
 numbers stay comparable across methods:
 
@@ -177,7 +179,7 @@ numbers stay comparable across methods:
 | OpenEvolve, Codex, or CORAL | version-pinned runnable adapters: [`examples/run_harness.py`](examples/run_harness.py) |
 | another method that isn't an "agent" (evolutionary search, a solver) | POST candidates to `$JUDGE_URL/submit`, stop at 429 (about 20 lines) |
 
-The only thing you cannot bring is your own judge. Full guide:
+You cannot swap in your own judge. Full guide:
 **[docs/running-agents.md](docs/running-agents.md)**.
 
 ### Examples
@@ -200,7 +202,7 @@ as baselines. What each shows: [`examples/`](examples/README.md).
 | [EdgeBench](tasks/autoresearch/edgebench) | 51 · 2-12 h budgets | [ByteDance-Seed/EdgeBench](https://github.com/ByteDance-Seed/EdgeBench) | `tide run edgebench/<task> --budget <h>` |
 | [FrontierCS](tasks/autoresearch/frontier-cs) | 208 · 188 algorithmic + 20 research, incl. 4 GPU kernel | [FrontierCS/Frontier-CS](https://github.com/FrontierCS/Frontier-CS) | `tide run frontier-cs/<task> --agent <a>` |
 
-Each first-party task teaches one hard part of the category (held-out
+Each first-party task covers one hard part of the category (held-out
 grading, safely grading agent-shipped code, ...); the
 [catalog](tasks/README.md) lists every task with its oracle score. The
 [roadmap](https://github.com/Human-Agent-Society/tide-eval/issues/19) tracks
@@ -219,16 +221,16 @@ license, so its tasks are fetched onto your machine instead:
 | [SWE-bench Verified](tasks/continual-learning/swebench-verified) | 500 · fetched (upstream has no license) | [harbor-datasets](https://github.com/laude-institute/harbor-datasets) | `tide fetch swebench-verified --limit 50`, then `tide stream swebench-verified --agent <a>` |
 | [CL-Bench](tasks/continual-learning/cl-bench) | 301 · **all 6 domains** · committed | [continual-learning-bench](https://github.com/pgasawa/continual-learning-bench) (Apache-2.0) | `tide stream cl-bench --agent <a>` |
 
-SWE-bench Verified is the hardest of the benchmarks
-[AgentStream](https://arxiv.org/abs/2608.00155) builds its streams from
-that has a published Harbor version.
+Of the benchmarks [AgentStream](https://arxiv.org/abs/2608.00155) builds
+its streams from, SWE-bench Verified is the hardest one with a published
+Harbor version.
 [CL-Bench](tasks/continual-learning/cl-bench) ([paper](https://arxiv.org/pdf/2606.05661)) is
 a continual-learning benchmark in the strict sense: sequential instances
 of one environment where remembering should help, scored by the upstream
 metric in every domain (its *gain metric* is `metrics.transfer`). Where a
-domain has hidden state (the poker deck, the metered database), it lives
-in a judge sidecar the agent reaches only over HTTP. A stream also takes
-any task list you build yourself, repeats allowed; see
+domain has hidden state (the poker deck, the metered database), that
+state is kept in a judge sidecar the agent can only reach over HTTP. A
+stream also takes any task list you build yourself, repeats allowed; see
 [streams](docs/get-started.md#streams).
 
 ### Define a new task
