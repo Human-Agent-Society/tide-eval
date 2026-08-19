@@ -40,16 +40,17 @@ that can work inside a container, including your own harness or method.
 
 ## Why not plain Harbor?
 
-Harbor runs the trial, and tide imports it for that: task format,
-containers, agent adapters, the verifier, trajectories, `harbor job
-resume`, `harbor view`. Four things sit on top.
+tide runs on Harbor rather than beside it: Harbor is the runtime, and
+tide imports it for the task format, containers, agent adapters, the
+verifier, trajectories, `harbor job resume`, and `harbor view`. On top of
+that tide adds the three pieces it takes to measure an agent learning
+from signals produced during the run itself.
 
-| What tide adds | Why | Where |
+| What tide adds | In code | Where |
 |---|---|---|
-| A judge the agent can submit to whenever it likes, which scores and timestamps every submission | Harbor scores a trial where the task says to, and the reward has no time attached to it. The judge's log is the anytime curve, and the judge is what computed it | [`judge_server.py`](tasks/_template/environment/judge_server.py) |
-| Streams, which run an ordered task list and snapshot the carried state after each position | Every task therefore starts from a state you can point at, a stream that crashes resumes from its last snapshot, and adding a task to a finished stream only runs the new one | [`stream.py`](tide/stream.py), [streams](docs/get-started.md#streams) |
-| One append-only table holding every run, keyed by (task, agent, tags) | Comparing scores against budget, one benchmark against another, or a stream against its stateless baseline is a query over the same rows, and re-running a script skips whatever already finished | [`store.py`](tide/store.py), [`lab.py`](tide/lab.py) |
-| Budgets on four axes, and metrics that are ordinary functions over the table | Bound a run by time, evals, tokens or cost, then ask it for an AUC, a time-to-threshold, transfer or forgetting | [`budget.py`](tide/budget.py), [metrics](docs/metrics.md) |
+| **A judge.** The agent submits whenever it likes, and scoring code it cannot reach grades and timestamps every one. | `POST $JUDGE_URL/submit`<br>`-> {"score": 0.83, "best": 0.91, "remaining": 47}` | [`judge_server.py`](tasks/_template/environment/judge_server.py) |
+| **Streams.** An ordered task list under one agent, carrying state and snapshotting it after each position. | `await Stream("wk1", tasks).run(lab, agent)` | [`stream.py`](tide/stream.py), [streams](docs/get-started.md#streams) |
+| **One append-only table.** Every run lands in it, keyed by (task, agent, tags), bounded on four budget axes; metrics are plain functions over the rows. | `metrics.auc(metrics.anytime(lab.df("trace")))` | [`store.py`](tide/store.py), [`budget.py`](tide/budget.py), [metrics](docs/metrics.md) |
 
 Resume is episode-granular: a crashed 12-hour episode starts over.
 
