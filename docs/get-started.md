@@ -78,18 +78,28 @@ tide stream cl-bench --agent claude-code --model anthropic/claude-opus-5
 tide stream terminal-bench cl-bench --shuffle 1 --agent claude-code --model anthropic/claude-opus-5
 ```
 
-Targets come first, exactly as in `tide run`: a benchmark name expands to
-every task in it, in path order, and the stream runs that list. Re-running
-the same command resumes; a different agent, tags, budget, or task list is automatically a
-separate stream with its own state. `--name` labels the stream (it becomes
-the `stream` tag and the state directory); without it the label is derived
-from the targets. Pass a new `--name` to run the same tasks again from
-empty memory, the way `--tag attempt=2` gives `tide run` a fresh attempt.
-A stream runs exactly the list you give it. `--shuffle SEED` shuffles
-that list deterministically and records the seed as a tag, so each seed
-is its own stream. AgentStream's scenarios map onto this: sequential
-is the target order, interleaved is a seeded shuffle, and isolated is one
-stream per benchmark, with no state shared between them.
+Targets come first, exactly as in `tide run`, and they decide the order.
+A benchmark expands to every task inside it sorted by path, and several
+targets run in the order you typed them. `tide stream cl-bench` runs
+`bsm-s01`, `bsm-s02`, ... then `code-i01`, `cohort-...`, `dbx-q01`, and
+so on: domain by domain, and inside a domain the upstream sequence,
+because the converted names are zero-padded. `tide stream terminal-bench
+cl-bench` runs all of terminal-bench and then all of cl-bench.
+
+`tasks("cl-bench")` returns that same list in Python, so filtering,
+reordering, or repeating entries is ordinary list work before you hand it
+to `Stream`, which runs exactly the list it is given. `--shuffle SEED`
+shuffles the list deterministically and records the seed as a tag, so
+each seed is its own stream. AgentStream's scenarios map onto this:
+sequential is the target order, interleaved is a seeded shuffle, and
+isolated is one stream per benchmark, with no state shared between them.
+
+Re-running the same command resumes; a different agent, tags, budget, or
+task list is automatically a separate stream with its own state. `--name`
+labels the stream (it becomes the `stream` tag and the state directory);
+without it the label is derived from the targets. Pass a new `--name` to
+run the same tasks again from empty memory, the way `--tag attempt=2`
+gives `tide run` a fresh attempt.
 
 Around each task, the live state directory is reset from the previous
 snapshot before the run and snapshotted after, so a crashed stream picks
