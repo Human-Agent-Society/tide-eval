@@ -13,8 +13,8 @@ Every term tide uses, in one place. Terms link to the page that owns them.
 | oracle | Harbor's built-in agent that runs a task's reference `solution/`. Used to prove a task's pipeline end to end. |
 | autoresearch | One open-ended optimization problem with a continuous score, worked at for a whole budget, with a judge scoring every submission. One of the two regimes. See [design](design.md). |
 | session | One task's run against its judge, from the first submission to finalization. The final judge locks it, after which submissions are refused. |
-| regime | The shape of the work being measured: autoresearch (one open-ended problem) or a stream of tasks. The regime does not decide what the agent persists. See [design](design.md). |
-| self-evolving, continual learning | Something the agent learned persists past the run that produced it, as memory, skills, an evolved harness, or weights. It can show up in either regime, and tide measures it rather than performing it. |
+| regime | The shape of the work being measured: autoresearch (one open-ended problem) or a stream of tasks. Either regime works with any form of persisted state. See [design](design.md). |
+| self-evolving, continual learning | Something the agent learned persists past the run that produced it, as memory, skills, an evolved harness, or weights. It can show up in either regime, and tide measures its effect on the scores. |
 
 ## Scoring
 
@@ -34,7 +34,7 @@ Every term tide uses, in one place. Terms link to the page that owns them.
 |---|---|
 | Lab | A directory holding the results store; `Lab.run` executes one episode into it. See [get started](get-started.md#the-python-api). |
 | store | The append-only SQLite table behind a Lab. Two row kinds: `episode` and `trace`. |
-| tags | Free-form dimensions on every row (model, suite, budget, stream). There is no fixed schema; metrics document the columns they expect. |
+| tags | Free-form dimensions on every row (model, suite, budget, stream). Any key you pass becomes a column; metrics document the columns they expect. |
 | key | An episode's stable id, derived from (task, agent, tags, overrides) or passed explicitly. A key that already has a row is skipped, which is how re-running resumes. |
 
 ## Streams
