@@ -56,10 +56,11 @@ from the judge's log and tokens from the harness's usage report.
 
 The eval axis needs a judge, so it applies to autoresearch tasks. A
 stream task is graded by its verifier after the episode and has nothing
-to submit to, so `--max-evals` does nothing there. Time and tokens work
-in both regimes. In a stream the budget applies to each task on its own,
-and it is part of the stream's identity: run the same tasks under a
-different budget and you get a separate stream with its own state.
+to submit to, so `--max-evals` does nothing there and tide warns when a
+run sets it on such a task. Time and tokens work in both regimes. In a
+stream the budget applies to each task on its own, and it is part of the
+stream's identity: run the same tasks under a different budget and you
+get a separate stream with its own state.
 
 Some CL-Bench domains meter the agent themselves, such as the 15 SQL
 queries a dbx question allows. Those limits come from the task and its
