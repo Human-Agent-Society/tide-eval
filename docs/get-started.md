@@ -86,7 +86,9 @@ from the targets. Pass a new `--name` to run the same tasks again from
 empty memory, the way `--tag attempt=2` gives `tide run` a fresh attempt.
 A stream runs exactly the list you give it. `--shuffle SEED` shuffles
 that list deterministically and records the seed as a tag, so each seed
-is its own stream.
+is its own stream. AgentStream's scenarios map onto this: sequential
+is the target order, interleaved is a seeded shuffle, and isolated is one
+stream per benchmark, with no state shared between them.
 
 Around each task, the live state directory is reset from the previous
 snapshot before the run and snapshotted after, so a crashed stream picks
