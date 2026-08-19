@@ -18,8 +18,9 @@ design rules more than against style.
    `examples/`.
 4. **Dependency direction.** Catalog conversion scripts depend on published
    formats, never tide's runtime internals. Metrics import pandas, never tide.
-5. **Trust boundaries are tested, not asserted.** Anything claiming to be an
-   anti-cheating measure needs a test that actually cheats and fails. The
+5. **Anti-reward-hacking measures are tested.** Anything claiming to stop
+   an agent from gaming the score needs a test that actually cheats and
+   fails. The
    pattern is the zero-reward cases each task declares in
    `tests/grader_tests.json`, which `tests/test_task_suite.py` runs.
 6. **Measurement code fails loudly.** A missing metric column, a

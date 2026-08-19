@@ -53,8 +53,8 @@ specifically designed for evaluating agents that learn during the run.
 | **Streams.** An ordered task list run and solved by one agent. tide snapshots the agent state after each episode and transfers it to the next. | `await Stream("wk1", tasks).run(lab, agent)` | [`stream.py`](tide/stream.py), [streams](docs/get-started.md#streams) |
 | **One append-only table.** It stores every run, keyed by (task, agent, tags). tide provides various budget types for the agent runs, and provides common metrics for measuring self-evolving agents. | `metrics.auc(metrics.anytime(lab.df("trace")))` | [`store.py`](tide/store.py), [`budget.py`](tide/budget.py), [metrics](docs/metrics.md) |
 
-Full design (how scoring is isolated, task conventions, data model,
-extensibility): **[docs/design.md](docs/design.md)**.
+Full design (how tide prevents reward hacking, task conventions, data
+model, extensibility): **[docs/design.md](docs/design.md)**.
 
 ## Using tide
 

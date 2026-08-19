@@ -61,11 +61,11 @@ policy keeps the agent on the agent port only).
 | `GET /final` | the verifier, once, at the end (verifier port + token) | the final verdict + the full submission log. **Terminal**: the first call locks the session; later submissions are refused, repeat calls return the cached verdict. |
 | `GET /token` | the verifier (verifier port) | returns the per-session verifier token |
 
-Trust follows from the topology: scoring code and data live only in the
-judge image, the agent's network reaches only the judge's agent port
-(`network_mode = "allowlist"`, `allowed_hosts = ["judge"]`), and every
-number in the submission log was computed by the judge, which is why the
-score-over-time curve is trusted, not self-reported.
+The topology blocks reward hacking: scoring code and data are
+only in the judge image, the agent's network reaches only the judge's
+agent port (`network_mode = "allowlist"`, `allowed_hosts = ["judge"]`),
+and every number in the submission log was computed by the judge rather
+than reported by the agent.
 
 Lifecycle: the agent submits until its budget ends; the verifier then
 calls `GET /final`, the judge freezes the best submission by session
