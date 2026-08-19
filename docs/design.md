@@ -98,7 +98,7 @@ Three decisions define the judge model:
   tests (held-out data, stricter checks) and runs exactly once, on the
   best submission, when the verifier calls `GET /final`. That call locks
   the session: later submissions are refused and repeat calls return the
-  cached verdict, so an agent that calls it early terminates its own
+  cached grade, so an agent that calls it early terminates its own
   session.
   [symbolic-regression](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/autoresearch/first-party/symbolic-regression)
   is the reference: session feedback on training points, final grade on
@@ -133,7 +133,7 @@ two kinds:
 
 | kind | one row per | key shape | source |
 |---|---|---|---|
-| `episode` | one task run (= one Harbor trial) | `<key>` | the verifier's verdict (for judge tasks, the judge's final grade) |
+| `episode` | one task run (= one Harbor trial) | `<key>` | what the verifier returned (for judge tasks, the judge's final grade) |
 | `trace` | one submission | `<key>#t<i>` | the judge's submission log |
 
 Three decisions:

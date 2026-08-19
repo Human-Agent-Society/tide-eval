@@ -228,7 +228,7 @@ class LocalExecutor:
     ``judge_server.py`` that runs as a sidecar in containers is started as a
     local process, your command gets ``$JUDGE_URL`` (and ``$BUDGET_SEC``)
     and submits solutions to it, and the final result is the judge's
-    verdict. Being killed at the deadline is a normal ending.
+    grade. Being killed at the deadline is a normal ending.
 
     Fast and dependency-free, for the development loop. Local rows carry a
     ``local://`` uri because the judge ran on a machine the agent also

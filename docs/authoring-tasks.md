@@ -58,7 +58,7 @@ policy keeps the agent on the agent port only).
 
 | Request | Who calls it | What happens |
 |---|---|---|
-| `GET /final` | the verifier, once, at the end (verifier port + token) | the final verdict + the full submission log. **Terminal**: the first call locks the session; later submissions are refused, repeat calls return the cached verdict. |
+| `GET /final` | the verifier, once, at the end (verifier port + token) | the final grade + the full submission log. **Terminal**: the first call locks the session; later submissions are refused, repeat calls return the cached grade. |
 | `GET /token` | the verifier (verifier port) | returns the per-session verifier token |
 
 The topology blocks reward hacking: scoring code and data are
@@ -70,8 +70,8 @@ than reported by the agent.
 Lifecycle: the agent submits until its budget ends; the verifier then
 calls `GET /final`, the judge freezes the best submission by session
 score, runs `final.py` on it if present (else the best session score is
-the verdict), and locks the session. Repeat `/final` calls return the
-cached verdict and later submissions are refused, so the agent never
+the grade), and locks the session. Repeat `/final` calls return the
+cached grade and later submissions are refused, so the agent never
 observes the final evaluation or its result.
 
 ## The submission budget
@@ -94,7 +94,7 @@ data, stricter checks, anything the session score must not leak.
 [symbolic-regression](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/autoresearch/first-party/symbolic-regression) is the
 reference: the session scores on training points; the final judge scores
 once on held-out points, so no submission budget can be spent probing
-them. Without `final.py`, the final verdict is the best session score.
+them. Without `final.py`, the final grade is the best session score.
 
 ## The scoring contract
 

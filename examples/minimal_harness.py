@@ -61,7 +61,7 @@ async def main():
     )
     if row.tags.get("error"):
         raise SystemExit(f"the episode failed: {row.tags['error']}")
-    print("trusted reward:", row.rewards)  # the judge's final verdict
+    print("trusted reward:", row.rewards)  # the judge's final score
 
     trace = lab.df("trace")
     if not trace.empty:

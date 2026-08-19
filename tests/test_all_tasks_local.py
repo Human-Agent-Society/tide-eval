@@ -1,7 +1,7 @@
 """Every first-party task, end to end through its real judge, no Docker.
 
 For each task: start its judge locally, submit the reference solution from
-grader_tests.json, and require the final verdict to match. The session
+grader_tests.json, and require the final grade to match. The session
 score, or the final judge's number where the task has one (this is what
 proves symbolic-regression's held-out final judge actually runs).
 """

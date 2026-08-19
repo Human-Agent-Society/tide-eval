@@ -116,7 +116,7 @@ row = await lab.run(
     budget=Budget(time_h=2),  # or max_tokens=500_000, max_submissions=50
     tags={"prompt": "v2"},  # free-form; each key becomes a df() column
 )
-row.rewards  # the judge's final verdict
+row.rewards  # the judge's final score
 row.uri  # the trial directory, for auditing
 
 curve = metrics.anytime(lab.df("trace"))  # every submission's score, over time

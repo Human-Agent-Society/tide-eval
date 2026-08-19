@@ -116,7 +116,7 @@ async def main():
         },
         environment={"extra_allowed_hosts": INSTALL_HOSTS + API_HOSTS},
     )
-    print(row.rewards)  # the verifier's verdict for this codex run
+    print(row.rewards)  # the verifier's score for this codex run
 
 
 asyncio.run(main())

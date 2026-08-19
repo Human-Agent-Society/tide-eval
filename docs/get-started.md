@@ -118,7 +118,7 @@ row = await lab.run(  # asyncio: inside an async function or a notebook
     budget=Budget(time_h=2),  # or max_tokens=..., max_submissions=...
     tags={"prompt": "v2"},  # free-form; each key becomes a df() column
 )
-row.rewards  # the trusted verdict
+row.rewards  # the trusted score
 row.uri  # the trial directory, for auditing
 
 stream = Stream("demo", ["tasks/continual-learning/cl-bench/bsm-s01", "..."])
@@ -168,7 +168,7 @@ runs/cli/
 ├── results.sqlite                  # one table: episode rows + trace rows
 └── trials/<task>__<id>/
     ├── agent/trajectory.json       # every step, with tokens and duration
-    ├── verifier/reward.json        # the final verdict
+    ├── verifier/reward.json        # the final score
     ├── verifier/submissions.jsonl  # every judge-scored submission, with t
     └── result.json, config.json, trial.log
 ```

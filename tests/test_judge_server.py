@@ -1,4 +1,4 @@
-"""The judge: scoring, the submission budget, and the final verdict.
+"""The judge: scoring, the submission budget, and the final grade.
 
 Exercises the template's generic ``judge_server.py`` directly (no HTTP:
 the HTTP path is covered by the LocalExecutor tests, which run the same
@@ -111,7 +111,7 @@ def test_finalize_is_terminal_and_idempotent(monkeypatch, tmp_path):
     first = judge.final_result()
     assert first["reward"] == 0.7
 
-    # peeking again returns the cached verdict, not a re-run
+    # peeking again returns the cached grade, not a re-run
     assert judge.final_result() is first
     # and the session is over: no more submissions
     code, refused = submit(judge, {"x": 0.9})
