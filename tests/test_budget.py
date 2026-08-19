@@ -129,6 +129,38 @@ def test_no_budget_is_unchanged(tmp_path):
     assert "override_timeout_sec" not in ex.spec.agent
 
 
+def test_max_evals_on_a_task_without_a_judge_warns(tmp_path, caplog):
+    task = tmp_path / "verifier-only"
+    (task / "environment").mkdir(parents=True)
+    lab = Lab(tmp_path / "lab", executor=RecordingExecutor())
+    with caplog.at_level("WARNING", logger="tide"):
+        asyncio.run(lab.run(str(task), {"name": "a"}, budget=Budget(max_submissions=5)))
+        # once per Lab, however many episodes hit the same condition
+        asyncio.run(lab.run(str(task), {"name": "b"}, budget=Budget(max_submissions=5)))
+    assert sum("has no judge" in r.message for r in caplog.records) == 1
+
+
+def test_no_warning_when_the_task_has_a_judge(tmp_path, caplog):
+    task = tmp_path / "autoresearch-task"
+    (task / "environment").mkdir(parents=True)
+    (task / "environment" / "judge_config.json").write_text('{"max_submissions": 100}')
+    lab = Lab(tmp_path / "lab", executor=RecordingExecutor())
+    with caplog.at_level("WARNING", logger="tide"):
+        asyncio.run(lab.run(str(task), {"name": "a"}, budget=Budget(max_submissions=5)))
+    assert not [r for r in caplog.records if "has no judge" in r.message]
+
+
+def test_no_warning_for_time_and_token_budgets(tmp_path, caplog):
+    task = tmp_path / "verifier-only"
+    (task / "environment").mkdir(parents=True)
+    lab = Lab(tmp_path / "lab", executor=RecordingExecutor())
+    with caplog.at_level("WARNING", logger="tide"):
+        asyncio.run(
+            lab.run(str(task), {"name": "a"}, budget=Budget(time_h=1, max_tokens=1000))
+        )
+    assert not [r for r in caplog.records if "has no judge" in r.message]
+
+
 # ------------------------------------------------------------- usage extraction
 
 

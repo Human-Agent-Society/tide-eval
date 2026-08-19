@@ -54,6 +54,7 @@ class Lab:
         # atomic as long as it stays await-free; the lock documents that.
         self._inflight: dict[str, asyncio.Future[Row]] = {}
         self._inflight_lock = asyncio.Lock()
+        self._warned_no_judge = False
 
     # ------------------------------------------------------------- episodes
 
@@ -88,6 +89,7 @@ class Lab:
         overrides = dict(overrides)
         budget = Budget.coerce(budget)
         if budget is not None and not budget.is_empty:
+            self._warn_if_no_judge(task, budget)
             tags = {**budget.to_tags(), **tags}
             if budget.timeout_sec() is not None:
                 agent.setdefault("override_timeout_sec", budget.timeout_sec())
@@ -194,6 +196,32 @@ class Lab:
         return self.store.df(kind)
 
     # -------------------------------------------------------------- helpers
+
+    def _warn_if_no_judge(self, task: str, budget: Budget) -> None:
+        """Warn when a submission cap is set on a task that has no judge.
+
+        ``max_submissions`` is enforced by the judge sidecar, so a task
+        graded only by its verifier ignores it. The budget is still tagged
+        on the row, which makes the no-op easy to miss. Warns once per Lab,
+        and only for local task directories (a registry id is not readable
+        from here).
+        """
+        if budget.max_submissions is None or self._warned_no_judge:
+            return
+        task_dir = Path(task)
+        if not task_dir.is_dir():
+            return
+        if (task_dir / "environment" / "judge_config.json").is_file():
+            return
+        self._warned_no_judge = True
+        logger.warning(
+            "%s has no judge (environment/judge_config.json), so its "
+            "max_submissions=%s does nothing: the task is graded by its "
+            "verifier after the episode and has nothing to submit to. "
+            "Bound this run with time or tokens instead.",
+            task,
+            budget.max_submissions,
+        )
 
     @staticmethod
     def _digest(obj: Any) -> str:
