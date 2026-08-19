@@ -1,0 +1,38 @@
+name: E2E
+
+# The real thing: build every first-party task's containers, run the oracle
+# agent through Harbor, and require each score to match solve_sh_scores in
+# its grader_tests.json. Heavier than CI (installs Harbor, builds images),
+# so it runs on main pushes that touch the pipeline, and on demand.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "tide/**"
+      - "tasks/**"
+      - "scripts/e2e_oracle.py"
+      - "pyproject.toml"
+      - ".github/workflows/e2e.yml"
+
+jobs:
+  oracle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - name: Install tide + harbor
+        run: |
+          uv venv --python 3.12
+          uv pip install -e ".[harbor]"   # the pin lives in pyproject.toml
+      - name: Oracle gate (every first-party task, real containers)
+        run: uv run python scripts/e2e_oracle.py
+      - name: Show trial artifacts on failure
+        if: failure()
+        run: |
+          echo "=== files ==="; find runs -type f | head -80
+          echo "=== result.json ==="; cat runs/e2e-oracle/trials/*/result.json 2>/dev/null || true
+          echo "=== trial logs ==="; cat runs/e2e-oracle/trials/*/trial.log 2>/dev/null | tail -200 || true
+          echo "=== verifier dirs ==="; find runs/e2e-oracle/trials/*/verifier -type f -exec sh -c 'echo "--- $1"; cat "$1"' _ {} \; 2>/dev/null | head -80 || true
