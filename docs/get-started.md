@@ -137,9 +137,9 @@ concurrency; `lab.df("trace")` returns the judge's per-submission log.
 
 Every episode gets a key derived from the task path, the agent, the tags,
 and any overrides. A budget is recorded as tags, so it is part of the key
-too. The keys live in the results table inside the lab directory, which
-makes the rule: same lab directory and same key, the stored row is
-returned and nothing runs; anything else runs.
+too. The keys live in the results table inside the lab directory: when
+that table already has a row for the key, `run` returns the stored row
+and executes nothing, and otherwise the episode runs.
 
 Re-running the same script or the same `tide stream` command therefore
 picks up where it left off, and no daemon or job file has to remember
