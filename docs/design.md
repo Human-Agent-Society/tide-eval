@@ -93,9 +93,30 @@ kinds: an `episode` row per task run, and a `trace` row per submission
 
 ## How streams run
 
-A stream's state directory is snapshotted after each position and
-restored before the next, so every step's memory can be read back
-afterwards. A position's key covers the history that produced it and its
-snapshot carries the same prefix, so two streams sharing a name keep
-separate memory. The rest of the mechanics are in
+Each position is an ordinary episode in its own container. The state
+directory is what crosses between them:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant D as state directory<br/>(one live copy + a snapshot per position)
+    participant A as agent container<br/>(a fresh one per position)
+    participant V as verifier
+    participant S as results store
+
+    loop each task in the list, in order
+        D->>A: restore the previous snapshot, mount it at $TIDE_STATE_DIR
+        A->>A: work the task · write what should carry to that directory
+        Note over A: the episode ends (task done or budget spent)
+        A->>V: the finished container, graded from outside it
+        V->>S: 1 trusted episode row, tagged stream and position
+        A->>D: snapshot the ending state as snapshots/00N-…
+    end
+    Note over D,S: the directory reaches the next position and nothing else:<br/>tide never reads it, and it never reaches the verifier or the score
+```
+
+The snapshots are kept, so a step's memory can be read back afterwards
+against the score it produced. A position's key covers the history that
+produced it and its snapshot carries the same prefix, so two streams
+sharing a name keep separate memory. The rest of the mechanics are in
 [streams](get-started.md#streams).
