@@ -51,18 +51,18 @@ Normalizers:
 
 ## The column contract
 
-The store never fixes a result schema; instead **each metric documents the
-columns it expects** and your script supplies them as tags.
+**Each metric documents the columns it expects**, and your script
+supplies them as tags.
 
 Two more rules keep the numbers comparable:
 
 1. **Raw in the store, normalized in the view**: rescales apply at query
-   time, so re-anchoring never requires re-running anything.
-2. **Missing expectations are loud**: a degenerate input raises rather
-   than silently returning half an answer.
+   time, so re-anchoring is a query over rows you already have.
+2. **Missing expectations are loud**: a degenerate input raises an
+   error.
 
 ## Add a metric
 
 One pure function + a docstring declaring its expected columns + a
 small-frame test (see `tests/test_metrics.py`; each is 5-10 lines).
-There is no registry to update.
+Defining the function is the whole step.

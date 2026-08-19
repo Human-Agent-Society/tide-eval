@@ -32,18 +32,19 @@ records the actual spend either way.
 ## The continual-learning contract
 
 A [stream](get-started.md#streams) episode is an ordinary Harbor task graded
-by its verifier; there is no judge to talk to. The one addition is
+by its verifier; the judge endpoint exists only on autoresearch tasks.
+The one addition is
 `$TIDE_STATE_DIR`: a directory mounted into every container of the
 stream and carried from task to task. Read it at the start, write
 whatever your future self should know; tide snapshots it after every
-task and never reads it. There is no prescribed format: notes, a skill
-library, an evolved harness.
+task and never reads it. The format is yours: notes, a skill library, an
+evolved harness.
 
 tide only sets the variable. Making the agent use it is part of your
 method: a custom harness reads it directly, and a supported harness
 needs the run's instruction or system prompt to point at it.
 
-Carrying state is not tied to streams. `lab.run(task, agent=...,
+Carrying state also works outside streams. `lab.run(task, agent=...,
 state_dir="path/to/memory")` mounts the same directory into a single
 episode, so a method can accumulate state inside one autoresearch
 problem.
@@ -212,10 +213,9 @@ credentials:
 
 ## Comparing fairly
 
-- **You cannot bring your own judge.** Scores come from the task's judge
-  or they don't exist. Different scoring rule = a new task
-  ([`tasks/_template`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/_template)), not a new judge for an
-  existing one.
+- **Scores come from the task's judge.** A different scoring rule means a
+  new task, built from
+  [`tasks/_template`](https://github.com/Human-Agent-Society/tide-eval/tree/main/tasks/_template).
 - **Compare methods at the same `budget` tag**, on the same tasks. All
   scores are judge-computed, so the curve comparison is as trustworthy as
   the endpoint comparison. `oracle` and `nop` bracket the plausible range.

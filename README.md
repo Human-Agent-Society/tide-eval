@@ -8,16 +8,16 @@
 
 An agent self-evolves when something it learned during a run persists
 past it: memory, a skill library, an evolved harness, updated weights.
-tide measures whether that state changes what the agent scores.
-It does not train anything itself ([why, in detail](docs/design.md)).
-The difference shows up in the two kinds of task below.
+tide measures whether that state changes what the agent scores. It
+supports two kinds of task ([why, in detail](docs/design.md)).
 
 **Autoresearch** is the kind of work DeepMind's
 [AlphaEvolve](https://deepmind.google/discover/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/)
 and [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) do:
 one open-ended optimization problem with a continuous score, hours of
-budget, and a judge scoring every submission. Nothing passes or fails;
-the result is the best score reached and when it was reached:
+budget, and a judge scoring every submission. The optimal score is
+unknown, so a result is the best score reached and how early it got
+there:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme-hero-dark.svg">
@@ -179,7 +179,7 @@ numbers stay comparable across methods:
 | OpenEvolve, Codex, or CORAL | version-pinned runnable adapters: [`examples/run_harness.py`](examples/run_harness.py) |
 | another method that isn't an "agent" (evolutionary search, a solver) | POST candidates to `$JUDGE_URL/submit`, stop at 429 (about 20 lines) |
 
-You cannot swap in your own judge. Full guide:
+Scores always come from the task's judge. Full guide:
 **[docs/running-agents.md](docs/running-agents.md)**.
 
 ### Examples
