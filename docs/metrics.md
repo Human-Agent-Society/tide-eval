@@ -63,6 +63,5 @@ Two more rules keep the numbers comparable:
 
 ## Add a metric
 
-One pure function + a docstring declaring its expected columns + a
-small-frame test (see `tests/test_metrics.py`; each is 5-10 lines).
+One pure function with a docstring declaring its expected columns.
 Defining the function is the whole step.

@@ -59,20 +59,14 @@ sequenceDiagram
 
 `score.py` grades every submission and only judge scores are recorded.
 The submission budget in `judge_config.json` bounds judge compute and
-information leakage, the same mechanism as Kaggle's daily submission
-limits. The optional `final.py` holds hidden tests and runs once, on the
-best submission, when the verifier calls `GET /final`; that call locks
-the session, so an agent that calls it early ends its own run.
+information leakage. The optional `final.py` holds hidden tests and runs
+once, on the best submission, when the verifier calls `GET /final`; that
+call locks the session, so an agent that calls it early ends its own run.
 
 In streams the verifier grades each position, and tasks with hidden state
 reuse the judge pattern as a sidecar. The state directory the agent
 carries is the one surface it writes, and it feeds the agent's later runs
 and nothing else.
-
-Both are tested: `tests/test_task_suite.py` feeds every scorer its task's
-cheat cases and requires exactly zero for each, and the E2E workflow runs
-the oracle agent through real containers and requires its exact known
-score.
 
 ## One table
 
